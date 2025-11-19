@@ -279,9 +279,9 @@ export function ProductsTable({
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by brand" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Brands</SelectItem>
-              {brands.slice(0, 50).map((brand) => (
+            <SelectContent className="max-h-[300px]">
+              <SelectItem value="all">All Brands ({brands.length})</SelectItem>
+              {brands.map((brand) => (
                 <SelectItem key={brand.id} value={brand.id}>
                   {brand.name}
                 </SelectItem>
@@ -296,9 +296,9 @@ export function ProductsTable({
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.slice(0, 50).map((category) => (
+            <SelectContent className="max-h-[300px]">
+              <SelectItem value="all">All Categories ({categories.length})</SelectItem>
+              {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
                 </SelectItem>

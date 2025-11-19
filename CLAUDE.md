@@ -334,6 +334,47 @@ api.HandleFunc("/products/bulk", handler.BulkUpdateProducts).Methods("PATCH", "O
 api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
 ```
 
+### Code Quality Improvements (Nov 2025)
+
+Product detail page (`admin-intelect/src/app/products/[id]/page.tsx`) improvements:
+
+1. **Clipboard Error Handling**: Try-catch wrapper for clipboard API
+   ```typescript
+   const handleCopy = async () => {
+     try {
+       await navigator.clipboard.writeText(text);
+       setCopied(true);
+       setTimeout(() => setCopied(false), 2000);
+     } catch (err) {
+       console.error("Failed to copy to clipboard:", err);
+     }
+   };
+   ```
+
+2. **Race Condition Prevention**: Cancellation pattern in useEffect for async data fetching
+   ```typescript
+   useEffect(() => {
+     let cancelled = false;
+     async function fetchData() {
+       const { id } = await params;
+       if (cancelled) return;
+       // ... fetch data
+       if (cancelled) return;
+       // ... set state
+     }
+     fetchData();
+     return () => { cancelled = true; };
+   }, [params]);
+   ```
+
+3. **Empty Array Guards**: Check array length before Math.min/max
+   ```typescript
+   if (pricesForCurrency.length === 0) return null;
+   const minPrice = Math.min(...pricesForCurrency);
+   ```
+
+4. **Select Performance**: max-h-[300px] on SelectContent for large lists (1000+ items)
+
 ## Database Queries
 
 ```sql

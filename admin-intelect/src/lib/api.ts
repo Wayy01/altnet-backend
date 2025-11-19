@@ -139,30 +139,33 @@ class ApiClient {
     return response.data;
   }
 
-  // Dashboard stats - we'll aggregate from multiple endpoints
+  // Dashboard stats - use the dedicated backend endpoint
   async getDashboardStats(): Promise<DashboardStats> {
-    // Since the backend doesn't have a dedicated stats endpoint,
-    // we'll fetch counts from the available endpoints
-    const [productsRes, brandsRes, categoriesRes] = await Promise.all([
-      this.getProducts({}, 1, 0),
-      this.getBrands(1, 0),
-      this.getCategories(),
-    ]);
+    const response = await this.fetch<{
+      data: {
+        total_products: number;
+        total_brands: number;
+        total_categories: number;
+        total_properties: number;
+        total_characteristics: number;
+        products_in_stock: number;
+        products_out_of_stock: number;
+        total_stock_value: number;
+        last_sync_at: string | null;
+        last_sync_status: string;
+        recent_activity: unknown[];
+      }
+    }>(`/api/v1/dashboard/stats`);
 
-    // Get in-stock count
-    const inStockRes = await this.getProducts({ in_stock: true }, 1, 0);
-
-    // Note: properties, characteristics, prices, and stock counts require
-    // a dedicated backend stats endpoint. Showing 0 until implemented.
     return {
-      total_products: productsRes.total,
-      total_brands: brandsRes.total,
-      total_categories: categoriesRes.total,
-      total_properties: 0, // TODO: Backend stats endpoint needed
-      total_characteristics: 0, // TODO: Backend stats endpoint needed
-      total_prices: 0, // TODO: Backend stats endpoint needed
-      total_stock: 0, // TODO: Backend stats endpoint needed
-      in_stock_products: inStockRes.total,
+      total_products: response.data.total_products,
+      total_brands: response.data.total_brands,
+      total_categories: response.data.total_categories,
+      total_properties: response.data.total_properties,
+      total_characteristics: response.data.total_characteristics,
+      total_prices: response.data.total_characteristics, // Use characteristics as proxy for prices
+      total_stock: response.data.products_in_stock + response.data.products_out_of_stock,
+      in_stock_products: response.data.products_in_stock,
     };
   }
 
