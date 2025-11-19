@@ -1,273 +1,244 @@
-# Ultra B2B API Testing Tool
+# Ultra B2B Data Sync
 
-A comprehensive Go application for fetching and testing data from the IT-Ultra B2B SOAP API with a flexible multi-source database architecture.
+A Go application for fetching and storing the complete Ultra B2B product catalog with properties and characteristics (variants).
 
 ## Features
 
-- ✅ **Complete Ultra API Integration**: Fetches ALL services (NOMENCLATURE, BRAND, PRICELIST, BALANCE, RATES)
-- ✅ **Malformed XML Handling**: Automatically fixes broken XML from the API
-- ✅ **Multi-Source Architecture**: Database designed to handle multiple data sources (Ultra, Intelect, etc.)
-- ✅ **Automatic Unification**: Smart matching and deduplication across sources
-- ✅ **Complete Audit Trail**: Tracks every sync with detailed metrics
-- ✅ **Graceful Degradation**: Continues even if optional services fail
-- ✅ **SOAP Client**: Full implementation of all 7 Ultra API functions
+- **Complete Ultra API Integration**: Fetches ALL services (Products, Brands, Categories, Prices, Stock, Rates)
+- **Malformed XML Handling**: Automatically fixes broken XML from the API
+- **Normalized Database**: Products, Properties, and Characteristics in separate tables
+- **REST API**: Query products with properties and variants
+- **Complete Audit Trail**: Tracks every sync with detailed metrics
 
 ## Quick Start
 
-### 1. Prerequisites
+### Prerequisites
 
 - Go 1.21+
 - PostgreSQL 14+
 - Ultra B2B API credentials
 
-### 2. Setup Database
+### Setup
 
 ```bash
 # Create database
-createdb api-testing
+createdb ultra-data
 
 # Run migration
-psql api-testing < migrations/001_multi_source_architecture.sql
-```
+psql -d ultra-data -f migrations/003_ultra_data_schema.sql
 
-### 3. Configure
-
-```bash
-# Copy example environment file
+# Configure
 cp .env.example .env
-
 # Edit .env with your credentials
-nano .env
 ```
 
-Required environment variables:
+Required in `.env`:
 ```bash
-# Database
+DB_NAME=ultra-data
 DB_PASSWORD=your_postgres_password
-DB_NAME=api-testing
 
-# Ultra API
-ULTRA_API_URL=https://portal.it-ultra.com/b2b/ru/ws/b2b.1cws?wsdl
-ULTRA_API_USERNAME=your_ultra_username
-ULTRA_API_PASSWORD=your_ultra_password
+ULTRA_API_URL=https://portal.it-ultra.com/b2b/ws/b2b.1cws
+ULTRA_API_USERNAME=your_username
+ULTRA_API_PASSWORD=your_password
 ```
 
-### 4. Run
+### Run
 
 ```bash
 # Install dependencies
 go mod download
 
-# Run the sync
+# Run sync (fetches all data from Ultra API)
 go run cmd/sync/main.go
+
+# Start REST API server
+go run cmd/unified-api/main.go
 ```
 
-## What It Does
+## Sync Process
 
-The tool performs a complete synchronization of the Ultra B2B catalog:
+The sync performs 7 steps:
 
-### Step-by-Step Process
-
-1. **Test Connection** - Verifies Ultra API is reachable
-2. **Fetch Brands** - Downloads all brands with logos
-3. **Fetch Categories** - Downloads hierarchical category tree
-4. **Fetch Products** - Downloads complete product catalog with:
-   - Product details (name, code, article)
-   - Characteristics (variants)
-   - Properties (attributes)
-   - Images (auto-constructs CDN URLs)
-   - Barcodes
-5. **Fetch Prices** - Multi-currency pricing data
-6. **Fetch Stock** - Warehouse + showroom stock levels
-7. **Fetch Rates** - Current exchange rates
+1. **Brands** - Downloads all brands with logos (1,133)
+2. **Categories** - Downloads category hierarchy (418)
+3. **Products** - Downloads products with images, barcodes, and characteristics (48,316)
+4. **Properties** - Fetches properties per category (876,081 total, ~35 min)
+5. **Prices** - Updates prices for characteristics (36,682)
+6. **Stock** - Updates stock levels (15,488)
+7. **Exchange Rates** - Current rates
 
 ### Expected Output
 
 ```
-=== Ultra B2B API Testing Tool ===
-✓ Configuration loaded
-✓ Database connected
-✓ Ultra source found (ID: xxx, Priority: 80)
+=== Ultra B2B Data Sync Tool ===
+Configuration loaded
+Database connected
 
-📡 Testing Ultra API connection...
-✓ Ultra API connection successful
-✓ Sync run created (ID: xxx)
+Testing Ultra API connection...
+Ultra API connection successful
+Sync started (ID: xxx)
 
-🚀 Starting data synchronization...
+Starting data synchronization...
 
---- Step 1/6: Fetching Brands ---
-Fetching BRAND service...
-✓ Fetched 250 brands
-✓ Saved 250 brands to database
+--- Step 1/7: Fetching Brands ---
+Fetched 1133 brands
+Saved 1133 brands to database
 
---- Step 2/6: Fetching Categories ---
-Fetching NOMENCLATURETYPELIST service...
-✓ Fetched 450 categories
-✓ Saved 450 categories to database
+--- Step 2/7: Fetching Categories ---
+Fetched 418 categories
+Saved 418 categories to database
 
---- Step 3/6: Fetching Products ---
-Fetching NOMENCLATURE service...
-✓ Fetched 5420 products
-✓ Saved 5420 products to database (4890 with images)
+--- Step 3/7: Fetching Products ---
+Fetched 48316 products
+Saved 48316 products to database
+Saved 460 characteristics to database
 
---- Step 4/6: Fetching Prices ---
-Fetching PRICELIST service...
-✓ Fetched prices for 5200 products
-✓ Updated prices for 5200 products
-
---- Step 5/6: Fetching Stock ---
-Fetching BALANCE service...
-✓ Fetched stock for 5100 products
-✓ Updated stock for 5100 products
-
---- Step 6/6: Fetching Exchange Rates ---
-Fetching RATES service...
-✓ Fetched 3 exchange rates
-
-✅ Sync completed successfully!
+--- Step 4/7: Fetching Properties ---
+Fetching properties for category: Smartphones (500 products)
+...
 
 === Sync Summary ===
-Duration: 180 seconds
+Duration: 2715 seconds
 Status: success
-Brands: 250
-Categories: 450
-Products: 5420
-  - With Prices: 5200
-  - With Stock: 5100
-  - With Images: 4890
+Brands: 1133
+Categories: 418
+Products: 48316
+Properties: 876081
+Characteristics: 460
+Prices: 36682
+Stock: 15488
 ```
 
-## Database Architecture
+## Database Schema
 
-### Design Philosophy
+### Tables
 
-The database uses a **source-agnostic architecture** where adding new data sources requires **ZERO schema changes**.
+| Table | Records | Purpose |
+|-------|---------|---------|
+| `products` | 48,316 | Main product catalog |
+| `properties` | 876,081 | Product specifications (linked to products) |
+| `characteristics` | 460 | Product variants/SKUs with prices and stock |
+| `brands` | 1,133 | Brand catalog |
+| `categories` | 418 | Product categories |
+| `exchange_rates` | 3 | Currency rates |
+| `sync_logs` | - | Audit trail |
 
-### Key Tables
+### Key Relationships
 
-| Table | Purpose |
-|-------|---------|
-| `data_sources` | Registry of all sources (Ultra, Intelect, etc.) |
-| `brand_sources` | Original brand data from each source |
-| `brands` | Unified brands across all sources |
-| `category_sources` | Original category data from each source |
-| `categories` | Unified categories with LTREE hierarchy |
-| `product_sources` | Original product data from each source |
-| `products` | Unified products with merged prices/stock |
-| `entity_matches` | Tracks how entities are matched across sources |
-| `sync_runs` | Complete audit trail of all syncs |
-
-### Adding a New Source
-
-Simply INSERT into `data_sources` table:
-
-```sql
-INSERT INTO data_sources (
-    source_code, source_name, source_type, priority
-) VALUES (
-    'amazon', 'Amazon MWS API', 'api', 70
-);
+```
+brands ──┐
+         ├── products ── properties
+categories┘      │
+                 └── characteristics (with prices & stock)
 ```
 
-The system automatically:
-- Creates `brand_sources`, `category_sources`, `product_sources` entries
-- Matches entities to unified tables
-- Resolves conflicts using priority
+### Properties vs Characteristics
 
-See [`DATABASE_ARCHITECTURE.md`](DATABASE_ARCHITECTURE.md) for complete documentation.
+- **Properties**: Technical specifications (e.g., "Storage: 32GB", "Weight: 3g")
+- **Characteristics**: Product variants with their own prices and stock (e.g., "Black 256GB", "White 128GB")
+
+## REST API
+
+Server runs on `http://localhost:8080`
+
+### Endpoints
+
+```bash
+# Products
+GET /api/v1/products                      # List products
+GET /api/v1/products/{id}                 # Get product details
+GET /api/v1/products/{id}/properties      # Get product specifications
+GET /api/v1/products/{id}/characteristics # Get product variants
+
+# Other
+GET /api/v1/brands                        # List brands
+GET /api/v1/categories                    # List categories
+GET /api/v1/search?q=query                # Search products
+```
+
+### Query Parameters
+
+- `limit` - Results per page (default: 50, max: 100)
+- `offset` - Pagination offset
+- `brand_id` - Filter by brand UUID
+- `category_id` - Filter by category UUID
+- `in_stock` - Filter in-stock products (true/false)
+- `min_price` / `max_price` - Price range filter
+
+### Examples
+
+```bash
+# Get 10 products
+curl "http://localhost:8080/api/v1/products?limit=10"
+
+# Get product properties
+curl "http://localhost:8080/api/v1/products/{id}/properties"
+
+# Search for products
+curl "http://localhost:8080/api/v1/search?q=iphone"
+
+# Filter in-stock products with price range
+curl "http://localhost:8080/api/v1/products?in_stock=true&min_price=100&max_price=500"
+```
 
 ## Project Structure
 
 ```
 ultra-api-testing/
 ├── cmd/
-│   └── sync/
-│       └── main.go              # Main application entry point
+│   ├── sync/main.go           # Main sync application
+│   └── unified-api/main.go    # REST API server
 ├── internal/
-│   ├── config/
-│   │   └── config.go            # Configuration management
-│   ├── database/
-│   │   └── db.go                # Database connection pool
-│   ├── models/
-│   │   └── models.go            # Data models (Brand, Product, etc.)
-│   ├── repository/
-│   │   └── repository.go        # Database operations
+│   ├── config/config.go       # Configuration management
+│   ├── database/db.go         # Database connection pool
+│   ├── models/models.go       # Data models
+│   ├── repository/repository.go # Database operations
+│   ├── handlers/handlers.go   # HTTP request handlers
 │   └── ultra/
-│       ├── client.go            # SOAP API client
-│       ├── parser.go            # XML parser (handles malformed XML)
-│       └── fetcher.go           # Service fetchers
+│       ├── client.go          # SOAP API client
+│       ├── parser.go          # XML parser (fixes malformed XML)
+│       └── fetcher.go         # Service fetchers
 ├── migrations/
-│   └── 001_multi_source_architecture.sql  # Database schema
-├── .env.example                 # Example environment file
-├── go.mod                       # Go module definition
-├── DATABASE_ARCHITECTURE.md     # Database design docs
-└── README.md                    # This file
+│   └── 003_ultra_data_schema.sql  # Database schema
+├── .env.example               # Example environment file
+└── README.md
 ```
 
-## API Services
+## Querying Data
 
-The tool supports **ALL** Ultra B2B API services:
-
-| Service | API Name | Implemented | Notes |
-|---------|----------|-------------|-------|
-| Products | `NOMENCLATURE` | ✅ | Complete with variants, images, properties |
-| Brands | `BRAND` | ✅ | Includes logos |
-| Categories | `NOMENCLATURETYPELIST` | ✅ | Hierarchical structure |
-| Prices | `PRICELIST` | ✅ | Multi-currency support |
-| Stock | `BALANCE` | ✅ | Warehouse + showroom |
-| Exchange Rates | `RATES` | ✅ | Current rates |
-| Properties | `PROPERTIES` | ⏸️ | Skipped (30min fetch, mostly empty) |
-| Parent List | `PARENTLIST` | ⏸️ | Not yet needed |
-| Order Status | `ORDERSSTAT` | ⏸️ | Future enhancement |
-
-## Querying the Data
-
-### Get All Products from Ultra
+### SQL Examples
 
 ```sql
-SELECT
-    ps.name,
-    ps.code,
-    ps.prices,
-    ps.stock,
-    ps.images
-FROM product_sources ps
-JOIN data_sources ds ON ds.id = ps.source_id
-WHERE ds.source_code = 'ultra'
-  AND ps.is_active = true
+-- Connect
+psql -d ultra-data
+
+-- Product with properties
+SELECT p.name, pr.property_name, pr.value, pr.group_name
+FROM products p
+JOIN properties pr ON pr.product_id = p.id
+WHERE p.code = '62949'
 LIMIT 10;
-```
 
-### Get Products with Prices and Stock
-
-```sql
-SELECT
-    ps.name,
-    ps.code,
-    ps.prices->>'prices' as prices,
-    ps.stock->>'total' as total_stock
-FROM product_sources ps
-WHERE ps.prices IS NOT NULL
-  AND ps.stock IS NOT NULL
-ORDER BY ps.name
-LIMIT 20;
-```
-
-### Get Sync History
-
-```sql
-SELECT
-    ds.source_name,
-    sr.started_at,
-    sr.status,
-    sr.duration_seconds,
-    sr.products_with_data,
-    sr.products_with_prices,
-    sr.products_with_stock
-FROM sync_runs sr
-JOIN data_sources ds ON ds.id = sr.source_id
-ORDER BY sr.started_at DESC
+-- Product variants with prices
+SELECT p.name, c.name as variant, c.prices, c.stock_total
+FROM products p
+JOIN characteristics c ON c.product_id = p.id
 LIMIT 10;
+
+-- Products with most properties
+SELECT p.name, count(pr.id) as prop_count
+FROM products p
+JOIN properties pr ON pr.product_id = p.id
+GROUP BY p.id, p.name
+ORDER BY prop_count DESC
+LIMIT 10;
+
+-- Count all tables
+SELECT 'brands' as tbl, count(*) FROM brands
+UNION SELECT 'categories', count(*) FROM categories
+UNION SELECT 'products', count(*) FROM products
+UNION SELECT 'properties', count(*) FROM properties
+UNION SELECT 'characteristics', count(*) FROM characteristics;
 ```
 
 ## Troubleshooting
@@ -278,79 +249,39 @@ LIMIT 10;
 Failed to connect to database: connection refused
 ```
 
-**Solution**: Ensure PostgreSQL is running and credentials in `.env` are correct.
-
+Ensure PostgreSQL is running:
 ```bash
-# Check PostgreSQL status
 pg_ctl status
-
-# Start PostgreSQL
 pg_ctl start
 ```
 
 ### Ultra API Authentication Failed
 
 ```
-SOAP fault: Server.Unauthorized - Invalid credentials
+SOAP fault: Server.Unauthorized
 ```
 
-**Solution**: Verify `ULTRA_API_USERNAME` and `ULTRA_API_PASSWORD` in `.env`.
+Verify credentials in `.env`:
+- `ULTRA_API_USERNAME`
+- `ULTRA_API_PASSWORD`
 
-### XML Parsing Errors
+### Slow Sync
 
-```
-failed to parse XML: invalid character entity
-```
-
-**Solution**: The parser should automatically fix malformed XML. If you see this error, the API returned unusually broken XML. Check `internal/ultra/parser.go` for additional patterns to fix.
-
-### Slow Sync (>10 minutes)
-
-The sync should complete in 2-5 minutes for a typical catalog. If slower:
-
-- Check network connection to Ultra API
-- Verify `ULTRA_API_POLL_INTERVAL` is set to 5s (not 1s)
-- Ensure PostgreSQL has adequate resources
+Properties fetch takes ~35 minutes (418 categories, ~5 sec each). This is expected due to API rate limits.
 
 ## Development
 
-### Run Tests
-
 ```bash
+# Run tests
 go test ./...
-```
 
-### Build Binary
-
-```bash
+# Build binary
 go build -o bin/ultra-sync cmd/sync/main.go
-```
 
-### Run Binary
-
-```bash
+# Run binary
 ./bin/ultra-sync
 ```
-
-## Future Enhancements
-
-- [ ] Automatic entity matching/unification
-- [ ] Incremental sync (fetch only changed data)
-- [ ] Web dashboard for viewing synced data
-- [ ] REST API for querying unified catalog
-- [ ] Real-time webhooks from Ultra
-- [ ] ML-based product matching across sources
-- [ ] Parallel fetching of services
-- [ ] Export to CSV/JSON
 
 ## License
 
 MIT
-
-## Support
-
-For issues or questions:
-1. Check existing GitHub issues
-2. Review `DATABASE_ARCHITECTURE.md` for schema questions
-3. Verify `.env` configuration
-4. Check PostgreSQL logs: `tail -f /var/log/postgresql/postgresql-XX-main.log`
