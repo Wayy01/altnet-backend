@@ -1397,19 +1397,45 @@ func (r *Repository) UpdateProductPricesFromJSONB(ctx context.Context) error {
 
 // GroupProductVariants groups product variants by base name
 // Products with similar names (e.g., "iPhone 16 128GB" and "iPhone 16 256GB") are grouped together
+// Handles multiple naming patterns:
+// - Standard: "iPhone 16 Pro Max, 512GB Desert Titanium MD"
+// - Samsung RAM/Storage: "Fold7 12/256Gb Jet Black"
 func (r *Repository) GroupProductVariants(ctx context.Context) error {
 	_, err := r.pool.Exec(ctx, `
 		WITH variant_groups AS (
 			SELECT
 				brand_id,
 				category_id,
-				regexp_replace(name, '\s+\d+(GB|TB)(\s|$)', '', 'g') as base_name,
+				-- Extract base name by removing storage patterns
+				-- Step 1: Remove RAM/Storage patterns like "12/256Gb", "16/1Tb"
+				-- Step 2: Remove standalone storage like ", 512GB", " 256GB"
+				-- Step 3: Replace remaining commas with space
+				-- Step 4: Clean up multiple spaces
+				trim(regexp_replace(
+					regexp_replace(
+						regexp_replace(
+							regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
+							',?\s*\d+\s*(GB|TB)', '', 'gi'
+						),
+						',\s*', ' ', 'g'
+					),
+					'\s+', ' ', 'g'
+				)) as base_name,
 				array_agg(id ORDER BY name) as product_ids,
 				count(*) as variant_count
 			FROM products
 			WHERE is_active = true
 			GROUP BY brand_id, category_id,
-			         regexp_replace(name, '\s+\d+(GB|TB)(\s|$)', '', 'g')
+			         trim(regexp_replace(
+						regexp_replace(
+							regexp_replace(
+								regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
+								',?\s*\d+\s*(GB|TB)', '', 'gi'
+							),
+							',\s*', ' ', 'g'
+						),
+						'\s+', ' ', 'g'
+					))
 			HAVING count(*) > 1
 		)
 		UPDATE products p
@@ -1556,6 +1582,7 @@ type DashboardStats struct {
 	TotalCategories      int                      `json:"total_categories"`
 	TotalProperties      int                      `json:"total_properties"`
 	TotalCharacteristics int                      `json:"total_characteristics"`
+	TotalPrices          int                      `json:"total_prices"`
 	ProductsInStock      int                      `json:"products_in_stock"`
 	ProductsOutOfStock   int                      `json:"products_out_of_stock"`
 	TotalStockValue      float64                  `json:"total_stock_value"`
@@ -1576,6 +1603,7 @@ func (r *Repository) GetDashboardStats(ctx context.Context) (*DashboardStats, er
 			(SELECT COUNT(*) FROM categories WHERE is_active = true) as total_categories,
 			(SELECT COUNT(*) FROM properties) as total_properties,
 			(SELECT COUNT(*) FROM characteristics WHERE is_active = true) as total_characteristics,
+			(SELECT COUNT(*) FROM products WHERE is_active = true AND jsonb_array_length(prices) > 0) as total_prices,
 			(SELECT COUNT(*) FROM products WHERE is_active = true AND is_in_stock = true) as products_in_stock,
 			(SELECT COUNT(*) FROM products WHERE is_active = true AND is_in_stock = false) as products_out_of_stock,
 			(SELECT COALESCE(SUM(total_stock * COALESCE(price_min, 0)), 0) FROM products WHERE is_active = true) as total_stock_value
@@ -1587,6 +1615,7 @@ func (r *Repository) GetDashboardStats(ctx context.Context) (*DashboardStats, er
 		&stats.TotalCategories,
 		&stats.TotalProperties,
 		&stats.TotalCharacteristics,
+		&stats.TotalPrices,
 		&stats.ProductsInStock,
 		&stats.ProductsOutOfStock,
 		&stats.TotalStockValue,
@@ -1817,7 +1846,13 @@ func (r *Repository) GetLatestSyncLog(ctx context.Context) (*models.SyncLog, err
 	query := `
 		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
 		       brands_synced, categories_synced, products_synced, properties_synced,
-		       characteristics_synced, prices_synced, stock_synced, error_message, details
+		       characteristics_synced, prices_synced, stock_synced, error_message, details,
+		       COALESCE(brands_inserted, 0), COALESCE(brands_updated, 0),
+		       COALESCE(categories_inserted, 0), COALESCE(categories_updated, 0),
+		       COALESCE(products_inserted, 0), COALESCE(products_updated, 0),
+		       COALESCE(properties_inserted, 0), COALESCE(properties_updated, 0),
+		       COALESCE(characteristics_inserted, 0), COALESCE(characteristics_updated, 0),
+		       COALESCE(prices_updated, 0), COALESCE(stock_updated, 0)
 		FROM sync_logs
 		ORDER BY started_at DESC
 		LIMIT 1
@@ -1829,6 +1864,12 @@ func (r *Repository) GetLatestSyncLog(ctx context.Context) (*models.SyncLog, err
 		&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
 		&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
 		&log.StockSynced, &log.ErrorMessage, &log.Details,
+		&log.BrandsInserted, &log.BrandsUpdated,
+		&log.CategoriesInserted, &log.CategoriesUpdated,
+		&log.ProductsInserted, &log.ProductsUpdated,
+		&log.PropertiesInserted, &log.PropertiesUpdated,
+		&log.CharacteristicsInserted, &log.CharacteristicsUpdated,
+		&log.PricesUpdated, &log.StockUpdated,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -1838,6 +1879,39 @@ func (r *Repository) GetLatestSyncLog(ctx context.Context) (*models.SyncLog, err
 	}
 
 	return &log, nil
+}
+
+// GetSyncStepDetails returns all step details for a sync log
+func (r *Repository) GetSyncStepDetails(ctx context.Context, syncLogID uuid.UUID) ([]*models.SyncStepDetail, error) {
+	query := `
+		SELECT id, sync_log_id, step_number, step_name, status, started_at, completed_at,
+		       extracted, inserted, updated, unchanged, failed, error_message, created_at
+		FROM sync_step_details
+		WHERE sync_log_id = $1
+		ORDER BY step_number
+	`
+
+	rows, err := r.pool.Query(ctx, query, syncLogID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var details []*models.SyncStepDetail
+	for rows.Next() {
+		var d models.SyncStepDetail
+		err := rows.Scan(
+			&d.ID, &d.SyncLogID, &d.StepNumber, &d.StepName, &d.Status,
+			&d.StartedAt, &d.CompletedAt, &d.Extracted, &d.Inserted,
+			&d.Updated, &d.Unchanged, &d.Failed, &d.ErrorMessage, &d.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		details = append(details, &d)
+	}
+
+	return details, rows.Err()
 }
 
 // ============================================================================

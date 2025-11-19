@@ -69,7 +69,7 @@ products (48,316) ← categories (418)
    └── characteristics (460) - Product variants/SKUs
 ```
 
-### 7 Core Tables
+### 8 Core Tables
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
@@ -79,7 +79,8 @@ products (48,316) ← categories (418)
 | `brands` | Brand catalog | ultra_id, name, slug, logo_url |
 | `categories` | Product categories | ultra_id, name, parent_id, sort_order, product_count |
 | `exchange_rates` | Currency rates | currency_code, rate |
-| `sync_logs` | Sync audit trail | counts, status, duration, error_message |
+| `sync_logs` | Sync audit trail | counts, status, duration, error_message, *_inserted, *_updated |
+| `sync_step_details` | Per-step sync tracking | sync_log_id, step_number, extracted, inserted, updated, failed |
 
 ### Package Structure
 
@@ -132,9 +133,9 @@ bun dev          # Starts on http://localhost:3000
 - **Status Toggles**: Enable/disable products, brands, categories inline
 - **Enhanced Sync Status Page**: Real-time sync progress with:
   - Step-by-step progress indicators (7 steps)
-  - Visual progress bars per step
-  - Auto-refresh (3s when running, 30s when idle)
-  - Detailed statistics (brands, categories, products, variants, properties, prices, stock)
+  - Change deltas per step: "X extracted", "+Y added, Z updated"
+  - Auto-refresh (1s when running, 30s when idle)
+  - Detailed statistics with change breakdown
   - Database totals comparison
   - Sync history with pagination
 - **Global Currency Selector**: Switch between MDL, EUR, USD currencies
@@ -389,6 +390,26 @@ api.HandleFunc("/products/bulk", handler.BulkUpdateProducts).Methods("PATCH", "O
 api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
 ```
 
+### Dashboard Statistics Fix (Nov 2025)
+
+The dashboard was showing incorrect "Prices" count (displaying 460 instead of the actual price count).
+
+**Issue**: The backend `DashboardStats` struct didn't include a `total_prices` field, so the frontend was using `total_characteristics` (460) as a workaround proxy.
+
+**Fix**: Added `total_prices` field to count products with prices in their JSONB arrays.
+
+**Location**:
+- `internal/repository/repository.go` (DashboardStats struct and query)
+- `internal/handlers/handlers.go` (DashboardStats struct)
+- `admin-intelect/src/lib/api.ts` (removed proxy workaround)
+
+```go
+// New query in GetDashboardStats
+(SELECT COUNT(*) FROM products WHERE is_active = true AND jsonb_array_length(prices) > 0) as total_prices
+```
+
+**Result**: Dashboard now shows accurate count of products with prices (approximately 36,683) instead of the characteristics count (460).
+
 ### Code Quality Improvements (Nov 2025)
 
 Product detail page (`admin-intelect/src/app/products/[id]/page.tsx`) improvements:
@@ -460,11 +481,23 @@ is_group BOOLEAN             -- True if this is a variant group parent
    `, pricesJSON, productUltraID)
    ```
 
-3. **Variant Grouping**: Products can be grouped by base name (e.g., iPhone 256GB/512GB/1TB)
-   ```go
-   // GroupProductVariants groups by base name
-   regexp_replace(name, '\s+\d+(GB|TB)(\s|$)', '', 'g') as base_name
+3. **Variant Grouping**: Products can be grouped by base name (e.g., iPhone 256GB/512GB/1TB, Fold7 16/1Tb)
+   ```sql
+   -- GroupProductVariants uses multi-step regex for various formats
+   -- Handles: "16/1Tb", "12/256Gb", ", 512GB" (case-insensitive)
+   trim(regexp_replace(
+       regexp_replace(
+           regexp_replace(
+               regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),  -- RAM/Storage
+               ',?\s*\d+\s*(GB|TB)', '', 'gi'  -- Standalone storage
+           ),
+           ',\s*', ' ', 'g'  -- Commas to spaces
+       ),
+       '\s+', ' ', 'g'  -- Multiple spaces
+   )) as base_name
    ```
+
+   **Stats**: 3,261 products grouped into 1,405 variant groups
 
 **API Response Format:**
 ```json
@@ -483,35 +516,43 @@ is_group BOOLEAN             -- True if this is a variant group parent
 
 **Migration File:** `migrations/004_multi_currency_variants.sql`
 
-### Enhanced Sync Status Page (Nov 2025)
+### Enhanced Sync Status Page with Change Deltas (Nov 2025)
 
-The sync status page has been completely redesigned with real-time progress tracking and premium UI.
+The sync status page shows accurate extraction counts and change deltas instead of misleading ratios.
 
 **Features:**
 
 1. **Real-Time Progress**: Updates every 1 second when sync is running
-2. **Step-by-Step Tracking**: All 7 sync steps with individual progress bars
-3. **Accurate Database Counts**: Shows actual synced counts from database, not estimates
-4. **Premium UI**: Redesigned with animations, gradients, and polished styling
+2. **Step-by-Step Tracking**: All 7 sync steps with extraction counts
+3. **Change Deltas**: Shows "+X added, Y updated" for each step
+4. **Accurate Counts**: Shows actual extracted counts, not misleading X/Y ratios
+5. **Premium UI**: Redesigned with animations, gradients, and polished styling
 
 **Backend Endpoint**: `GET /api/v1/sync/progress`
 
-Returns comprehensive sync progress:
+Returns comprehensive sync progress with change deltas:
 ```json
 {
   "isRunning": true,
   "currentStep": 4,
-  "overallProgress": 57,
   "elapsedSeconds": 1200,
   "estimatedRemainingSeconds": 900,
   "steps": [
-    {"name": "Brands", "status": "completed", "synced": 1133, "total": 1133},
-    {"name": "Categories", "status": "completed", "synced": 418, "total": 418},
-    {"name": "Products", "status": "completed", "synced": 48316, "total": 48316},
-    {"name": "Properties", "status": "running", "synced": 500000, "total": 876081}
-  ]
+    {"name": "Brands", "status": "completed", "extracted": 1133, "inserted": 5, "updated": 1128},
+    {"name": "Categories", "status": "completed", "extracted": 297, "inserted": 3, "updated": 294},
+    {"name": "Products", "status": "completed", "extracted": 48316, "inserted": 127, "updated": 48189},
+    {"name": "Properties", "status": "running", "extracted": 500000, "inserted": 54, "updated": 499946}
+  ],
+  "brandsSynced": 1133,
+  "brandsInserted": 5,
+  "brandsUpdated": 1128,
+  "categoriesSynced": 297,
+  "categoriesInserted": 3,
+  "categoriesUpdated": 294
 }
 ```
+
+**Migration File:** `migrations/005_sync_step_details.sql`
 
 **Key Implementation Details:**
 

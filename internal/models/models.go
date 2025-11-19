@@ -205,21 +205,62 @@ type CharacteristicPrice struct {
 
 // SyncLog represents a sync operation record
 type SyncLog struct {
-	ID                  uuid.UUID  `json:"id"`
-	SyncType            string     `json:"sync_type"`
-	StartedAt           time.Time  `json:"started_at"`
-	FinishedAt          *time.Time `json:"finished_at"`
-	DurationSeconds     *int       `json:"duration_seconds"`
-	Status              string     `json:"status"`
-	BrandsSynced        int        `json:"brands_synced"`
-	CategoriesSynced    int        `json:"categories_synced"`
-	ProductsSynced      int        `json:"products_synced"`
-	PropertiesSynced    int        `json:"properties_synced"`
-	CharacteristicsSynced int      `json:"characteristics_synced"`
-	PricesSynced        int        `json:"prices_synced"`
-	StockSynced         int        `json:"stock_synced"`
-	ErrorMessage        *string    `json:"error_message"`
-	Details             JSONB      `json:"details"`
+	ID                    uuid.UUID  `json:"id"`
+	SyncType              string     `json:"sync_type"`
+	StartedAt             time.Time  `json:"started_at"`
+	FinishedAt            *time.Time `json:"finished_at"`
+	DurationSeconds       *int       `json:"duration_seconds"`
+	Status                string     `json:"status"`
+	BrandsSynced          int        `json:"brands_synced"`
+	CategoriesSynced      int        `json:"categories_synced"`
+	ProductsSynced        int        `json:"products_synced"`
+	PropertiesSynced      int        `json:"properties_synced"`
+	CharacteristicsSynced int        `json:"characteristics_synced"`
+	PricesSynced          int        `json:"prices_synced"`
+	StockSynced           int        `json:"stock_synced"`
+	ErrorMessage          *string    `json:"error_message"`
+	Details               JSONB      `json:"details"`
+
+	// Change deltas
+	BrandsInserted          int `json:"brands_inserted"`
+	BrandsUpdated           int `json:"brands_updated"`
+	CategoriesInserted      int `json:"categories_inserted"`
+	CategoriesUpdated       int `json:"categories_updated"`
+	ProductsInserted        int `json:"products_inserted"`
+	ProductsUpdated         int `json:"products_updated"`
+	PropertiesInserted      int `json:"properties_inserted"`
+	PropertiesUpdated       int `json:"properties_updated"`
+	CharacteristicsInserted int `json:"characteristics_inserted"`
+	CharacteristicsUpdated  int `json:"characteristics_updated"`
+	PricesUpdated           int `json:"prices_updated"`
+	StockUpdated            int `json:"stock_updated"`
+}
+
+// SyncStepDetail represents detailed progress for a single sync step
+type SyncStepDetail struct {
+	ID           uuid.UUID  `json:"id"`
+	SyncLogID    uuid.UUID  `json:"sync_log_id"`
+	StepNumber   int        `json:"step_number"`
+	StepName     string     `json:"step_name"`
+	Status       string     `json:"status"`
+	StartedAt    *time.Time `json:"started_at"`
+	CompletedAt  *time.Time `json:"completed_at"`
+	Extracted    int        `json:"extracted"`
+	Inserted     int        `json:"inserted"`
+	Updated      int        `json:"updated"`
+	Unchanged    int        `json:"unchanged"`
+	Failed       int        `json:"failed"`
+	ErrorMessage *string    `json:"error_message"`
+	CreatedAt    time.Time  `json:"created_at"`
+}
+
+// UpsertResult tracks the result of an upsert operation
+type UpsertResult struct {
+	Extracted int `json:"extracted"`
+	Inserted  int `json:"inserted"`
+	Updated   int `json:"updated"`
+	Unchanged int `json:"unchanged"`
+	Failed    int `json:"failed"`
 }
 
 // ============================================================================

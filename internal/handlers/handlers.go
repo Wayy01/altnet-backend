@@ -445,17 +445,18 @@ func (h *Handler) respondError(w http.ResponseWriter, status int, message, detai
 
 // DashboardStats response structure
 type DashboardStats struct {
-	TotalProducts      int                    `json:"total_products"`
-	TotalBrands        int                    `json:"total_brands"`
-	TotalCategories    int                    `json:"total_categories"`
-	TotalProperties    int                    `json:"total_properties"`
-	TotalCharacteristics int                  `json:"total_characteristics"`
-	ProductsInStock    int                    `json:"products_in_stock"`
-	ProductsOutOfStock int                    `json:"products_out_of_stock"`
-	TotalStockValue    float64                `json:"total_stock_value"`
-	LastSyncAt         *time.Time             `json:"last_sync_at"`
-	LastSyncStatus     string                 `json:"last_sync_status"`
-	RecentActivity     []map[string]interface{} `json:"recent_activity"`
+	TotalProducts        int                      `json:"total_products"`
+	TotalBrands          int                      `json:"total_brands"`
+	TotalCategories      int                      `json:"total_categories"`
+	TotalProperties      int                      `json:"total_properties"`
+	TotalCharacteristics int                      `json:"total_characteristics"`
+	TotalPrices          int                      `json:"total_prices"`
+	ProductsInStock      int                      `json:"products_in_stock"`
+	ProductsOutOfStock   int                      `json:"products_out_of_stock"`
+	TotalStockValue      float64                  `json:"total_stock_value"`
+	LastSyncAt           *time.Time               `json:"last_sync_at"`
+	LastSyncStatus       string                   `json:"last_sync_status"`
+	RecentActivity       []map[string]interface{} `json:"recent_activity"`
 }
 
 // GetDashboardStats handles GET /api/v1/dashboard/stats
@@ -626,6 +627,11 @@ type SyncStep struct {
 	Total       int    `json:"total"`
 	StartedAt   string `json:"startedAt,omitempty"`
 	CompletedAt string `json:"completedAt,omitempty"`
+
+	// Change deltas
+	Extracted int `json:"extracted"`
+	Inserted  int `json:"inserted"`
+	Updated   int `json:"updated"`
 }
 
 // SyncProgressResponse represents detailed sync progress
@@ -648,6 +654,20 @@ type SyncProgressResponse struct {
 	PropertiesSynced      int `json:"propertiesSynced"`
 	PricesSynced          int `json:"pricesSynced"`
 	StockSynced           int `json:"stockSynced"`
+
+	// Change deltas
+	BrandsInserted          int `json:"brandsInserted"`
+	BrandsUpdated           int `json:"brandsUpdated"`
+	CategoriesInserted      int `json:"categoriesInserted"`
+	CategoriesUpdated       int `json:"categoriesUpdated"`
+	ProductsInserted        int `json:"productsInserted"`
+	ProductsUpdated         int `json:"productsUpdated"`
+	PropertiesInserted      int `json:"propertiesInserted"`
+	PropertiesUpdated       int `json:"propertiesUpdated"`
+	CharacteristicsInserted int `json:"characteristicsInserted"`
+	CharacteristicsUpdated  int `json:"characteristicsUpdated"`
+	PricesUpdated           int `json:"pricesUpdated"`
+	StockUpdatedCount       int `json:"stockUpdatedCount"`
 
 	// Category progress for properties step
 	CategoriesProcessed int `json:"categoriesProcessed"`
@@ -749,6 +769,29 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 		stockSynced = syncLog.StockSynced
 	}
 
+	// Get change deltas from sync log
+	var brandsInserted, brandsUpdated int
+	var categoriesInserted, categoriesUpdated int
+	var productsInserted, productsUpdated int
+	var propertiesInserted, propertiesUpdated int
+	var characteristicsInserted, characteristicsUpdated int
+	var pricesUpdatedCount, stockUpdatedCount int
+
+	if syncLog != nil {
+		brandsInserted = syncLog.BrandsInserted
+		brandsUpdated = syncLog.BrandsUpdated
+		categoriesInserted = syncLog.CategoriesInserted
+		categoriesUpdated = syncLog.CategoriesUpdated
+		productsInserted = syncLog.ProductsInserted
+		productsUpdated = syncLog.ProductsUpdated
+		propertiesInserted = syncLog.PropertiesInserted
+		propertiesUpdated = syncLog.PropertiesUpdated
+		characteristicsInserted = syncLog.CharacteristicsInserted
+		characteristicsUpdated = syncLog.CharacteristicsUpdated
+		pricesUpdatedCount = syncLog.PricesUpdated
+		stockUpdatedCount = syncLog.StockUpdated
+	}
+
 	response := SyncProgressResponse{
 		IsRunning:                 isRunning,
 		CurrentStep:               currentStep,
@@ -766,6 +809,18 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 		PropertiesSynced:          propertiesSynced,
 		PricesSynced:              pricesSynced,
 		StockSynced:               stockSynced,
+		BrandsInserted:            brandsInserted,
+		BrandsUpdated:             brandsUpdated,
+		CategoriesInserted:        categoriesInserted,
+		CategoriesUpdated:         categoriesUpdated,
+		ProductsInserted:          productsInserted,
+		ProductsUpdated:           productsUpdated,
+		PropertiesInserted:        propertiesInserted,
+		PropertiesUpdated:         propertiesUpdated,
+		CharacteristicsInserted:   characteristicsInserted,
+		CharacteristicsUpdated:    characteristicsUpdated,
+		PricesUpdated:             pricesUpdatedCount,
+		StockUpdatedCount:         stockUpdatedCount,
 		CategoriesProcessed:       0,
 		TotalCategories:           totalCategoriesWithProducts,
 		DbTotals:                  dbTotals,
@@ -922,18 +977,27 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 	if dbTotals.Brands > 0 {
 		steps[0].Status = "completed"
 		steps[0].Count = dbTotals.Brands
+		steps[0].Extracted = syncLog.BrandsSynced
+		steps[0].Inserted = syncLog.BrandsInserted
+		steps[0].Updated = syncLog.BrandsUpdated
 	}
 
 	// Step 2: Categories - use actual DB count
 	if dbTotals.Categories > 0 {
 		steps[1].Status = "completed"
 		steps[1].Count = dbTotals.Categories
+		steps[1].Extracted = syncLog.CategoriesSynced
+		steps[1].Inserted = syncLog.CategoriesInserted
+		steps[1].Updated = syncLog.CategoriesUpdated
 	}
 
 	// Step 3: Products - use actual DB count (also implies characteristics are synced)
 	if dbTotals.Products > 0 {
 		steps[2].Status = "completed"
 		steps[2].Count = dbTotals.Products
+		steps[2].Extracted = syncLog.ProductsSynced
+		steps[2].Inserted = syncLog.ProductsInserted
+		steps[2].Updated = syncLog.ProductsUpdated
 	}
 
 	// Step 4: Properties - use actual DB count
@@ -947,30 +1011,41 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 			steps[3].Status = "completed"
 		}
 		steps[3].Count = dbTotals.Properties
+		steps[3].Extracted = syncLog.PropertiesSynced
+		steps[3].Inserted = syncLog.PropertiesInserted
+		steps[3].Updated = syncLog.PropertiesUpdated
 	}
 
 	// Step 5: Prices - check sync log since prices update characteristics in place
 	if syncLog.PricesSynced > 0 {
 		steps[4].Status = "completed"
 		steps[4].Count = syncLog.PricesSynced
+		steps[4].Extracted = syncLog.PricesSynced
+		steps[4].Updated = syncLog.PricesUpdated
 	}
 
 	// Step 6: Stock - check sync log since stock updates characteristics in place
 	if syncLog.StockSynced > 0 {
 		steps[5].Status = "completed"
 		steps[5].Count = syncLog.StockSynced
+		steps[5].Extracted = syncLog.StockSynced
+		steps[5].Updated = syncLog.StockUpdated
 	}
 
 	// Step 7: Exchange Rates - check sync log details or if sync is completed
+	// Note: Exchange rates are always 3 (MDL, EUR, USD) and always updated in place
 	if syncLog.Details != nil {
 		if _, ok := syncLog.Details["services_synced"]; ok {
 			steps[6].Status = "completed"
 			steps[6].Count = 3
+			steps[6].Extracted = 3
+			// Don't show insert/update for exchange rates - they're always updated
 		}
 	}
 	if isCompleted {
 		steps[6].Status = "completed"
 		steps[6].Count = 3
+		steps[6].Extracted = 3
 	}
 
 	// If running, determine which step is actually running based on data state

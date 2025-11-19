@@ -156,6 +156,7 @@ class ApiClient {
         total_categories: number;
         total_properties: number;
         total_characteristics: number;
+        total_prices: number;
         products_in_stock: number;
         products_out_of_stock: number;
         total_stock_value: number;
@@ -171,7 +172,7 @@ class ApiClient {
       total_categories: response.data.total_categories,
       total_properties: response.data.total_properties,
       total_characteristics: response.data.total_characteristics,
-      total_prices: response.data.total_characteristics, // Use characteristics as proxy for prices
+      total_prices: response.data.total_prices,
       total_stock: response.data.products_in_stock + response.data.products_out_of_stock,
       in_stock_products: response.data.products_in_stock,
     };

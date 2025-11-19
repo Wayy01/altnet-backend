@@ -58,7 +58,8 @@ function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleString();
 }
 
-function formatNumber(num: number): string {
+function formatNumber(num: number | undefined | null): string {
+  if (num == null) return '0';
   return num.toLocaleString();
 }
 
@@ -439,30 +440,37 @@ export default function SyncPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-4 shrink-0">
-                        {step.total > 0 && (
+                        {step.extracted > 0 && (
                           <span className="text-sm font-mono text-muted-foreground hidden sm:block">
-                            {formatNumber(step.count)}/{formatNumber(step.total)}
+                            {formatNumber(step.extracted)} extracted
                           </span>
                         )}
                         {getStepStatusBadge(step.status)}
                       </div>
                     </div>
 
-                    {/* Step Progress Bar */}
-                    {(step.status === "running" || step.status === "completed") && step.total > 0 && (
+                    {/* Change Deltas */}
+                    {(step.status === "running" || step.status === "completed") && step.extracted > 0 && (
                       <div className="mt-3 pt-3 border-t border-border/30">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                          <span>{formatNumber(step.count)} items processed</span>
-                          <span>{Math.round((step.count / step.total) * 100)}%</span>
+                        <div className="flex items-center gap-4 text-xs">
+                          <span className="text-muted-foreground">
+                            {formatNumber(step.extracted)} items processed
+                          </span>
+                          {(step.inserted > 0 || step.updated > 0) && (
+                            <span className="flex items-center gap-2">
+                              {step.inserted > 0 && (
+                                <span className="text-emerald-500">
+                                  +{formatNumber(step.inserted)} added
+                                </span>
+                              )}
+                              {step.updated > 0 && (
+                                <span className="text-blue-500">
+                                  {formatNumber(step.updated)} updated
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </div>
-                        <Progress
-                          value={(step.count / step.total) * 100}
-                          className={`h-1.5 ${
-                            step.status === "completed"
-                              ? "bg-emerald-500/10"
-                              : "bg-blue-500/10"
-                          }`}
-                        />
                       </div>
                     )}
                   </div>
@@ -479,27 +487,60 @@ export default function SyncPage() {
                 Sync Statistics
               </CardTitle>
               <CardDescription>
-                Items synchronized during this sync operation
+                Items synchronized with change breakdown
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-7">
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
                 {[
-                  { icon: Tag, value: syncProgress.brandsSynced, label: "Brands" },
-                  { icon: Layers, value: syncProgress.categoriesSynced, label: "Categories" },
-                  { icon: Package, value: syncProgress.productsSynced, label: "Products" },
-                  { icon: Database, value: syncProgress.characteristicsSynced, label: "Variants" },
-                  { icon: List, value: syncProgress.propertiesSynced, label: "Properties" },
-                  { icon: DollarSign, value: syncProgress.pricesSynced, label: "Prices" },
-                  { icon: BarChart3, value: syncProgress.stockSynced, label: "Stock" },
-                ].map(({ icon: Icon, value, label }) => (
+                  {
+                    icon: Tag,
+                    value: syncProgress.brandsSynced,
+                    label: "Brands",
+                    inserted: syncProgress.brandsInserted,
+                    updated: syncProgress.brandsUpdated
+                  },
+                  {
+                    icon: Layers,
+                    value: syncProgress.categoriesSynced,
+                    label: "Categories",
+                    inserted: syncProgress.categoriesInserted,
+                    updated: syncProgress.categoriesUpdated
+                  },
+                  {
+                    icon: Package,
+                    value: syncProgress.productsSynced,
+                    label: "Products",
+                    inserted: syncProgress.productsInserted,
+                    updated: syncProgress.productsUpdated
+                  },
+                  {
+                    icon: List,
+                    value: syncProgress.propertiesSynced,
+                    label: "Properties",
+                    inserted: syncProgress.propertiesInserted,
+                    updated: syncProgress.propertiesUpdated
+                  },
+                ].map(({ icon: Icon, value, label, inserted, updated }) => (
                   <div
                     key={label}
-                    className="flex flex-col items-center p-4 rounded-lg bg-muted/30 border border-border/30 transition-colors hover:bg-muted/50"
+                    className="flex flex-col p-4 rounded-lg bg-muted/30 border border-border/30 transition-colors hover:bg-muted/50"
                   >
-                    <Icon className="h-4 w-4 text-muted-foreground mb-2" />
-                    <p className="text-xl font-bold tabular-nums">{formatNumber(value)}</p>
-                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-xl font-bold tabular-nums">{formatNumber(value)}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                    {(inserted > 0 || updated > 0) && (
+                      <div className="flex gap-2 text-xs mt-1">
+                        {inserted > 0 && (
+                          <span className="text-emerald-500">+{formatNumber(inserted)}</span>
+                        )}
+                        {updated > 0 && (
+                          <span className="text-blue-500">{formatNumber(updated)} upd</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

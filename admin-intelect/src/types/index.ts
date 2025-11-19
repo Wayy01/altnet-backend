@@ -166,6 +166,20 @@ export interface SyncLog {
   stock_synced: number;
   error_message: string | null;
   details: Record<string, unknown> | null;
+
+  // Change deltas
+  brands_inserted: number;
+  brands_updated: number;
+  categories_inserted: number;
+  categories_updated: number;
+  products_inserted: number;
+  products_updated: number;
+  properties_inserted: number;
+  properties_updated: number;
+  characteristics_inserted: number;
+  characteristics_updated: number;
+  prices_updated: number;
+  stock_updated: number;
 }
 
 // Exchange rate
@@ -262,6 +276,11 @@ export interface SyncStep {
   total: number;
   startedAt?: string;
   completedAt?: string;
+
+  // Change deltas
+  extracted: number;
+  inserted: number;
+  updated: number;
 }
 
 // Enhanced sync progress response
@@ -284,6 +303,20 @@ export interface SyncProgress {
   propertiesSynced: number;
   pricesSynced: number;
   stockSynced: number;
+
+  // Change deltas
+  brandsInserted: number;
+  brandsUpdated: number;
+  categoriesInserted: number;
+  categoriesUpdated: number;
+  productsInserted: number;
+  productsUpdated: number;
+  propertiesInserted: number;
+  propertiesUpdated: number;
+  characteristicsInserted: number;
+  characteristicsUpdated: number;
+  pricesUpdated: number;
+  stockUpdatedCount: number;
 
   // Category progress for properties step
   categoriesProcessed: number;
