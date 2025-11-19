@@ -550,21 +550,27 @@ func (r *Repository) ListCategories(ctx context.Context, parentID *uuid.UUID, li
 
 	if parentID == nil {
 		query = `
-			SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
-			       image_url, product_count, is_active, created_at, updated_at
-			FROM categories
-			WHERE parent_id IS NULL AND is_active = true
-			ORDER BY sort_order ASC, name ASC
+			SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+			       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
+			FROM categories c
+			LEFT JOIN products pr ON pr.category_id = c.id
+			WHERE c.parent_id IS NULL AND c.is_active = true
+			GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+			         c.image_url, c.is_active, c.created_at, c.updated_at
+			ORDER BY c.sort_order ASC, c.name ASC
 			LIMIT $1 OFFSET $2
 		`
 		args = []interface{}{limit, offset}
 	} else {
 		query = `
-			SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
-			       image_url, product_count, is_active, created_at, updated_at
-			FROM categories
-			WHERE parent_id = $1 AND is_active = true
-			ORDER BY sort_order ASC, name ASC
+			SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+			       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
+			FROM categories c
+			LEFT JOIN products pr ON pr.category_id = c.id
+			WHERE c.parent_id = $1 AND c.is_active = true
+			GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+			         c.image_url, c.is_active, c.created_at, c.updated_at
+			ORDER BY c.sort_order ASC, c.name ASC
 			LIMIT $2 OFFSET $3
 		`
 		args = []interface{}{parentID, limit, offset}
@@ -611,7 +617,17 @@ func (r *Repository) CountCategories(ctx context.Context, parentID *uuid.UUID) (
 // CountCategoriesWithProducts returns the count of categories that have products
 func (r *Repository) CountCategoriesWithProducts(ctx context.Context) (int, error) {
 	var count int
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE product_count > 0 AND is_active = true").Scan(&count)
+	query := `
+		SELECT COUNT(*) FROM (
+			SELECT c.id
+			FROM categories c
+			LEFT JOIN products pr ON pr.category_id = c.id
+			WHERE c.is_active = true
+			GROUP BY c.id
+			HAVING COUNT(pr.id) > 0
+		) AS categories_with_products
+	`
+	err := r.pool.QueryRow(ctx, query).Scan(&count)
 	return count, err
 }
 
@@ -636,20 +652,13 @@ func (r *Repository) ListCategoriesWithSearch(ctx context.Context, search string
 		argPos++
 	}
 
-	// Build HAVING clause for product count filter
-	havingClause := ""
-	if hasProducts == "true" {
-		havingClause = "HAVING c.product_count > 0"
-	} else if hasProducts == "false" {
-		havingClause = "HAVING c.product_count = 0"
-	}
-
 	// Build ORDER BY clause using allowlist map for security
+	// Note: actual_product_count is the calculated count from products table
 	categorySortOptions := map[string]string{
 		"name_asc":      "c.name ASC",
 		"name_desc":     "c.name DESC",
-		"products_desc": "c.product_count DESC, c.name ASC",
-		"products_asc":  "c.product_count ASC, c.name ASC",
+		"products_desc": "actual_product_count DESC, c.name ASC",
+		"products_asc":  "actual_product_count ASC, c.name ASC",
 	}
 	orderBy := categorySortOptions["name_asc"] // default
 	if sortSQL, ok := categorySortOptions[sortBy]; ok {
@@ -665,15 +674,24 @@ func (r *Repository) ListCategoriesWithSearch(ctx context.Context, search string
 		whereClause = strings.Join(whereClauses, " AND ")
 	}
 
+	// Build HAVING clause for product count filter using actual count
+	havingClause := ""
+	if hasProducts == "true" {
+		havingClause = "HAVING COUNT(pr.id) > 0"
+	} else if hasProducts == "false" {
+		havingClause = "HAVING COUNT(pr.id) = 0"
+	}
+
 	query := fmt.Sprintf(`
 		SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-		       c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at,
+		       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at,
 		       COALESCE(p.name, '') as parent_name
 		FROM categories c
 		LEFT JOIN categories p ON p.id = c.parent_id
+		LEFT JOIN products pr ON pr.category_id = c.id
 		WHERE %s
 		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-		         c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at, p.name
+		         c.image_url, c.is_active, c.created_at, c.updated_at, p.name
 		%s
 		ORDER BY %s
 		LIMIT $%d OFFSET $%d
@@ -726,12 +744,12 @@ func (r *Repository) CountCategoriesWithSearch(ctx context.Context, search strin
 		argPos++
 	}
 
-	// Build HAVING clause for product count filter
+	// Build HAVING clause for product count filter using actual count
 	havingClause := ""
 	if hasProducts == "true" {
-		havingClause = "HAVING c.product_count > 0"
+		havingClause = "HAVING COUNT(pr.id) > 0"
 	} else if hasProducts == "false" {
-		havingClause = "HAVING c.product_count = 0"
+		havingClause = "HAVING COUNT(pr.id) = 0"
 	}
 
 	// Build WHERE clause string
@@ -744,8 +762,9 @@ func (r *Repository) CountCategoriesWithSearch(ctx context.Context, search strin
 		SELECT COUNT(*) FROM (
 			SELECT c.id
 			FROM categories c
+			LEFT JOIN products pr ON pr.category_id = c.id
 			WHERE %s
-			GROUP BY c.id, c.product_count
+			GROUP BY c.id
 			%s
 		) AS filtered_categories
 	`, whereClause, havingClause)
@@ -780,12 +799,12 @@ func (r *Repository) BulkUpdateCategoriesByFilter(ctx context.Context, search st
 		argPos++
 	}
 
-	// Build HAVING clause for product count filter
+	// Build HAVING clause for product count filter using actual count
 	havingClause := ""
 	if hasProducts == "true" {
-		havingClause = "HAVING c.product_count > 0"
+		havingClause = "HAVING COUNT(pr.id) > 0"
 	} else if hasProducts == "false" {
-		havingClause = "HAVING c.product_count = 0"
+		havingClause = "HAVING COUNT(pr.id) = 0"
 	}
 
 	// Build WHERE clause string
@@ -800,8 +819,9 @@ func (r *Repository) BulkUpdateCategoriesByFilter(ctx context.Context, search st
 		WHERE id IN (
 			SELECT c.id
 			FROM categories c
+			LEFT JOIN products pr ON pr.category_id = c.id
 			WHERE %s
-			GROUP BY c.id, c.product_count
+			GROUP BY c.id
 			%s
 		)
 	`, whereClause, havingClause)
@@ -3174,11 +3194,14 @@ func (r *Repository) BulkUpdateCategories(ctx context.Context, ids []uuid.UUID, 
 // ListAllCategories returns all active categories without pagination (for export)
 func (r *Repository) ListAllCategories(ctx context.Context) ([]*models.Category, error) {
 	query := `
-		SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
-		       image_url, product_count, is_active, created_at, updated_at
-		FROM categories
-		WHERE is_active = true
-		ORDER BY sort_order ASC, name ASC
+		SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+		       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
+		FROM categories c
+		LEFT JOIN products pr ON pr.category_id = c.id
+		WHERE c.is_active = true
+		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+		         c.image_url, c.is_active, c.created_at, c.updated_at
+		ORDER BY c.sort_order ASC, c.name ASC
 	`
 
 	rows, err := r.pool.Query(ctx, query)

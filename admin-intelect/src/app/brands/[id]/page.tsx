@@ -643,22 +643,6 @@ export default function BrandDetailPage({
                                 View Details
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleToggleProductActive(product, !product.is_active)}
-                              disabled={togglingProductId === product.id}
-                            >
-                              {product.is_active ? (
-                                <>
-                                  <PowerOff className="h-4 w-4 mr-2" />
-                                  Deactivate
-                                </>
-                              ) : (
-                                <>
-                                  <Power className="h-4 w-4 mr-2" />
-                                  Activate
-                                </>
-                              )}
-                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => {

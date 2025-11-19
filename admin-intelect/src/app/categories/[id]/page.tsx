@@ -16,7 +16,15 @@ import {
   Check,
   Boxes,
   DollarSign,
+  MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -464,15 +472,16 @@ export default function CategoryDetailPage({
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Code</TableHead>
-                <TableHead className="text-right">Price Range</TableHead>
+                <TableHead className="text-right">Price (MDL)</TableHead>
                 <TableHead className="text-center">Stock</TableHead>
                 <TableHead className="text-center">Active</TableHead>
+                <TableHead className="text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <Package className="h-8 w-8 text-muted-foreground" />
                       <span className="text-muted-foreground">No products in this category</span>
@@ -485,39 +494,61 @@ export default function CategoryDetailPage({
                     <TableCell>
                       <Link
                         href={`/products/${product.id}`}
-                        className="font-medium hover:underline"
+                        className="text-primary hover:underline max-w-[300px] truncate block"
                       >
                         {product.name}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <code className="text-sm">{product.code || "-"}</code>
+                      <span className="text-muted-foreground">{product.code || "-"}</span>
                     </TableCell>
                     <TableCell className="text-right">
-                      {product.price_min !== null ? (
-                        <span>
-                          {product.price_min === product.price_max
-                            ? `${product.price_min.toLocaleString()} MDL`
-                            : `${product.price_min.toLocaleString()} - ${product.price_max?.toLocaleString()} MDL`}
-                        </span>
+                      {product.price_min !== null && product.price_min > 0 ? (
+                        <span>{product.price_min.toLocaleString()} MDL</span>
                       ) : (
-                        <span className="text-muted-foreground">-</span>
+                        <span className="text-muted-foreground">No price</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge
-                        variant={product.total_stock > 0 ? "default" : "secondary"}
-                        className={product.total_stock > 0 ? "bg-green-500" : ""}
-                      >
-                        {product.total_stock}
-                      </Badge>
+                      {product.total_stock > 0 ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          {product.total_stock} in stock
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive">
+                          Out of stock
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
-                      {product.is_active ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500 mx-auto" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground mx-auto" />
-                      )}
+                      <Switch
+                        checked={product.is_active}
+                        disabled={isProcessing}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/products/${product.id}`}>
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))

@@ -21,7 +21,6 @@ import {
   Power,
   PowerOff
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -403,49 +402,29 @@ export default function BrandsPage() {
       </div>
 
       <div className="space-y-4">
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Brands</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {(total ?? 0).toLocaleString()}
-              </div>
-              {hasActiveFilters && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  (filtered)
-                </p>
-              )}
-            </CardContent>
-          </Card>
+        {/* Stats - Compact inline indicators */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
+            <span className="text-xs font-medium text-muted-foreground">Total</span>
+            <span className="text-sm font-semibold tabular-nums">
+              {(total ?? 0).toLocaleString()}
+            </span>
+            {hasActiveFilters && (
+              <span className="text-[10px] text-muted-foreground">(filtered)</span>
+            )}
+          </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">With Logos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {brandsWithLogos}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                on this page
-              </p>
-            </CardContent>
-          </Card>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
+            <span className="text-xs font-medium text-muted-foreground">With Logos</span>
+            <span className="text-sm font-semibold tabular-nums">{brandsWithLogos}</span>
+            <span className="text-[10px] text-muted-foreground">on page</span>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Displayed</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{filteredBrands.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                of {total} total
-              </p>
-            </CardContent>
-          </Card>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
+            <span className="text-xs font-medium text-muted-foreground">Showing</span>
+            <span className="text-sm font-semibold tabular-nums">{filteredBrands.length}</span>
+            <span className="text-[10px] text-muted-foreground">of {total}</span>
+          </div>
         </div>
 
         {/* Filters Row */}
@@ -757,16 +736,9 @@ export default function BrandsPage() {
 function BrandsPageSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="flex flex-wrap items-center gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16" />
-            </CardContent>
-          </Card>
+          <Skeleton key={i} className="h-8 w-32 rounded-md" />
         ))}
       </div>
       <div className="flex gap-4">

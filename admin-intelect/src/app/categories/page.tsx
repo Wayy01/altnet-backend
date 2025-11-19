@@ -1,20 +1,25 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   FolderTree,
-  Search,
   MoreHorizontal,
   Trash2,
   ExternalLink,
   X,
-  CheckCircle2,
-  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Eye,
+  Filter,
+  ArrowUpDown,
+  CheckSquare,
+  Power,
+  PowerOff,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,67 +56,74 @@ export default function CategoriesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [isPending, startTransition] = useTransition();
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get initial values from URL params
   const initialSearch = searchParams.get("search") || "";
-  const initialHasProducts = searchParams.get("has_products") || "all";
+  const initialHasProducts = searchParams.get("has_products") || "";
   const initialSortBy = searchParams.get("sort_by") || "name_asc";
-  const initialIsActive = searchParams.get("is_active") || "all";
-  const initialPage = parseInt(searchParams.get("page") || "1", 10);
+  const initialIsActive = searchParams.get("is_active") || "";
+  const initialOffset = parseInt(searchParams.get("offset") || "0", 10);
 
   // State
   const [categories, setCategories] = useState<Category[]>([]);
   const [total, setTotal] = useState(0);
   const [rootCount, setRootCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [hasProducts, setHasProducts] = useState(initialHasProducts);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [hasProductsFilter, setHasProductsFilter] = useState(initialHasProducts);
   const [sortBy, setSortBy] = useState(initialSortBy);
-  const [isActive, setIsActive] = useState(initialIsActive);
-  const [currentPage, setCurrentPage] = useState(initialPage);
-  const pageSize = 50;
+  const [isActiveFilter, setIsActiveFilter] = useState(initialIsActive);
+
+  // Pagination
+  const limit = 100;
+  const offset = initialOffset;
+  const currentPage = Math.floor(offset / limit) + 1;
+  const totalPages = Math.ceil(total / limit);
 
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectAllMatching, setSelectAllMatching] = useState(false);
+  const [selectAllMode, setSelectAllMode] = useState(false);
 
   // Dialogs
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
 
-  // Build filter object (convert "all" to undefined for API)
-  const filters: CategoryFilterOptions = useMemo(() => ({
-    search: searchQuery || undefined,
-    has_products: hasProducts && hasProducts !== "all" ? hasProducts : undefined,
-    is_active: isActive && isActive !== "all" ? isActive : undefined,
+  // Build filter object
+  const currentFilters: CategoryFilterOptions = useMemo(() => ({
+    search: debouncedSearch || undefined,
+    has_products: hasProductsFilter || undefined,
+    is_active: isActiveFilter || undefined,
     sort_by: sortBy || undefined,
-  }), [searchQuery, hasProducts, isActive, sortBy]);
+  }), [debouncedSearch, hasProductsFilter, isActiveFilter, sortBy]);
 
-  // Update URL with current filters (don't include "all" values)
-  const updateURL = useCallback(() => {
-    const params = new URLSearchParams();
-    if (searchQuery) params.set("search", searchQuery);
-    if (hasProducts && hasProducts !== "all") params.set("has_products", hasProducts);
-    if (sortBy && sortBy !== "name_asc") params.set("sort_by", sortBy);
-    if (isActive && isActive !== "all") params.set("is_active", isActive);
-    if (currentPage > 1) params.set("page", currentPage.toString());
-
-    const newURL = params.toString() ? `?${params.toString()}` : "/categories";
-    router.push(newURL, { scroll: false });
-  }, [searchQuery, hasProducts, sortBy, isActive, currentPage, router]);
+  // Helper to update URL params
+  const updateUrlParams = (updates: Record<string, string | null>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === "") {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    });
+    router.push(`/categories?${newParams.toString()}`);
+  };
 
   // Fetch categories
   const fetchCategories = useCallback(async () => {
     try {
       setIsLoading(true);
-      const offset = (currentPage - 1) * pageSize;
 
       // Fetch categories with filters
-      const result = await api.getCategories(pageSize, offset, filters);
+      const result = await api.getCategories(limit, offset, currentFilters);
       setCategories(result.data);
       setTotal(result.total);
 
@@ -125,70 +137,125 @@ export default function CategoriesPage() {
       setError("Failed to load categories. Make sure the Go backend API is running.");
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
+      // Refocus search input after fetch completes
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
     }
-  }, [currentPage, filters, pageSize]);
+  }, [offset, currentFilters]);
 
   // Fetch on mount and when filters change
   useEffect(() => {
     fetchCategories();
-    updateURL();
-  }, [fetchCategories, updateURL]);
+  }, [fetchCategories]);
 
-  // Debounced search
+  // Debounce search input
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
 
-  // Handle search input
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    setSelectedIds(new Set());
-    setSelectAllMatching(false);
+    if (searchQuery !== debouncedSearch) {
+      setIsSearching(true);
+      debounceTimeoutRef.current = setTimeout(() => {
+        setDebouncedSearch(searchQuery);
+        // Reset to first page when searching
+        if (offset !== 0) {
+          updateUrlParams({ search: searchQuery, offset: "0" });
+        }
+      }, 500);
+    }
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, debouncedSearch, offset]);
+
+  const filteredCategories = categories;
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setDebouncedSearch("");
+    updateUrlParams({ search: null, offset: "0" });
   };
 
-  // Clear all filters
-  const clearFilters = () => {
+  const handleClearFilters = () => {
     setSearchQuery("");
-    setHasProducts("all");
+    setDebouncedSearch("");
+    setHasProductsFilter("");
+    setIsActiveFilter("");
     setSortBy("name_asc");
-    setIsActive("all");
-    setCurrentPage(1);
+    router.push("/categories");
+  };
+
+  const handleHasProductsChange = (value: string) => {
+    const filterValue = value === "all" ? "" : value;
+    setHasProductsFilter(filterValue);
     setSelectedIds(new Set());
-    setSelectAllMatching(false);
+    setSelectAllMode(false);
+    updateUrlParams({ has_products: filterValue || null, offset: "0" });
+  };
+
+  const handleIsActiveChange = (value: string) => {
+    const filterValue = value === "all" ? "" : value;
+    setIsActiveFilter(filterValue);
+    setSelectedIds(new Set());
+    setSelectAllMode(false);
+    updateUrlParams({ is_active: filterValue || null, offset: "0" });
+  };
+
+  const handleSortByChange = (value: string) => {
+    setSortBy(value);
+    updateUrlParams({ sort_by: value, offset: "0" });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const newOffset = (newPage - 1) * limit;
+    if (!selectAllMode) {
+      setSelectedIds(new Set());
+    }
+    updateUrlParams({ offset: newOffset.toString() });
   };
 
   // Selection handlers
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(new Set(categories.map((c) => c.id)));
-    } else {
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredCategories.length && !selectAllMode) {
       setSelectedIds(new Set());
-      setSelectAllMatching(false);
-    }
-  };
-
-  const handleSelectCategory = (id: string, checked: boolean) => {
-    const newSelection = new Set(selectedIds);
-    if (checked) {
-      newSelection.add(id);
+      setSelectAllMode(false);
     } else {
-      newSelection.delete(id);
-      setSelectAllMatching(false);
+      const newSelected = new Set(filteredCategories.map(c => c.id));
+      setSelectedIds(newSelected);
+      setSelectAllMode(false);
     }
-    setSelectedIds(newSelection);
   };
 
   const handleSelectAllMatching = () => {
-    setSelectAllMatching(true);
+    setSelectAllMode(true);
   };
 
-  const clearSelection = () => {
+  const handleClearSelection = () => {
     setSelectedIds(new Set());
-    setSelectAllMatching(false);
+    setSelectAllMode(false);
   };
+
+  const handleSelectOne = (categoryId: string, checked: boolean) => {
+    const newSelected = new Set(selectedIds);
+    if (checked) {
+      newSelected.add(categoryId);
+    } else {
+      newSelected.delete(categoryId);
+      if (selectAllMode) {
+        setSelectAllMode(false);
+      }
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const isAllOnPageSelected = filteredCategories.length > 0 && filteredCategories.every(c => selectedIds.has(c.id));
+  const isSomeSelected = selectedIds.size > 0 || selectAllMode;
 
   // Toggle active status
   const handleToggleActive = async (categoryId: string, isActive: boolean) => {
@@ -196,7 +263,9 @@ export default function CategoriesPage() {
     try {
       await api.updateCategory(categoryId, { is_active: isActive });
       toast.success(`Category ${isActive ? "activated" : "deactivated"}`);
-      fetchCategories();
+      startTransition(() => {
+        fetchCategories();
+      });
     } catch (error) {
       console.error("Failed to update category:", error);
       toast.error("Failed to update category status");
@@ -205,48 +274,72 @@ export default function CategoriesPage() {
     }
   };
 
-  // Bulk update
-  const handleBulkUpdate = async (activate: boolean) => {
+  // Bulk action handlers
+  const handleBulkActivate = async () => {
     setIsProcessing(true);
     try {
       let result;
-
-      if (selectAllMatching) {
-        // Update all matching categories by filter
+      if (selectAllMode) {
         result = await api.bulkUpdateCategoriesByFilter({
           filter: {
-            search: searchQuery || undefined,
-            has_products: hasProducts || undefined,
-            is_active: isActive || undefined,
+            search: debouncedSearch || undefined,
+            has_products: hasProductsFilter || undefined,
+            is_active: isActiveFilter || undefined,
           },
-          is_active: activate,
+          is_active: true,
         });
       } else {
-        // Update selected categories by IDs
         result = await api.bulkUpdateCategories({
           ids: Array.from(selectedIds),
-          is_active: activate,
+          is_active: true,
         });
       }
-
-      const action = activate ? "activated" : "deactivated";
-      toast.success(`Successfully ${action} ${result.updated} categories`);
-      clearSelection();
-      fetchCategories();
+      toast.success(`Successfully activated ${result.updated} categories`);
+      handleClearSelection();
+      startTransition(() => {
+        fetchCategories();
+      });
     } catch (error) {
-      console.error("Failed to bulk update categories:", error);
-      toast.error("Failed to update categories");
+      console.error("Failed to bulk activate categories:", error);
+      toast.error("Failed to activate categories");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleBulkDeactivate = async () => {
+    setIsProcessing(true);
+    try {
+      let result;
+      if (selectAllMode) {
+        result = await api.bulkUpdateCategoriesByFilter({
+          filter: {
+            search: debouncedSearch || undefined,
+            has_products: hasProductsFilter || undefined,
+            is_active: isActiveFilter || undefined,
+          },
+          is_active: false,
+        });
+      } else {
+        result = await api.bulkUpdateCategories({
+          ids: Array.from(selectedIds),
+          is_active: false,
+        });
+      }
+      toast.success(`Successfully deactivated ${result.updated} categories`);
+      handleClearSelection();
+      startTransition(() => {
+        fetchCategories();
+      });
+    } catch (error) {
+      console.error("Failed to bulk deactivate categories:", error);
+      toast.error("Failed to deactivate categories");
     } finally {
       setIsProcessing(false);
     }
   };
 
   // Delete category
-  const handleDeleteClick = (categoryId: string) => {
-    setDeleteCategoryId(categoryId);
-    setShowDeleteDialog(true);
-  };
-
   const handleDeleteCategory = async () => {
     if (!deleteCategoryId) return;
 
@@ -256,7 +349,9 @@ export default function CategoriesPage() {
       toast.success("Category deleted successfully");
       setShowDeleteDialog(false);
       setDeleteCategoryId(null);
-      fetchCategories();
+      startTransition(() => {
+        fetchCategories();
+      });
     } catch (error) {
       console.error("Failed to delete category:", error);
       toast.error("Failed to delete category");
@@ -265,13 +360,8 @@ export default function CategoriesPage() {
     }
   };
 
-  // Pagination
-  const totalPages = Math.ceil(total / pageSize);
-  const hasActiveFilters = searchQuery || (hasProducts && hasProducts !== "all") || (isActive && isActive !== "all") || sortBy !== "name_asc";
-
-  // Selection count
-  const selectionCount = selectAllMatching ? total : selectedIds.size;
-  const allOnPageSelected = categories.length > 0 && categories.every((c) => selectedIds.has(c.id));
+  // Check if any filters are active
+  const hasActiveFilters = debouncedSearch || hasProductsFilter || isActiveFilter || sortBy !== "name_asc";
 
   if (isLoading && categories.length === 0) {
     return (
@@ -279,7 +369,7 @@ export default function CategoriesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
           <p className="text-muted-foreground">
-            Manage product categories with search, filters, and bulk actions
+            View and manage all categories in the catalog
           </p>
         </div>
         <CategoriesPageSkeleton />
@@ -293,7 +383,7 @@ export default function CategoriesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
           <p className="text-muted-foreground">
-            Manage product categories with search, filters, and bulk actions
+            View and manage all categories in the catalog
           </p>
         </div>
         <div className="flex flex-col items-center justify-center py-12">
@@ -308,192 +398,218 @@ export default function CategoriesPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
         <p className="text-muted-foreground">
-          Manage product categories with search, filters, and bulk actions
+          View and manage all categories in the catalog
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{total.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Root Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{rootCount}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Displayed</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{categories.length}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                placeholder="Search categories..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-              {/* Product Count Filter */}
-              <Select value={hasProducts} onValueChange={(v) => { setHasProducts(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Products" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="true">With Products</SelectItem>
-                  <SelectItem value="false">No Products</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Active Status Filter */}
-              <Select value={isActive} onValueChange={(v) => { setIsActive(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="true">Active</SelectItem>
-                  <SelectItem value="false">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Sort By */}
-              <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setCurrentPage(1); }}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name_asc">Name A-Z</SelectItem>
-                  <SelectItem value="name_desc">Name Z-A</SelectItem>
-                  <SelectItem value="products_desc">Most Products</SelectItem>
-                  <SelectItem value="products_asc">Least Products</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Clear Filters */}
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  <X className="mr-1 h-4 w-4" />
-                  Clear
-                </Button>
-              )}
-            </div>
+      <div className="space-y-4">
+        {/* Stats - Compact inline indicators */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
+            <span className="text-xs font-medium text-muted-foreground">Total</span>
+            <span className="text-sm font-semibold tabular-nums">
+              {(total ?? 0).toLocaleString()}
+            </span>
+            {hasActiveFilters && (
+              <span className="text-[10px] text-muted-foreground">(filtered)</span>
+            )}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Selection Banner */}
-      {selectionCount > 0 && (
-        <Card className="border-primary bg-primary/5">
-          <CardContent className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-4">
-              <span className="font-medium">
-                {selectAllMatching
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
+            <span className="text-xs font-medium text-muted-foreground">Root</span>
+            <span className="text-sm font-semibold tabular-nums">{rootCount}</span>
+            <span className="text-[10px] text-muted-foreground">on page</span>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
+            <span className="text-xs font-medium text-muted-foreground">Showing</span>
+            <span className="text-sm font-semibold tabular-nums">{filteredCategories.length}</span>
+            <span className="text-[10px] text-muted-foreground">of {total}</span>
+          </div>
+        </div>
+
+        {/* Filters Row */}
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Input
+              ref={searchInputRef}
+              name="search"
+              placeholder="Search categories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-[250px] pr-8"
+            />
+            {isSearching && (
+              <Loader2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          {searchQuery && (
+            <Button variant="ghost" size="sm" onClick={handleClearSearch}>
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
+
+          {/* Product Count Filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={hasProductsFilter || "all"} onValueChange={handleHasProductsChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Product count" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                <SelectItem value="true">With products</SelectItem>
+                <SelectItem value="false">Without products</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex items-center gap-2">
+            <Power className="h-4 w-4 text-muted-foreground" />
+            <Select value={isActiveFilter || "all"} onValueChange={handleIsActiveChange}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="true">Active</SelectItem>
+                <SelectItem value="false">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sort By */}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+            <Select value={sortBy} onValueChange={handleSortByChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name_asc">Name A-Z</SelectItem>
+                <SelectItem value="name_desc">Name Z-A</SelectItem>
+                <SelectItem value="products_desc">Most products</SelectItem>
+                <SelectItem value="products_asc">Least products</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <Button variant="outline" size="sm" onClick={handleClearFilters}>
+              Clear all filters
+            </Button>
+          )}
+
+          {/* Results count */}
+          {debouncedSearch && (
+            <span className="text-sm text-muted-foreground ml-auto">
+              {total} result{total !== 1 ? "s" : ""} found
+            </span>
+          )}
+        </div>
+
+        {/* Bulk Actions Bar */}
+        {isSomeSelected && (
+          <div className="flex items-center gap-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-2">
+              <CheckSquare className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                {selectAllMode
                   ? `All ${total} matching categories selected`
-                  : `${selectionCount} ${selectionCount === 1 ? "category" : "categories"} selected`}
+                  : `${selectedIds.size} ${selectedIds.size !== 1 ? "categories" : "category"} selected`
+                }
               </span>
-              {!selectAllMatching && allOnPageSelected && total > categories.length && (
-                <Button variant="link" size="sm" onClick={handleSelectAllMatching} className="p-0">
-                  Select all {total} matching categories
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" onClick={clearSelection}>
-                Clear selection
-              </Button>
             </div>
-            <div className="flex gap-2">
+
+            {isAllOnPageSelected && !selectAllMode && total > filteredCategories.length && (
               <Button
+                variant="link"
                 size="sm"
-                variant="default"
-                onClick={() => handleBulkUpdate(true)}
-                disabled={isProcessing}
-                className="bg-green-600 hover:bg-green-700"
+                className="text-blue-600"
+                onClick={handleSelectAllMatching}
               >
-                <CheckCircle2 className="mr-1 h-4 w-4" />
+                Select all {total} matching categories
+              </Button>
+            )}
+
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkActivate}
+                disabled={isProcessing || isPending}
+                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+              >
+                <Power className="h-4 w-4 mr-1" />
                 Activate
               </Button>
               <Button
+                variant="outline"
                 size="sm"
-                variant="destructive"
-                onClick={() => handleBulkUpdate(false)}
-                disabled={isProcessing}
+                onClick={handleBulkDeactivate}
+                disabled={isProcessing || isPending}
+                className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
               >
-                <XCircle className="mr-1 h-4 w-4" />
+                <PowerOff className="h-4 w-4 mr-1" />
                 Deactivate
               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearSelection}
+                disabled={isProcessing || isPending}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* Categories Table */}
-      <Card>
-        <CardContent className="p-0">
+        {/* Categories Table */}
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">
+                <TableHead className="w-[40px]">
                   <Checkbox
-                    checked={allOnPageSelected && categories.length > 0}
+                    checked={isAllOnPageSelected && filteredCategories.length > 0}
                     onCheckedChange={handleSelectAll}
+                    aria-label="Select all"
                   />
                 </TableHead>
-                <TableHead className="w-12">Image</TableHead>
+                <TableHead className="w-[60px]">Image</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Parent</TableHead>
-                <TableHead className="text-center">Products</TableHead>
-                <TableHead className="text-center">Active</TableHead>
-                <TableHead className="w-12">Actions</TableHead>
+                <TableHead className="text-right">Products</TableHead>
+                <TableHead className="w-[80px]">Active</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.length === 0 ? (
+              {filteredCategories.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <FolderTree className="h-8 w-8 text-muted-foreground" />
                       <span className="text-muted-foreground">
-                        {hasActiveFilters ? "No categories match your filters" : "No categories found"}
+                        No categories found
                       </span>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                categories.map((category) => (
-                  <TableRow key={category.id}>
+                filteredCategories.map((category) => (
+                  <TableRow key={category.id} className={selectedIds.has(category.id) || selectAllMode ? "bg-blue-50 dark:bg-blue-950/50" : ""}>
                     <TableCell>
                       <Checkbox
-                        checked={selectedIds.has(category.id)}
-                        onCheckedChange={(checked) =>
-                          handleSelectCategory(category.id, checked as boolean)
-                        }
+                        checked={selectedIds.has(category.id) || selectAllMode}
+                        onCheckedChange={(checked) => handleSelectOne(category.id, checked as boolean)}
+                        aria-label={`Select ${category.name}`}
                       />
                     </TableCell>
                     <TableCell>
@@ -509,37 +625,30 @@ export default function CategoriesPage() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/categories/${category.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {category.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {category.parent_name ? (
-                        <span className="text-muted-foreground">{category.parent_name}</span>
-                      ) : (
+                    <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {category.parent_name || (
                         <Badge variant="outline">Root</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary">{category.product_count}</Badge>
+                    <TableCell className="text-right">
+                      <Badge variant="secondary">
+                        {category.product_count || 0}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell>
                       <Switch
                         checked={category.is_active}
                         onCheckedChange={(checked) =>
                           handleToggleActive(category.id, checked)
                         }
-                        disabled={isProcessing}
+                        disabled={isProcessing || isPending}
                       />
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon">
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">Actions</span>
                           </Button>
@@ -547,7 +656,7 @@ export default function CategoriesPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link href={`/categories/${category.id}`}>
-                              <FolderTree className="mr-2 h-4 w-4" />
+                              <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </Link>
                           </DropdownMenuItem>
@@ -560,7 +669,10 @@ export default function CategoriesPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => handleDeleteClick(category.id)}
+                            onClick={() => {
+                              setDeleteCategoryId(category.id);
+                              setShowDeleteDialog(true);
+                            }}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Delete
@@ -573,35 +685,40 @@ export default function CategoriesPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
+        </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <div className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages} ({total} categories)
-            </div>
-            <div className="flex gap-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredCategories.length} of {total} categories
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
               >
+                <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
+              <span className="text-sm">
+                Page {currentPage} of {totalPages}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
               >
                 Next
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-        )}
-      </Card>
+          )}
+        </div>
+      </div>
 
       {/* Delete Category Dialog */}
       <ConfirmDialog
@@ -621,32 +738,17 @@ export default function CategoriesPage() {
 function CategoriesPageSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="flex flex-wrap items-center gap-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16" />
-            </CardContent>
-          </Card>
+          <Skeleton key={i} className="h-8 w-32 rounded-md" />
         ))}
       </div>
-      <Card>
-        <CardContent className="pt-6">
-          <Skeleton className="h-10 w-full" />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="p-0">
-          <div className="space-y-2 p-4">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex gap-4">
+        <Skeleton className="h-10 w-[250px]" />
+        <Skeleton className="h-10 w-[180px]" />
+        <Skeleton className="h-10 w-[180px]" />
+      </div>
+      <Skeleton className="h-[400px] w-full" />
     </div>
   );
 }
