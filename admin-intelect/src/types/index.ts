@@ -233,10 +233,57 @@ export interface ExportFilters extends ProductFilters {
 }
 
 // Sync log with additional metadata
-export interface SyncLogExtended extends SyncLog {
+export interface SyncLogExtended extends Omit<SyncLog, 'started_at' | 'details'> {
   started_at?: string;
   completed_at?: string;
   details?: Record<string, unknown>;
+}
+
+// Sync step information
+export interface SyncStep {
+  number: number;
+  name: string;
+  description: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  count: number;
+  total: number;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+// Enhanced sync progress response
+export interface SyncProgress {
+  isRunning: boolean;
+  currentStep: number;
+  totalSteps: number;
+  steps: SyncStep[];
+  syncLogId?: string;
+  startedAt?: string;
+  elapsedSeconds: number;
+  estimatedRemainingSeconds?: number;
+  lastUpdated: string;
+
+  // Detailed counts
+  brandsSynced: number;
+  categoriesSynced: number;
+  productsSynced: number;
+  characteristicsSynced: number;
+  propertiesSynced: number;
+  pricesSynced: number;
+  stockSynced: number;
+
+  // Category progress for properties step
+  categoriesProcessed: number;
+  totalCategories: number;
+
+  // Database totals for comparison
+  dbTotals: {
+    brands: number;
+    categories: number;
+    products: number;
+    characteristics: number;
+    properties: number;
+  };
 }
 
 // Note: Product already includes is_active field

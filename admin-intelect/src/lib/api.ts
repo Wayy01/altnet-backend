@@ -8,6 +8,7 @@ import {
   ProductFilters,
   DashboardStats,
   SyncLog,
+  SyncProgress,
   UpdateProductPayload,
   UpdateBrandPayload,
   UpdateCategoryPayload,
@@ -191,6 +192,14 @@ class ApiClient {
     } catch {
       return null;
     }
+  }
+
+  // Get detailed sync progress
+  async getSyncProgress(): Promise<SyncProgress> {
+    const response = await this.fetch<{ data: SyncProgress }>(
+      `/api/v1/sync/progress`
+    );
+    return response.data;
   }
 
   // Low stock alerts

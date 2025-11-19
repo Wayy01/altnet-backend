@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -593,6 +594,445 @@ func (h *Handler) GetLatestSyncStatus(w http.ResponseWriter, r *http.Request) {
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
 		"data": syncLog,
 	})
+}
+
+// SyncStep represents a single sync step with progress info
+type SyncStep struct {
+	Number      int    `json:"number"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Status      string `json:"status"` // pending, running, completed, failed
+	Count       int    `json:"count"`
+	Total       int    `json:"total"`
+	StartedAt   string `json:"startedAt,omitempty"`
+	CompletedAt string `json:"completedAt,omitempty"`
+}
+
+// SyncProgressResponse represents detailed sync progress
+type SyncProgressResponse struct {
+	IsRunning                 bool       `json:"isRunning"`
+	CurrentStep               int        `json:"currentStep"`
+	TotalSteps                int        `json:"totalSteps"`
+	Steps                     []SyncStep `json:"steps"`
+	SyncLogID                 string     `json:"syncLogId,omitempty"`
+	StartedAt                 string     `json:"startedAt,omitempty"`
+	ElapsedSeconds            int        `json:"elapsedSeconds"`
+	EstimatedRemainingSeconds *int       `json:"estimatedRemainingSeconds,omitempty"`
+	LastUpdated               string     `json:"lastUpdated"`
+
+	// Detailed counts
+	BrandsSynced          int `json:"brandsSynced"`
+	CategoriesSynced      int `json:"categoriesSynced"`
+	ProductsSynced        int `json:"productsSynced"`
+	CharacteristicsSynced int `json:"characteristicsSynced"`
+	PropertiesSynced      int `json:"propertiesSynced"`
+	PricesSynced          int `json:"pricesSynced"`
+	StockSynced           int `json:"stockSynced"`
+
+	// Category progress for properties step
+	CategoriesProcessed int `json:"categoriesProcessed"`
+	TotalCategories     int `json:"totalCategories"`
+
+	// Database totals
+	DbTotals DbTotals `json:"dbTotals"`
+}
+
+// DbTotals holds database count totals
+type DbTotals struct {
+	Brands          int `json:"brands"`
+	Categories      int `json:"categories"`
+	Products        int `json:"products"`
+	Characteristics int `json:"characteristics"`
+	Properties      int `json:"properties"`
+}
+
+// GetSyncProgress handles GET /api/v1/sync/progress
+// @Summary Get detailed sync progress
+// @Description Returns comprehensive sync progress with step-by-step status
+// @Tags Sync
+// @Produce json
+// @Success 200 {object} SyncProgressResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/sync/progress [get]
+func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Get the latest sync log
+	syncLog, err := h.repo.GetLatestSyncLog(ctx)
+	if err != nil && syncLog == nil {
+		// No sync logs exist yet
+		h.respondJSON(w, http.StatusOK, map[string]interface{}{
+			"data": h.buildEmptySyncProgress(ctx),
+		})
+		return
+	}
+
+	// Get database totals
+	dbTotals := h.getDbTotals(ctx)
+
+	// Determine if sync is currently running
+	isRunning := syncLog != nil && syncLog.Status == "running"
+
+	// Build step progress
+	steps := h.buildSyncSteps(syncLog, dbTotals)
+
+	// Calculate elapsed time
+	elapsedSeconds := 0
+	if syncLog != nil {
+		if isRunning {
+			elapsedSeconds = int(time.Since(syncLog.StartedAt).Seconds())
+		} else if syncLog.DurationSeconds != nil {
+			elapsedSeconds = *syncLog.DurationSeconds
+		}
+	}
+
+	// Determine current step based on what has data
+	currentStep := h.determineCurrentStep(syncLog, isRunning, dbTotals)
+
+	// Estimate remaining time (rough estimate based on historical data)
+	var estimatedRemaining *int
+	if isRunning && currentStep > 0 {
+		// Properties step (step 4) typically takes ~35 minutes
+		// Simple estimation: if on step 4, estimate based on progress
+		if currentStep == 4 {
+			expectedProperties := 876081
+			if dbTotals.Properties > 0 && dbTotals.Properties < expectedProperties {
+				// Estimate based on current progress rate
+				progress := float64(dbTotals.Properties) / float64(expectedProperties)
+				if progress > 0.01 && elapsedSeconds > 60 {
+					// Extrapolate total time based on current rate
+					totalEstimated := float64(elapsedSeconds) / progress
+					remaining := int(totalEstimated) - elapsedSeconds
+					if remaining > 0 {
+						estimatedRemaining = &remaining
+					}
+				}
+			}
+		}
+	}
+
+	// Get categories with products count
+	totalCategoriesWithProducts, _ := h.repo.CountCategoriesWithProducts(ctx)
+
+	// Use actual database counts as synced values for real-time accuracy
+	// For prices and stock, use sync log since they update in place
+	brandsSynced := dbTotals.Brands
+	categoriesSynced := dbTotals.Categories
+	productsSynced := dbTotals.Products
+	characteristicsSynced := dbTotals.Characteristics
+	propertiesSynced := dbTotals.Properties
+	pricesSynced := 0
+	stockSynced := 0
+
+	if syncLog != nil {
+		pricesSynced = syncLog.PricesSynced
+		stockSynced = syncLog.StockSynced
+	}
+
+	response := SyncProgressResponse{
+		IsRunning:                 isRunning,
+		CurrentStep:               currentStep,
+		TotalSteps:                7,
+		Steps:                     steps,
+		SyncLogID:                 "",
+		StartedAt:                 "",
+		ElapsedSeconds:            elapsedSeconds,
+		EstimatedRemainingSeconds: estimatedRemaining,
+		LastUpdated:               time.Now().UTC().Format(time.RFC3339),
+		BrandsSynced:              brandsSynced,
+		CategoriesSynced:          categoriesSynced,
+		ProductsSynced:            productsSynced,
+		CharacteristicsSynced:     characteristicsSynced,
+		PropertiesSynced:          propertiesSynced,
+		PricesSynced:              pricesSynced,
+		StockSynced:               stockSynced,
+		CategoriesProcessed:       0,
+		TotalCategories:           totalCategoriesWithProducts,
+		DbTotals:                  dbTotals,
+	}
+
+	if syncLog != nil {
+		response.SyncLogID = syncLog.ID.String()
+		response.StartedAt = syncLog.StartedAt.Format(time.RFC3339)
+
+		// Estimate categories processed based on properties count
+		if totalCategoriesWithProducts > 0 && propertiesSynced > 0 {
+			// Expected properties count
+			expectedProperties := 876081
+			// Rough estimate based on progress percentage
+			progress := float64(propertiesSynced) / float64(expectedProperties)
+			response.CategoriesProcessed = int(float64(totalCategoriesWithProducts) * progress)
+			if response.CategoriesProcessed > totalCategoriesWithProducts {
+				response.CategoriesProcessed = totalCategoriesWithProducts
+			}
+		}
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": response,
+	})
+}
+
+func (h *Handler) buildEmptySyncProgress(ctx context.Context) SyncProgressResponse {
+	dbTotals := h.getDbTotals(ctx)
+	return SyncProgressResponse{
+		IsRunning:   false,
+		CurrentStep: 0,
+		TotalSteps:  7,
+		Steps:       h.buildSyncSteps(nil, dbTotals),
+		LastUpdated: time.Now().UTC().Format(time.RFC3339),
+		DbTotals:    dbTotals,
+	}
+}
+
+func (h *Handler) getDbTotals(ctx context.Context) DbTotals {
+	brands, _ := h.repo.CountBrands(ctx)
+	categories, _ := h.repo.CountCategories(ctx, nil)
+	products, _ := h.repo.CountAllProducts(ctx)
+	characteristics, _ := h.repo.CountCharacteristics(ctx)
+	properties, _ := h.repo.CountProperties(ctx)
+
+	return DbTotals{
+		Brands:          brands,
+		Categories:      categories,
+		Products:        products,
+		Characteristics: characteristics,
+		Properties:      properties,
+	}
+}
+
+func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []SyncStep {
+	// Expected totals for a full sync (estimates based on known data)
+	expectedBrands := 1133
+	expectedCategories := 418
+	expectedProducts := 48316
+	expectedCharacteristics := 460
+	expectedProperties := 876081
+
+	// Use actual DB counts as expected if they're higher (data has grown)
+	if dbTotals.Brands > expectedBrands {
+		expectedBrands = dbTotals.Brands
+	}
+	if dbTotals.Categories > expectedCategories {
+		expectedCategories = dbTotals.Categories
+	}
+	if dbTotals.Products > expectedProducts {
+		expectedProducts = dbTotals.Products
+	}
+	if dbTotals.Characteristics > expectedCharacteristics {
+		expectedCharacteristics = dbTotals.Characteristics
+	}
+	if dbTotals.Properties > expectedProperties {
+		expectedProperties = dbTotals.Properties
+	}
+
+	steps := []SyncStep{
+		{
+			Number:      1,
+			Name:        "Brands",
+			Description: "Fetch all brands with logos",
+			Status:      "pending",
+			Count:       0,
+			Total:       expectedBrands,
+		},
+		{
+			Number:      2,
+			Name:        "Categories",
+			Description: "Fetch hierarchical category tree",
+			Status:      "pending",
+			Count:       0,
+			Total:       expectedCategories,
+		},
+		{
+			Number:      3,
+			Name:        "Products",
+			Description: "Fetch products with images, barcodes, and characteristics",
+			Status:      "pending",
+			Count:       0,
+			Total:       expectedProducts,
+		},
+		{
+			Number:      4,
+			Name:        "Properties",
+			Description: "Fetch properties per category (slowest step, ~35 min)",
+			Status:      "pending",
+			Count:       0,
+			Total:       expectedProperties,
+		},
+		{
+			Number:      5,
+			Name:        "Prices",
+			Description: "Update characteristic prices (multi-currency)",
+			Status:      "pending",
+			Count:       0,
+			Total:       expectedCharacteristics,
+		},
+		{
+			Number:      6,
+			Name:        "Stock",
+			Description: "Update characteristic stock levels",
+			Status:      "pending",
+			Count:       0,
+			Total:       expectedCharacteristics,
+		},
+		{
+			Number:      7,
+			Name:        "Exchange Rates",
+			Description: "Fetch current currency rates",
+			Status:      "pending",
+			Count:       0,
+			Total:       3, // MDL, EUR, USD
+		},
+	}
+
+	if syncLog == nil {
+		return steps
+	}
+
+	// Update step statuses and counts based on actual database counts
+	// This ensures we show real-time progress even if sync log isn't updated yet
+	isRunning := syncLog.Status == "running"
+	isFailed := syncLog.Status == "failed"
+	isCompleted := syncLog.Status == "completed"
+
+	// Determine current step based on what data exists in the database
+	// During a running sync, use actual DB counts to show progress
+
+	// Step 1: Brands - use actual DB count
+	if dbTotals.Brands > 0 {
+		steps[0].Status = "completed"
+		steps[0].Count = dbTotals.Brands
+	}
+
+	// Step 2: Categories - use actual DB count
+	if dbTotals.Categories > 0 {
+		steps[1].Status = "completed"
+		steps[1].Count = dbTotals.Categories
+	}
+
+	// Step 3: Products - use actual DB count (also implies characteristics are synced)
+	if dbTotals.Products > 0 {
+		steps[2].Status = "completed"
+		steps[2].Count = dbTotals.Products
+	}
+
+	// Step 4: Properties - use actual DB count
+	// This step takes longest, so during running sync, show current progress
+	if dbTotals.Properties > 0 {
+		// If sync is running and we have some properties but not at expected level,
+		// this step is likely still in progress
+		if isRunning && dbTotals.Properties < expectedProperties*9/10 {
+			steps[3].Status = "running"
+		} else {
+			steps[3].Status = "completed"
+		}
+		steps[3].Count = dbTotals.Properties
+	}
+
+	// Step 5: Prices - check sync log since prices update characteristics in place
+	if syncLog.PricesSynced > 0 {
+		steps[4].Status = "completed"
+		steps[4].Count = syncLog.PricesSynced
+	}
+
+	// Step 6: Stock - check sync log since stock updates characteristics in place
+	if syncLog.StockSynced > 0 {
+		steps[5].Status = "completed"
+		steps[5].Count = syncLog.StockSynced
+	}
+
+	// Step 7: Exchange Rates - check sync log details or if sync is completed
+	if syncLog.Details != nil {
+		if _, ok := syncLog.Details["services_synced"]; ok {
+			steps[6].Status = "completed"
+			steps[6].Count = 3
+		}
+	}
+	if isCompleted {
+		steps[6].Status = "completed"
+		steps[6].Count = 3
+	}
+
+	// If running, determine which step is actually running based on data state
+	if isRunning {
+		foundRunning := false
+		for i := range steps {
+			if steps[i].Status == "running" {
+				foundRunning = true
+				break
+			}
+		}
+		// If no step is marked running yet, find the first pending one
+		if !foundRunning {
+			for i := range steps {
+				if steps[i].Status == "pending" {
+					steps[i].Status = "running"
+					break
+				}
+			}
+		}
+	}
+
+	// If failed, mark the failed step
+	if isFailed {
+		for i := range steps {
+			if steps[i].Status == "running" {
+				steps[i].Status = "failed"
+				break
+			} else if steps[i].Status == "pending" {
+				steps[i].Status = "failed"
+				break
+			}
+		}
+	}
+
+	return steps
+}
+
+func (h *Handler) determineCurrentStep(syncLog *models.SyncLog, isRunning bool, dbTotals DbTotals) int {
+	if syncLog == nil {
+		return 0
+	}
+
+	if !isRunning {
+		return 7 // Completed
+	}
+
+	// Expected totals for determining if a step is complete
+	expectedProperties := 876081
+	if dbTotals.Properties > expectedProperties {
+		expectedProperties = dbTotals.Properties
+	}
+
+	// Determine current step based on actual database state and sync log
+	// For steps 5-7, use sync log since they update in place
+	if syncLog.StockSynced > 0 {
+		return 7
+	}
+	if syncLog.PricesSynced > 0 {
+		return 6
+	}
+
+	// For properties, check if we're still syncing (less than 90% complete)
+	if dbTotals.Properties > 0 && dbTotals.Properties < expectedProperties*9/10 {
+		return 4 // Still on properties step
+	}
+	if dbTotals.Properties >= expectedProperties*9/10 {
+		return 5 // Properties done, moving to prices
+	}
+
+	// For earlier steps, use database counts
+	if dbTotals.Products > 0 {
+		return 4 // Products done, on properties
+	}
+	if dbTotals.Categories > 0 {
+		return 3 // Categories done, on products
+	}
+	if dbTotals.Brands > 0 {
+		return 2 // Brands done, on categories
+	}
+
+	return 1 // On brands
 }
 
 // ============================================================================

@@ -425,11 +425,18 @@ func (r *Repository) CountCategories(ctx context.Context, parentID *uuid.UUID) (
 	var err error
 
 	if parentID == nil {
-		err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE parent_id IS NULL AND is_active = true").Scan(&count)
+		err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE is_active = true").Scan(&count)
 	} else {
 		err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE parent_id = $1 AND is_active = true", parentID).Scan(&count)
 	}
 
+	return count, err
+}
+
+// CountCategoriesWithProducts returns the count of categories that have products
+func (r *Repository) CountCategoriesWithProducts(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE product_count > 0 AND is_active = true").Scan(&count)
 	return count, err
 }
 

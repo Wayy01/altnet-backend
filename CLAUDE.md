@@ -118,7 +118,7 @@ bun dev          # Starts on http://localhost:3000
 | `/products/[id]` | Product detail with properties & characteristics |
 | `/brands` | Brands management with status toggles and delete actions |
 | `/categories` | Hierarchical category tree with status toggles |
-| `/sync` | Sync logs with pagination, refresh, and status history |
+| `/sync` | Real-time sync progress with step-by-step tracking, auto-refresh, and history |
 | `/settings` | Configuration info |
 
 ### Dashboard Features (Nov 2025)
@@ -130,6 +130,13 @@ bun dev          # Starts on http://localhost:3000
 - **Toast Notifications**: Success/error feedback using Sonner
 - **Confirmation Dialogs**: Destructive action confirmations
 - **Status Toggles**: Enable/disable products, brands, categories inline
+- **Enhanced Sync Status Page**: Real-time sync progress with:
+  - Step-by-step progress indicators (7 steps)
+  - Visual progress bars per step
+  - Auto-refresh (3s when running, 30s when idle)
+  - Detailed statistics (brands, categories, products, variants, properties, prices, stock)
+  - Database totals comparison
+  - Sync history with pagination
 
 ### Tech Stack
 
@@ -148,6 +155,8 @@ bun dev          # Starts on http://localhost:3000
 | `src/components/app-sidebar.tsx` | Navigation sidebar |
 | `src/components/products/products-table.tsx` | Products table with bulk actions |
 | `src/components/confirm-dialog.tsx` | Reusable confirmation dialog |
+| `src/components/ui/progress.tsx` | Progress bar component |
+| `src/app/sync/page.tsx` | Enhanced sync status page with real-time progress |
 | `src/components/ui/switch.tsx` | Toggle switch component |
 | `src/components/ui/sonner.tsx` | Toast notifications |
 
@@ -235,6 +244,7 @@ GET /api/v1/dashboard/price-summary          # Price distribution and ranges
 GET /api/v1/sync/logs                        # List sync logs (paginated, filterable)
 GET /api/v1/sync/logs/{id}                   # Get sync log details
 GET /api/v1/sync/status                      # Latest sync status
+GET /api/v1/sync/progress                    # Detailed sync progress with step-by-step status
 
 # Bulk Operations
 PATCH  /api/v1/products/bulk                 # Bulk update products (enable/disable)
@@ -427,6 +437,48 @@ is_group BOOLEAN             -- True if this is a variant group parent
 ```
 
 **Migration File:** `migrations/004_multi_currency_variants.sql`
+
+### Enhanced Sync Status Page (Nov 2025)
+
+The sync status page has been completely redesigned with real-time progress tracking and premium UI.
+
+**Features:**
+
+1. **Real-Time Progress**: Updates every 1 second when sync is running
+2. **Step-by-Step Tracking**: All 7 sync steps with individual progress bars
+3. **Accurate Database Counts**: Shows actual synced counts from database, not estimates
+4. **Premium UI**: Redesigned with animations, gradients, and polished styling
+
+**Backend Endpoint**: `GET /api/v1/sync/progress`
+
+Returns comprehensive sync progress:
+```json
+{
+  "isRunning": true,
+  "currentStep": 4,
+  "overallProgress": 57,
+  "elapsedSeconds": 1200,
+  "estimatedRemainingSeconds": 900,
+  "steps": [
+    {"name": "Brands", "status": "completed", "synced": 1133, "total": 1133},
+    {"name": "Categories", "status": "completed", "synced": 418, "total": 418},
+    {"name": "Products", "status": "completed", "synced": 48316, "total": 48316},
+    {"name": "Properties", "status": "running", "synced": 500000, "total": 876081}
+  ]
+}
+```
+
+**Key Implementation Details:**
+
+- Uses actual database counts (not sync log values) for real-time accuracy
+- Determines current step based on database state during active sync
+- CTEs separate stock and price aggregation for correct calculations
+- LEFT JOIN LATERAL handles empty price arrays correctly
+
+**Files:**
+- Frontend: `admin-intelect/src/app/sync/page.tsx`
+- Backend: `internal/handlers/handlers.go` (GetSyncProgress handler)
+- Types: `admin-intelect/src/types/index.ts` (SyncProgress, SyncStep)
 
 ## Database Queries
 

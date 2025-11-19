@@ -134,10 +134,11 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	// Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
 
-	// Sync logs
+	// Sync logs and progress
 	api.HandleFunc("/sync/logs", handler.ListSyncLogs).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sync/logs/{id}", handler.GetSyncLog).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sync/status", handler.GetLatestSyncStatus).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/progress", handler.GetSyncProgress).Methods("GET", "OPTIONS")
 
 	// CRUD operations - Products (bulk routes must come before {id} routes)
 	api.HandleFunc("/products", handler.CreateProduct).Methods("POST", "OPTIONS")
