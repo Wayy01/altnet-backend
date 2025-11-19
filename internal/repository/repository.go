@@ -238,17 +238,16 @@ func (r *Repository) ListBrandsWithSearch(ctx context.Context, search string, ha
 		havingClause = "HAVING COUNT(p.id) = 0"
 	}
 
-	// Build ORDER BY clause
-	orderBy := "b.name ASC" // default
-	switch sortBy {
-	case "name_desc":
-		orderBy = "b.name DESC"
-	case "products_desc":
-		orderBy = "product_count DESC, b.name ASC"
-	case "products_asc":
-		orderBy = "product_count ASC, b.name ASC"
-	case "name_asc":
-		orderBy = "b.name ASC"
+	// Build ORDER BY clause using allowlist map for security
+	brandSortOptions := map[string]string{
+		"name_asc":      "b.name ASC",
+		"name_desc":     "b.name DESC",
+		"products_desc": "product_count DESC, b.name ASC",
+		"products_asc":  "product_count ASC, b.name ASC",
+	}
+	orderBy := brandSortOptions["name_asc"] // default
+	if sortSQL, ok := brandSortOptions[sortBy]; ok {
+		orderBy = sortSQL
 	}
 
 	// Add limit and offset to args
@@ -613,6 +612,354 @@ func (r *Repository) CountCategories(ctx context.Context, parentID *uuid.UUID) (
 func (r *Repository) CountCategoriesWithProducts(ctx context.Context) (int, error) {
 	var count int
 	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE product_count > 0 AND is_active = true").Scan(&count)
+	return count, err
+}
+
+// ListCategoriesWithSearch returns categories with optional search, filters, and sorting
+func (r *Repository) ListCategoriesWithSearch(ctx context.Context, search string, hasProducts string, isActive string, sortBy string, limit, offset int) ([]*models.Category, error) {
+	// Build WHERE clause - start empty for admin view (show all by default)
+	whereClauses := []string{}
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	// Apply is_active filter only if specified
+	if isActive == "true" {
+		whereClauses = append(whereClauses, "c.is_active = true")
+	} else if isActive == "false" {
+		whereClauses = append(whereClauses, "c.is_active = false")
+	}
+	// If isActive is "" or any other value, don't filter by active status
+
+	if search != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.name ILIKE $%d", argPos))
+		args = append(args, "%"+search+"%")
+		argPos++
+	}
+
+	// Build HAVING clause for product count filter
+	havingClause := ""
+	if hasProducts == "true" {
+		havingClause = "HAVING c.product_count > 0"
+	} else if hasProducts == "false" {
+		havingClause = "HAVING c.product_count = 0"
+	}
+
+	// Build ORDER BY clause using allowlist map for security
+	categorySortOptions := map[string]string{
+		"name_asc":      "c.name ASC",
+		"name_desc":     "c.name DESC",
+		"products_desc": "c.product_count DESC, c.name ASC",
+		"products_asc":  "c.product_count ASC, c.name ASC",
+	}
+	orderBy := categorySortOptions["name_asc"] // default
+	if sortSQL, ok := categorySortOptions[sortBy]; ok {
+		orderBy = sortSQL
+	}
+
+	// Add limit and offset to args
+	args = append(args, limit, offset)
+
+	// Build WHERE clause string
+	whereClause := "TRUE" // Default to no filtering
+	if len(whereClauses) > 0 {
+		whereClause = strings.Join(whereClauses, " AND ")
+	}
+
+	query := fmt.Sprintf(`
+		SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+		       c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at,
+		       COALESCE(p.name, '') as parent_name
+		FROM categories c
+		LEFT JOIN categories p ON p.id = c.parent_id
+		WHERE %s
+		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+		         c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at, p.name
+		%s
+		ORDER BY %s
+		LIMIT $%d OFFSET $%d
+	`, whereClause, havingClause, orderBy, argPos, argPos+1)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	categories := make([]*models.Category, 0)
+	for rows.Next() {
+		var category models.Category
+		var parentName string
+		err := rows.Scan(
+			&category.ID, &category.UltraID, &category.Code, &category.ParentID,
+			&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
+			&category.ImageURL, &category.ProductCount, &category.IsActive,
+			&category.CreatedAt, &category.UpdatedAt, &parentName,
+		)
+		if err != nil {
+			return nil, err
+		}
+		category.ParentName = parentName
+		categories = append(categories, &category)
+	}
+
+	return categories, nil
+}
+
+// CountCategoriesWithSearch returns the total count of categories with optional search, hasProducts, and isActive filters
+func (r *Repository) CountCategoriesWithSearch(ctx context.Context, search string, hasProducts string, isActive string) (int, error) {
+	// Build WHERE clause - start empty for admin view (show all by default)
+	whereClauses := []string{}
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	// Apply is_active filter only if specified
+	if isActive == "true" {
+		whereClauses = append(whereClauses, "c.is_active = true")
+	} else if isActive == "false" {
+		whereClauses = append(whereClauses, "c.is_active = false")
+	}
+	// If isActive is "" or any other value, don't filter by active status
+
+	if search != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.name ILIKE $%d", argPos))
+		args = append(args, "%"+search+"%")
+		argPos++
+	}
+
+	// Build HAVING clause for product count filter
+	havingClause := ""
+	if hasProducts == "true" {
+		havingClause = "HAVING c.product_count > 0"
+	} else if hasProducts == "false" {
+		havingClause = "HAVING c.product_count = 0"
+	}
+
+	// Build WHERE clause string
+	whereClause := "TRUE" // Default to no filtering
+	if len(whereClauses) > 0 {
+		whereClause = strings.Join(whereClauses, " AND ")
+	}
+
+	query := fmt.Sprintf(`
+		SELECT COUNT(*) FROM (
+			SELECT c.id
+			FROM categories c
+			WHERE %s
+			GROUP BY c.id, c.product_count
+			%s
+		) AS filtered_categories
+	`, whereClause, havingClause)
+
+	var count int
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&count)
+	return count, err
+}
+
+// BulkUpdateCategoriesByFilter updates all categories matching the given filter criteria
+func (r *Repository) BulkUpdateCategoriesByFilter(ctx context.Context, search string, hasProducts string, isActiveFilter string, isActive bool) (int, error) {
+	// Build WHERE clause for the subquery - start empty for admin view (show all by default)
+	whereClauses := []string{}
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	// First arg is the isActive value (new value to set)
+	args = append(args, isActive)
+	argPos++
+
+	// Apply is_active filter only if specified
+	if isActiveFilter == "true" {
+		whereClauses = append(whereClauses, "c.is_active = true")
+	} else if isActiveFilter == "false" {
+		whereClauses = append(whereClauses, "c.is_active = false")
+	}
+	// If isActiveFilter is "" or any other value, don't filter by active status
+
+	if search != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("c.name ILIKE $%d", argPos))
+		args = append(args, "%"+search+"%")
+		argPos++
+	}
+
+	// Build HAVING clause for product count filter
+	havingClause := ""
+	if hasProducts == "true" {
+		havingClause = "HAVING c.product_count > 0"
+	} else if hasProducts == "false" {
+		havingClause = "HAVING c.product_count = 0"
+	}
+
+	// Build WHERE clause string
+	whereClause := "TRUE" // Default to no filtering
+	if len(whereClauses) > 0 {
+		whereClause = strings.Join(whereClauses, " AND ")
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE categories
+		SET is_active = $1, updated_at = NOW()
+		WHERE id IN (
+			SELECT c.id
+			FROM categories c
+			WHERE %s
+			GROUP BY c.id, c.product_count
+			%s
+		)
+	`, whereClause, havingClause)
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk update categories by filter: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
+
+// CategoryWithStats represents a category with product statistics
+type CategoryWithStats struct {
+	models.Category
+	ParentName         string `json:"parent_name"`
+	TotalProducts      int    `json:"total_products"`
+	ActiveProducts     int    `json:"active_products"`
+	InStockProducts    int    `json:"in_stock_products"`
+	WithPricesProducts int    `json:"with_prices_products"`
+	ChildCount         int    `json:"child_count"`
+}
+
+// GetCategoryWithStats returns a category with product statistics
+func (r *Repository) GetCategoryWithStats(ctx context.Context, id uuid.UUID) (*CategoryWithStats, error) {
+	query := `
+		SELECT
+			c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+			c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at,
+			COALESCE(p.name, '') as parent_name,
+			COUNT(pr.id) as total_products,
+			COUNT(CASE WHEN pr.is_active = true THEN 1 END) as active_products,
+			COUNT(CASE WHEN pr.is_active = true AND pr.total_stock > 0 THEN 1 END) as in_stock_products,
+			COUNT(CASE WHEN pr.is_active = true AND jsonb_array_length(pr.prices) > 0 THEN 1 END) as with_prices_products,
+			(SELECT COUNT(*) FROM categories WHERE parent_id = c.id) as child_count
+		FROM categories c
+		LEFT JOIN categories p ON p.id = c.parent_id
+		LEFT JOIN products pr ON pr.category_id = c.id
+		WHERE c.id = $1
+		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
+		         c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at, p.name
+	`
+
+	var category CategoryWithStats
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&category.ID, &category.UltraID, &category.Code, &category.ParentID,
+		&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
+		&category.ImageURL, &category.ProductCount, &category.IsActive,
+		&category.CreatedAt, &category.UpdatedAt, &category.ParentName,
+		&category.TotalProducts, &category.ActiveProducts, &category.InStockProducts,
+		&category.WithPricesProducts, &category.ChildCount,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &category, nil
+}
+
+// CategoryProduct represents a simplified product for category details page
+type CategoryProduct struct {
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Code       string    `json:"code"`
+	PriceMin   *float64  `json:"price_min"`
+	PriceMax   *float64  `json:"price_max"`
+	TotalStock int       `json:"total_stock"`
+	IsActive   bool      `json:"is_active"`
+}
+
+// GetProductsByCategoryID returns paginated products for a specific category
+func (r *Repository) GetProductsByCategoryID(ctx context.Context, categoryID uuid.UUID, limit, offset int) ([]*CategoryProduct, error) {
+	query := `
+		SELECT id, name, COALESCE(code, ''), price_min, price_max, total_stock, is_active
+		FROM products
+		WHERE category_id = $1
+		ORDER BY name ASC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.pool.Query(ctx, query, categoryID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	products := make([]*CategoryProduct, 0)
+	for rows.Next() {
+		var product CategoryProduct
+		err := rows.Scan(
+			&product.ID, &product.Name, &product.Code, &product.PriceMin,
+			&product.PriceMax, &product.TotalStock, &product.IsActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, &product)
+	}
+
+	return products, nil
+}
+
+// CountProductsByCategoryID returns the total count of products for a category
+func (r *Repository) CountProductsByCategoryID(ctx context.Context, categoryID uuid.UUID) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE category_id = $1", categoryID).Scan(&count)
+	return count, err
+}
+
+// BulkUpdateProductsByCategoryID updates all products for a category
+func (r *Repository) BulkUpdateProductsByCategoryID(ctx context.Context, categoryID uuid.UUID, isActive bool) (int, error) {
+	result, err := r.pool.Exec(ctx, `
+		UPDATE products SET is_active = $1, updated_at = NOW() WHERE category_id = $2
+	`, isActive, categoryID)
+	if err != nil {
+		return 0, err
+	}
+	return int(result.RowsAffected()), nil
+}
+
+// GetSubcategories returns child categories for a parent category
+func (r *Repository) GetSubcategories(ctx context.Context, parentID uuid.UUID) ([]*models.Category, error) {
+	query := `
+		SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
+		       image_url, product_count, is_active, created_at, updated_at
+		FROM categories
+		WHERE parent_id = $1
+		ORDER BY sort_order ASC, name ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query, parentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	categories := make([]*models.Category, 0)
+	for rows.Next() {
+		var category models.Category
+		err := rows.Scan(
+			&category.ID, &category.UltraID, &category.Code, &category.ParentID,
+			&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
+			&category.ImageURL, &category.ProductCount, &category.IsActive,
+			&category.CreatedAt, &category.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, &category)
+	}
+
+	return categories, nil
+}
+
+// CountRootCategories returns the count of categories with no parent
+func (r *Repository) CountRootCategories(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE parent_id IS NULL").Scan(&count)
 	return count, err
 }
 

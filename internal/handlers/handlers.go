@@ -221,11 +221,40 @@ func (h *Handler) BulkUpdateBrandProducts(w http.ResponseWriter, r *http.Request
 // ListCategories handles GET /api/v1/categories
 func (h *Handler) ListCategories(w http.ResponseWriter, r *http.Request) {
 	limit, offset := h.parsePagination(r)
+	search := r.URL.Query().Get("search")
+	hasProducts := r.URL.Query().Get("has_products")
+	isActive := r.URL.Query().Get("is_active")
+	sortBy := r.URL.Query().Get("sort_by")
 
-	// Check if parent_id filter is provided
+	// Check if parent_id filter is provided (legacy support)
 	parentIDStr := r.URL.Query().Get("parent_id")
 
-	// If no parent_id filter, return all categories for the dashboard
+	// If search or filters are provided, use the new search function
+	if search != "" || hasProducts != "" || isActive != "" || sortBy != "" {
+		categories, err := h.repo.ListCategoriesWithSearch(r.Context(), search, hasProducts, isActive, sortBy, limit, offset)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to fetch categories", err.Error())
+			return
+		}
+
+		total, err := h.repo.CountCategoriesWithSearch(r.Context(), search, hasProducts, isActive)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to count categories", err.Error())
+			return
+		}
+
+		h.respondJSON(w, http.StatusOK, map[string]interface{}{
+			"data": categories,
+			"meta": PaginationMeta{
+				Limit:  limit,
+				Offset: offset,
+				Total:  total,
+			},
+		})
+		return
+	}
+
+	// If no parent_id filter, return all categories for the dashboard (legacy behavior)
 	if parentIDStr == "" {
 		categories, err := h.repo.ListAllCategories(r.Context())
 		if err != nil {
@@ -272,6 +301,116 @@ func (h *Handler) ListCategories(w http.ResponseWriter, r *http.Request) {
 			Offset: offset,
 			Total:  total,
 		},
+	})
+}
+
+// GetCategoryWithStats handles GET /api/v1/categories/{id}/stats
+func (h *Handler) GetCategoryWithStats(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid category ID", err.Error())
+		return
+	}
+
+	category, err := h.repo.GetCategoryWithStats(r.Context(), id)
+	if err != nil {
+		h.respondError(w, http.StatusNotFound, "Category not found", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": category,
+	})
+}
+
+// GetCategoryProducts handles GET /api/v1/categories/{id}/products
+func (h *Handler) GetCategoryProducts(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid category ID", err.Error())
+		return
+	}
+
+	limit, offset := h.parsePagination(r)
+
+	products, err := h.repo.GetProductsByCategoryID(r.Context(), id, limit, offset)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch category products", err.Error())
+		return
+	}
+
+	total, err := h.repo.CountProductsByCategoryID(r.Context(), id)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to count category products", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": products,
+		"meta": PaginationMeta{
+			Limit:  limit,
+			Offset: offset,
+			Total:  total,
+		},
+	})
+}
+
+// BulkUpdateCategoryProductsRequest represents the request body for bulk updating category products
+type BulkUpdateCategoryProductsRequest struct {
+	IsActive bool `json:"is_active"`
+}
+
+// BulkUpdateCategoryProducts handles PATCH /api/v1/categories/{id}/products/bulk
+func (h *Handler) BulkUpdateCategoryProducts(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid category ID", err.Error())
+		return
+	}
+
+	var req BulkUpdateCategoryProductsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	updated, err := h.repo.BulkUpdateProductsByCategoryID(r.Context(), id, req.IsActive)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update products", err.Error())
+		return
+	}
+
+	action := "deactivated"
+	if req.IsActive {
+		action = "activated"
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Successfully %s %d products", action, updated),
+		"updated": updated,
+	})
+}
+
+// GetCategorySubcategories handles GET /api/v1/categories/{id}/subcategories
+func (h *Handler) GetCategorySubcategories(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid category ID", err.Error())
+		return
+	}
+
+	subcategories, err := h.repo.GetSubcategories(r.Context(), id)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch subcategories", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": subcategories,
 	})
 }
 
@@ -1774,42 +1913,81 @@ func (h *Handler) BulkUpdateBrands(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// BulkUpdateCategoriesRequest represents a bulk update operation request for categories
+// Supports both specific IDs and filter-based updates
+type BulkUpdateCategoriesRequest struct {
+	IDs    []uuid.UUID `json:"ids,omitempty"`
+	Filter *struct {
+		Search      string `json:"search"`
+		HasProducts string `json:"has_products"`
+		IsActive    string `json:"is_active"` // Filter by current active status: "true", "false", or "" for all
+	} `json:"filter,omitempty"`
+	IsActive *bool `json:"is_active"` // New value to set
+}
+
 // BulkUpdateCategories handles PATCH /api/v1/categories/bulk
 // @Summary Bulk update categories
-// @Description Updates multiple categories at once (e.g., enable/disable)
+// @Description Updates multiple categories at once (e.g., enable/disable). Supports both specific IDs and filter-based updates.
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Param request body BulkUpdateRequest true "Bulk update data"
+// @Param request body BulkUpdateCategoriesRequest true "Bulk update data"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/categories/bulk [patch]
 func (h *Handler) BulkUpdateCategories(w http.ResponseWriter, r *http.Request) {
-	var req BulkUpdateRequest
+	var req BulkUpdateCategoriesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 
-	if len(req.IDs) == 0 {
-		h.respondError(w, http.StatusBadRequest, "Validation failed", "ids array is required")
+	if req.IsActive == nil {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "is_active is required")
 		return
 	}
 
-	if len(req.IDs) > 100 {
-		h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+	var updated int
+	var err error
+
+	// Check if this is a filter-based update or ID-based update
+	if req.Filter != nil {
+		// Filter-based update - update all matching categories
+		updated, err = h.repo.BulkUpdateCategoriesByFilter(
+			r.Context(),
+			req.Filter.Search,
+			req.Filter.HasProducts,
+			req.Filter.IsActive,
+			*req.IsActive,
+		)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to bulk update categories by filter", err.Error())
+			return
+		}
+	} else if len(req.IDs) > 0 {
+		// ID-based update
+		if len(req.IDs) > 100 {
+			h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+			return
+		}
+		updated, err = h.repo.BulkUpdateCategories(r.Context(), req.IDs, req.IsActive)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to bulk update categories", err.Error())
+			return
+		}
+	} else {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "either ids array or filter is required")
 		return
 	}
 
-	updated, err := h.repo.BulkUpdateCategories(r.Context(), req.IDs, req.IsActive)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update categories", err.Error())
-		return
+	action := "deactivated"
+	if *req.IsActive {
+		action = "activated"
 	}
 
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
-		"message": fmt.Sprintf("Successfully updated %d categories", updated),
+		"message": fmt.Sprintf("Successfully %s %d categories", action, updated),
 		"updated": updated,
 	})
 }

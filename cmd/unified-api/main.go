@@ -128,9 +128,17 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/brands/{id}", handler.UpdateBrand).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/brands/{id}", handler.DeleteBrand).Methods("DELETE", "OPTIONS")
 
-	// Categories
+	// Categories (specific routes before parameterized routes)
 	api.HandleFunc("/categories", handler.ListCategories).Methods("GET", "OPTIONS")
+	api.HandleFunc("/categories", handler.CreateCategory).Methods("POST", "OPTIONS")
+	api.HandleFunc("/categories/bulk", handler.BulkUpdateCategories).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/categories/{id}/stats", handler.GetCategoryWithStats).Methods("GET", "OPTIONS")
+	api.HandleFunc("/categories/{id}/products/bulk", handler.BulkUpdateCategoryProducts).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/categories/{id}/products", handler.GetCategoryProducts).Methods("GET", "OPTIONS")
+	api.HandleFunc("/categories/{id}/subcategories", handler.GetCategorySubcategories).Methods("GET", "OPTIONS")
 	api.HandleFunc("/categories/{id}", handler.GetCategory).Methods("GET", "OPTIONS")
+	api.HandleFunc("/categories/{id}", handler.UpdateCategory).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/categories/{id}", handler.DeleteCategory).Methods("DELETE", "OPTIONS")
 
 	// Products
 	api.HandleFunc("/products", handler.ListProducts).Methods("GET", "OPTIONS")
@@ -155,11 +163,6 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/products/{id}", handler.DeleteProduct).Methods("DELETE", "OPTIONS")
 
-
-	// CRUD operations - Categories
-	api.HandleFunc("/categories", handler.CreateCategory).Methods("POST", "OPTIONS")
-	api.HandleFunc("/categories/{id}", handler.UpdateCategory).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/categories/{id}", handler.DeleteCategory).Methods("DELETE", "OPTIONS")
 
 	// Export endpoints
 	api.HandleFunc("/export/products", handler.ExportProducts).Methods("GET", "OPTIONS")

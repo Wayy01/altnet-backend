@@ -3,6 +3,11 @@ import {
   BrandWithStats,
   BrandProduct,
   Category,
+  CategoryWithStats,
+  CategoryProduct,
+  CategoryFilterOptions,
+  BulkUpdateCategoriesByFilterPayload,
+  BulkUpdateCategoriesByIdsPayload,
   Product,
   ProductDetail,
   Property,
@@ -182,14 +187,84 @@ class ApiClient {
   }
 
   // Categories
-  async getCategories(): Promise<{ data: Category[]; total: number }> {
-    const response = await this.fetch<{ data: Category[]; meta: { total: number } }>(`/api/v1/categories`);
+  async getCategories(
+    limit = 100,
+    offset = 0,
+    filters?: CategoryFilterOptions
+  ): Promise<{ data: Category[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (filters?.search) {
+      params.append("search", filters.search);
+    }
+    if (filters?.has_products) {
+      params.append("has_products", filters.has_products);
+    }
+    if (filters?.is_active) {
+      params.append("is_active", filters.is_active);
+    }
+    if (filters?.sort_by) {
+      params.append("sort_by", filters.sort_by);
+    }
+
+    const response = await this.fetch<{ data: Category[]; meta: { total: number } }>(
+      `/api/v1/categories?${params.toString()}`
+    );
     return { data: response.data, total: response.meta.total };
   }
 
   async getCategory(id: string): Promise<Category> {
     const response = await this.fetch<{ data: Category }>(`/api/v1/categories/${id}`);
     return response.data;
+  }
+
+  async getCategoryWithStats(id: string): Promise<CategoryWithStats> {
+    const response = await this.fetch<{ data: CategoryWithStats }>(`/api/v1/categories/${id}/stats`);
+    return response.data;
+  }
+
+  async getCategoryProducts(
+    id: string,
+    limit = 10,
+    offset = 0
+  ): Promise<{ data: CategoryProduct[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<{ data: CategoryProduct[]; meta: { total: number } }>(
+      `/api/v1/categories/${id}/products?${params.toString()}`
+    );
+    return { data: response.data, total: response.meta.total };
+  }
+
+  async getCategorySubcategories(id: string): Promise<Category[]> {
+    const response = await this.fetch<{ data: Category[] }>(`/api/v1/categories/${id}/subcategories`);
+    return response.data;
+  }
+
+  async bulkUpdateCategoryProducts(categoryId: string, isActive: boolean): Promise<{ updated: number }> {
+    return this.fetch<{ updated: number }>(`/api/v1/categories/${categoryId}/products/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: isActive }),
+    });
+  }
+
+  // Bulk update categories by IDs
+  async bulkUpdateCategories(payload: BulkUpdateCategoriesByIdsPayload): Promise<{ updated: number; message: string }> {
+    return this.fetch<{ updated: number; message: string }>(`/api/v1/categories/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Bulk update categories by filter (for "select all matching" feature)
+  async bulkUpdateCategoriesByFilter(payload: BulkUpdateCategoriesByFilterPayload): Promise<{ updated: number; message: string }> {
+    return this.fetch<{ updated: number; message: string }>(`/api/v1/categories/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
   }
 
   // Dashboard stats - use the dedicated backend endpoint

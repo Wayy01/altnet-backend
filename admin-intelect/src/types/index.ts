@@ -15,14 +15,62 @@ export interface Brand {
 export interface Category {
   id: string;
   ultra_id: string;
+  code: string | null;
   name: string;
+  slug: string;
   parent_id: string | null;
+  parent_name?: string;
+  image_url: string | null;
   sort_order: number;
   product_count: number;
   children?: Category[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// Category with statistics for category details page
+export interface CategoryWithStats extends Category {
+  total_products: number;
+  active_products: number;
+  in_stock_products: number;
+  with_prices_products: number;
+  child_count: number;
+}
+
+// Category product (simplified product for category details page)
+export interface CategoryProduct {
+  id: string;
+  name: string;
+  code: string;
+  price_min: number | null;
+  price_max: number | null;
+  total_stock: number;
+  is_active: boolean;
+}
+
+// Category filter options for advanced filtering
+export interface CategoryFilterOptions {
+  search?: string;
+  has_products?: string; // "true" | "false" | ""
+  is_active?: string; // "true" | "false" | "" for all
+  sort_by?: string; // "name_asc" | "name_desc" | "products_desc" | "products_asc"
+}
+
+// Bulk update categories by filter
+export interface BulkUpdateCategoriesByFilterPayload {
+  filter: {
+    search?: string;
+    has_products?: string;
+    is_active?: string; // Filter by current active status
+  };
+  is_active: boolean; // New value to set
+}
+
+// Bulk update categories by IDs
+export interface BulkUpdateCategoriesByIdsPayload {
+  ids: string[];
+  is_active: boolean;
 }
 
 // Image entry in products

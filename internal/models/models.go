@@ -96,6 +96,7 @@ type Category struct {
 	Code          *string    `json:"code"`
 	ParentID      *uuid.UUID `json:"parent_id"`
 	ParentUltraID *string    `json:"parent_ultra_id,omitempty"`
+	ParentName    string     `json:"parent_name,omitempty"`
 	Name          string     `json:"name"`
 	Slug          string     `json:"slug"`
 	SortOrder     int        `json:"sort_order"`

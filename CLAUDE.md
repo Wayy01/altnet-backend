@@ -119,7 +119,8 @@ bun dev          # Starts on http://localhost:3000
 | `/products/[id]` | Product detail with properties & characteristics |
 | `/brands` | Brands management with advanced filtering, sorting, bulk selection, and status toggles |
 | `/brands/[id]` | Brand detail with statistics, products preview, admin actions |
-| `/categories` | Hierarchical category tree with status toggles |
+| `/categories` | Categories management with table view, search, filters, bulk selection, and status toggles |
+| `/categories/[id]` | Category detail with statistics, products preview, subcategories, admin actions |
 | `/sync` | Real-time sync progress with step-by-step tracking, auto-refresh, and history |
 | `/settings` | Configuration info |
 
@@ -162,6 +163,59 @@ bun dev          # Starts on http://localhost:3000
     - `ListBrandsWithSearch(ctx, search, hasProducts, isActive, sortBy, limit, offset)`
     - `CountBrandsWithSearch(ctx, search, hasProducts, isActive)`
     - `BulkUpdateBrandsByFilter(ctx, search, hasProducts, isActiveFilter, isActive)`
+- **Enhanced Categories Management Page** (Nov 2025): Comprehensive category management matching brands page functionality
+  - **Table View**: Replaced hierarchical tree with table for better management
+    - Checkbox column for selection
+    - Image/Icon column (shows category image or FolderTree icon)
+    - Name column (links to detail page)
+    - Parent column (shows parent name or "Root" badge)
+    - Products column (badge with product count)
+    - Active column (toggle switch)
+    - Actions column (dropdown menu)
+  - **Advanced Filtering**:
+    - Product count filter: All / With Products / No Products
+    - Status filter: All / Active / Inactive
+    - Sort options: Name A-Z, Name Z-A, Most Products, Least Products
+    - Search by name with debounced input (500ms)
+    - Filter state persisted in URL query params
+    - Clear all filters button
+  - **Bulk Selection**: Select categories across all pages
+    - Checkbox in header to select/deselect all on current page
+    - Individual checkboxes for each category row
+    - "Select all X matching categories" option for filter-based bulk operations
+    - Selection banner shows count with Activate/Deactivate buttons
+  - **Stats Cards**: Total Categories, Root Categories, Displayed
+  - **Category Detail Page** (`/categories/[id]`): Comprehensive category view
+    - Header with category name, parent info, active toggle
+    - Stats cards: Total/Active/In Stock/With Prices products
+    - Category information card with copyable IDs and UUIDs
+    - Subcategories list (if any) with links
+    - Admin actions: View All Products, Activate/Deactivate All Products, Delete Category
+    - Products table with pagination showing name, code, price range, stock, active status
+  - **Backend Support**: New API parameters and endpoints
+    - `GET /api/v1/categories?search=...&has_products=true|false&is_active=true|false&sort_by=...`
+    - `PATCH /api/v1/categories/bulk` supports both ID-based and filter-based updates
+    - `GET /api/v1/categories/{id}/stats` - Category with product statistics
+    - `GET /api/v1/categories/{id}/products` - Paginated products in category
+    - `PATCH /api/v1/categories/{id}/products/bulk` - Bulk update category products
+    - `GET /api/v1/categories/{id}/subcategories` - Child categories
+  - **Repository Functions**:
+    - `ListCategoriesWithSearch(ctx, search, hasProducts, isActive, sortBy, limit, offset)`
+    - `CountCategoriesWithSearch(ctx, search, hasProducts, isActive)`
+    - `BulkUpdateCategoriesByFilter(ctx, search, hasProducts, isActiveFilter, isActive)`
+    - `GetCategoryWithStats(ctx, id)` - Returns CategoryWithStats with product statistics
+    - `GetProductsByCategoryID(ctx, categoryID, limit, offset)`
+    - `CountProductsByCategoryID(ctx, categoryID)`
+    - `BulkUpdateProductsByCategoryID(ctx, categoryID, isActive)`
+    - `GetSubcategories(ctx, parentID)`
+    - `CountRootCategories(ctx)`
+  - **TypeScript Types**:
+    - `CategoryWithStats` - Category with product statistics
+    - `CategoryProduct` - Simplified product for category details
+    - `CategoryFilterOptions` - Filter options interface
+    - `BulkUpdateCategoriesByFilterPayload` - Bulk update by filter
+    - `BulkUpdateCategoriesByIdsPayload` - Bulk update by IDs
+  - **Models Update**: Added `ParentName` field to Category model
 - **Enhanced Sync Status Page**: Real-time sync progress with:
   - Step-by-step progress indicators (7 steps)
   - Change deltas per step: "X extracted", "+Y added, Z updated"
@@ -247,7 +301,10 @@ bun dev          # Starts on http://localhost:3000
 | `src/contexts/currency-context.tsx` | Global currency state with localStorage persistence |
 | `src/components/variant-selector.tsx` | Two-level color/memory variant selector with parsing logic |
 | `src/app/products/[id]/page.tsx` | Comprehensive product detail page with all data fields |
+| `src/app/brands/page.tsx` | Enhanced brands table with search, filters, bulk selection |
 | `src/app/brands/[id]/page.tsx` | Brand details page with stats, products preview, admin actions |
+| `src/app/categories/page.tsx` | Enhanced categories table with search, filters, bulk selection |
+| `src/app/categories/[id]/page.tsx` | Category details page with stats, products, subcategories, admin actions |
 
 ### Key Dependencies
 
@@ -319,8 +376,13 @@ PUT    /api/v1/brands/{id}                   # Update brand
 DELETE /api/v1/brands/{id}                   # Soft delete brand
 
 # Categories
-GET    /api/v1/categories                    # List categories
+GET    /api/v1/categories                    # List categories (with search/filters)
 GET    /api/v1/categories/{id}               # Get category details
+GET    /api/v1/categories/{id}/stats         # Get category with product statistics
+GET    /api/v1/categories/{id}/products      # Get paginated products in category
+GET    /api/v1/categories/{id}/subcategories # Get child categories
+PATCH  /api/v1/categories/bulk               # Bulk update categories (by IDs or filter)
+PATCH  /api/v1/categories/{id}/products/bulk # Bulk update all products in category
 POST   /api/v1/categories                    # Create category
 PUT    /api/v1/categories/{id}               # Update category
 DELETE /api/v1/categories/{id}               # Soft delete category
