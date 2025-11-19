@@ -1263,33 +1263,40 @@ func (r *Repository) UpdateCharacteristicStock(ctx context.Context, stocks []*mo
 // Uses MDL as the primary currency for price_min/price_max
 func (r *Repository) UpdateProductAggregates(ctx context.Context) error {
 	_, err := r.pool.Exec(ctx, `
-		UPDATE products p
-		SET
-			price_min = agg.min_price,
-			price_max = agg.max_price,
-			price_mdl = agg.price_mdl,
-			price_eur = agg.price_eur,
-			price_usd = agg.price_usd,
-			total_stock = agg.total_stock,
-			is_in_stock = agg.total_stock > 0,
-			updated_at = NOW()
-		FROM (
+		WITH stock_agg AS (
+			-- Calculate stock separately to avoid duplication from price expansion
+			SELECT product_id, COALESCE(SUM(stock_total), 0) as total_stock
+			FROM characteristics
+			WHERE is_active = true
+			GROUP BY product_id
+		),
+		price_agg AS (
+			-- Extract prices from characteristics using LEFT JOIN LATERAL to handle empty arrays
 			SELECT
 				c.product_id,
-				-- Use MDL for min/max price calculations (primary display currency)
-				MIN(CASE WHEN price_item->>'currency' = 'MDL' THEN (price_item->>'price')::DECIMAL END) as min_price,
-				MAX(CASE WHEN price_item->>'currency' = 'MDL' THEN (price_item->>'price')::DECIMAL END) as max_price,
-				-- Extract specific currency prices
-				MAX(CASE WHEN price_item->>'currency' = 'MDL' THEN (price_item->>'price')::DECIMAL END) as price_mdl,
-				MAX(CASE WHEN price_item->>'currency' = 'EUR' THEN (price_item->>'price')::DECIMAL END) as price_eur,
-				MAX(CASE WHEN price_item->>'currency' = 'USD' THEN (price_item->>'price')::DECIMAL END) as price_usd,
-				COALESCE(SUM(DISTINCT c.stock_total), 0) as total_stock
-			FROM characteristics c,
-			LATERAL jsonb_array_elements(c.prices) AS price_item
+				MIN(CASE WHEN price_item->>'currency' = 'MDL' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as min_price,
+				MAX(CASE WHEN price_item->>'currency' = 'MDL' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as max_price,
+				MAX(CASE WHEN price_item->>'currency' = 'MDL' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as price_mdl,
+				MAX(CASE WHEN price_item->>'currency' = 'EUR' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as price_eur,
+				MAX(CASE WHEN price_item->>'currency' = 'USD' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as price_usd
+			FROM characteristics c
+			LEFT JOIN LATERAL jsonb_array_elements(c.prices) AS price_item ON true
 			WHERE c.is_active = true
 			GROUP BY c.product_id
-		) agg
-		WHERE p.id = agg.product_id
+		)
+		UPDATE products p
+		SET
+			price_min = COALESCE(pa.min_price, p.price_min),
+			price_max = COALESCE(pa.max_price, p.price_max),
+			price_mdl = pa.price_mdl,
+			price_eur = pa.price_eur,
+			price_usd = pa.price_usd,
+			total_stock = sa.total_stock,
+			is_in_stock = sa.total_stock > 0,
+			updated_at = NOW()
+		FROM stock_agg sa
+		LEFT JOIN price_agg pa ON pa.product_id = sa.product_id
+		WHERE p.id = sa.product_id
 	`)
 	return err
 }
@@ -1301,24 +1308,24 @@ func (r *Repository) UpdateProductPricesFromJSONB(ctx context.Context) error {
 		UPDATE products p
 		SET
 			price_min = COALESCE(
-				(SELECT MIN((price_item->>'price')::DECIMAL)
+				(SELECT MIN(NULLIF(price_item->>'price', '')::DECIMAL)
 				 FROM jsonb_array_elements(p.prices) AS price_item
 				 WHERE price_item->>'currency' = 'MDL'),
 				p.price_min
 			),
 			price_max = COALESCE(
-				(SELECT MAX((price_item->>'price')::DECIMAL)
+				(SELECT MAX(NULLIF(price_item->>'price', '')::DECIMAL)
 				 FROM jsonb_array_elements(p.prices) AS price_item
 				 WHERE price_item->>'currency' = 'MDL'),
 				p.price_max
 			),
-			price_mdl = (SELECT MAX((price_item->>'price')::DECIMAL)
+			price_mdl = (SELECT MAX(NULLIF(price_item->>'price', '')::DECIMAL)
 			             FROM jsonb_array_elements(p.prices) AS price_item
 			             WHERE price_item->>'currency' = 'MDL'),
-			price_eur = (SELECT MAX((price_item->>'price')::DECIMAL)
+			price_eur = (SELECT MAX(NULLIF(price_item->>'price', '')::DECIMAL)
 			             FROM jsonb_array_elements(p.prices) AS price_item
 			             WHERE price_item->>'currency' = 'EUR'),
-			price_usd = (SELECT MAX((price_item->>'price')::DECIMAL)
+			price_usd = (SELECT MAX(NULLIF(price_item->>'price', '')::DECIMAL)
 			             FROM jsonb_array_elements(p.prices) AS price_item
 			             WHERE price_item->>'currency' = 'USD'),
 			updated_at = NOW()
