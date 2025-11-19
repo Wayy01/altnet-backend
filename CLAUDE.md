@@ -8,6 +8,17 @@ Go 1.23 application for Ultra B2B product data management. Fetches complete prod
 
 **Database**: `ultra-data`
 
+## Important: After Code Changes
+
+After every code change, you MUST:
+
+1. **Update this CLAUDE.md file** with the latest context for the codebase (new tables, endpoints, models, etc.)
+2. **Call the senior-code-reviewer agent** to review the code changes
+3. The reviewer should also update CLAUDE.md if needed
+4. **Create git commits** if everything passes review
+
+This ensures documentation stays current and code quality is maintained.
+
 ## Build & Development Commands
 
 ```bash
