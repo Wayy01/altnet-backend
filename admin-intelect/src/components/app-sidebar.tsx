@@ -1,0 +1,112 @@
+"use client";
+
+import {
+  LayoutDashboard,
+  Package,
+  Building2,
+  FolderTree,
+  RefreshCw,
+  Settings,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+
+const menuItems = [
+  {
+    title: "Dashboard",
+    url: "/",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Products",
+    url: "/products",
+    icon: Package,
+  },
+  {
+    title: "Brands",
+    url: "/brands",
+    icon: Building2,
+  },
+  {
+    title: "Categories",
+    url: "/categories",
+    icon: FolderTree,
+  },
+  {
+    title: "Sync Status",
+    url: "/sync",
+    icon: RefreshCw,
+  },
+];
+
+export function AppSidebar() {
+  const pathname = usePathname();
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center gap-2 px-4 py-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Package className="h-4 w-4" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold">Admin Intelect</span>
+            <span className="text-xs text-muted-foreground">
+              Ultra B2B Manager
+            </span>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={
+                      pathname === item.url ||
+                      (item.url !== "/" && pathname.startsWith(item.url))
+                    }
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/settings">
+                <Settings className="h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
