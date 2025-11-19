@@ -320,6 +320,37 @@ IsActive: isActiveFromString(b.Active)
 
 This fix applies to brands, categories, and products with robust handling for case variations and whitespace.
 
+### Multi-Currency Price Extraction (Nov 2025)
+
+The Ultra API returns prices as JSONB arrays without currency identifiers. The array order is consistent: `[EUR, USD, MDL]`.
+
+**Issue**: The `products.prices` JSONB field has empty `currency` fields:
+```json
+[{"type": "", "price": 224, "currency": ""}, {"type": "", "price": 217, "currency": ""}, {"type": "", "price": 4149, "currency": ""}]
+```
+
+**Fix**: Extract prices by array position instead of filtering by currency:
+
+**Location**: `internal/repository/repository.go`
+
+```go
+// UpdateProductPricesFromJSONB extracts currency-specific prices by array position
+// Array order: [0]=EUR, [1]=USD, [2]=MDL
+_, err := r.pool.Exec(ctx, `
+    UPDATE products p
+    SET
+        price_min = COALESCE(NULLIF(p.prices->2->>'price', '')::DECIMAL, p.price_min),
+        price_max = COALESCE(NULLIF(p.prices->2->>'price', '')::DECIMAL, p.price_max),
+        price_eur = NULLIF(p.prices->0->>'price', '')::DECIMAL,
+        price_usd = NULLIF(p.prices->1->>'price', '')::DECIMAL,
+        price_mdl = NULLIF(p.prices->2->>'price', '')::DECIMAL,
+        updated_at = NOW()
+    WHERE jsonb_array_length(p.prices) > 0
+`)
+```
+
+This fix enables multi-currency support with MDL as the primary display currency. About 95.6% of products (35,062/36,683) have MDL prices; the remaining 4.4% have only EUR/USD.
+
 ### Comprehensive Bug Audit (Nov 2025)
 
 A comprehensive audit of the codebase identified and fixed 15 bugs:

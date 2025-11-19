@@ -1310,31 +1310,27 @@ func (r *Repository) UpdateProductAggregates(ctx context.Context) error {
 
 // UpdateProductPricesFromJSONB extracts currency-specific prices from the products.prices JSONB field
 // This is called after UpdateCharacteristicPrices for products without characteristics
+// The Ultra API returns prices in order: [EUR, USD, MDL] based on array position
+// Note: Products with fewer than 3 prices will have NULL for missing currencies
+// This is expected for products with only EUR/USD pricing (4.4% of products)
 func (r *Repository) UpdateProductPricesFromJSONB(ctx context.Context) error {
 	_, err := r.pool.Exec(ctx, `
 		UPDATE products p
 		SET
+			-- MDL is the 3rd element (index 2), used for price_min/price_max as primary currency
 			price_min = COALESCE(
-				(SELECT MIN(NULLIF(price_item->>'price', '')::DECIMAL)
-				 FROM jsonb_array_elements(p.prices) AS price_item
-				 WHERE price_item->>'currency' = 'MDL'),
+				NULLIF(p.prices->2->>'price', '')::DECIMAL,
 				p.price_min
 			),
 			price_max = COALESCE(
-				(SELECT MAX(NULLIF(price_item->>'price', '')::DECIMAL)
-				 FROM jsonb_array_elements(p.prices) AS price_item
-				 WHERE price_item->>'currency' = 'MDL'),
+				NULLIF(p.prices->2->>'price', '')::DECIMAL,
 				p.price_max
 			),
-			price_mdl = (SELECT MAX(NULLIF(price_item->>'price', '')::DECIMAL)
-			             FROM jsonb_array_elements(p.prices) AS price_item
-			             WHERE price_item->>'currency' = 'MDL'),
-			price_eur = (SELECT MAX(NULLIF(price_item->>'price', '')::DECIMAL)
-			             FROM jsonb_array_elements(p.prices) AS price_item
-			             WHERE price_item->>'currency' = 'EUR'),
-			price_usd = (SELECT MAX(NULLIF(price_item->>'price', '')::DECIMAL)
-			             FROM jsonb_array_elements(p.prices) AS price_item
-			             WHERE price_item->>'currency' = 'USD'),
+			-- Extract by array position: [0]=EUR, [1]=USD, [2]=MDL
+			-- Use COALESCE to preserve existing values when new values are NULL
+			price_eur = COALESCE(NULLIF(p.prices->0->>'price', '')::DECIMAL, p.price_eur),
+			price_usd = COALESCE(NULLIF(p.prices->1->>'price', '')::DECIMAL, p.price_usd),
+			price_mdl = COALESCE(NULLIF(p.prices->2->>'price', '')::DECIMAL, p.price_mdl),
 			updated_at = NOW()
 		WHERE jsonb_array_length(p.prices) > 0
 	`)
