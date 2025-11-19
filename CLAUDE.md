@@ -484,23 +484,34 @@ is_group BOOLEAN             -- True if this is a variant group parent
    `, pricesJSON, productUltraID)
    ```
 
-3. **Variant Grouping**: Products can be grouped by base name (e.g., iPhone 256GB/512GB/1TB, Fold7 16/1Tb)
+3. **Variant Grouping**: Products can be grouped by base name (e.g., iPhone 256GB/512GB/1TB, Fold7 in all colors/sizes)
    ```sql
    -- GroupProductVariants uses multi-step regex for various formats
-   -- Handles: "16/1Tb", "12/256Gb", ", 512GB" (case-insensitive)
+   -- Step 1: Remove RAM/Storage patterns like "12/256Gb", "16/1Tb"
+   -- Step 2: Remove standalone storage like ", 512GB", " 256GB"
+   -- Step 3: Remove multi-word colors (Jet Black, Blue Shadow, etc.)
+   -- Step 4: Remove single-word colors (Black, White, Silver, etc.)
+   -- Step 5: Replace commas with space
+   -- Step 6: Clean up multiple spaces
    trim(regexp_replace(
        regexp_replace(
            regexp_replace(
-               regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),  -- RAM/Storage
-               ',?\s*\d+\s*(GB|TB)', '', 'gi'  -- Standalone storage
+               regexp_replace(
+                   regexp_replace(
+                       regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
+                       ',?\s*\d+\s*(GB|TB)', '', 'gi'
+                   ),
+                   '\s+(Jet Black|Blue Shadow|Silver Shadow|...)\s*$', '', 'gi'  -- Multi-word colors
+               ),
+               '\s+(Black|White|Silver|...)\s*$', '', 'gi'  -- Single-word colors
            ),
-           ',\s*', ' ', 'g'  -- Commas to spaces
+           ',\s*', ' ', 'g'
        ),
-       '\s+', ' ', 'g'  -- Multiple spaces
+       '\s+', ' ', 'g'
    )) as base_name
    ```
 
-   **Stats**: 3,261 products grouped into 1,405 variant groups
+   **Stats**: 7,737 products grouped into variant groups (includes color+storage combinations)
 
 **API Response Format:**
 ```json

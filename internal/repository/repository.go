@@ -1406,16 +1406,24 @@ func (r *Repository) GroupProductVariants(ctx context.Context) error {
 			SELECT
 				brand_id,
 				category_id,
-				-- Extract base name by removing storage patterns
+				-- Extract base name by removing storage patterns and colors
 				-- Step 1: Remove RAM/Storage patterns like "12/256Gb", "16/1Tb"
 				-- Step 2: Remove standalone storage like ", 512GB", " 256GB"
-				-- Step 3: Replace remaining commas with space
-				-- Step 4: Clean up multiple spaces
+				-- Step 3: Remove multi-word colors (Jet Black, Blue Shadow, etc.)
+				-- Step 4: Remove single-word colors (Black, White, Silver, etc.)
+				-- Step 5: Replace remaining commas with space
+				-- Step 6: Clean up multiple spaces
 				trim(regexp_replace(
 					regexp_replace(
 						regexp_replace(
-							regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
-							',?\s*\d+\s*(GB|TB)', '', 'gi'
+							regexp_replace(
+								regexp_replace(
+									regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
+									',?\s*\d+\s*(GB|TB)', '', 'gi'
+								),
+								'\s+(Jet Black|Blue Shadow|Silver Shadow|Natural Titanium|Blue Titanium|White Titanium|Black Titanium|Desert Titanium|Space Gray|Space Grey|Rose Gold|Midnight Blue|Midnight Green|Pacific Blue|Sierra Blue|Alpine Green|Deep Purple|Phantom Black|Phantom White|Mystic Bronze|Cosmic Gray|Cosmic Black|Prism White|Prism Black|Cloud Blue|Cloud Pink|Cloud White|Mineral Grey|Mineral Gray|Starlight Blue|Ultramarine Blue|Coral Orange|Ocean Blue)\s*$', '', 'gi'
+							),
+							'\s+(Black|White|Silver|Gold|Blue|Red|Green|Pink|Purple|Yellow|Orange|Gray|Grey|Bronze|Coral|Graphite|Titanium|Cream|Lavender|Mint|Burgundy|Navy|Teal|Brown|Beige|Champagne|Violet|Starlight|Midnight|Product)\s*$', '', 'gi'
 						),
 						',\s*', ' ', 'g'
 					),
@@ -1429,8 +1437,14 @@ func (r *Repository) GroupProductVariants(ctx context.Context) error {
 			         trim(regexp_replace(
 						regexp_replace(
 							regexp_replace(
-								regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
-								',?\s*\d+\s*(GB|TB)', '', 'gi'
+								regexp_replace(
+									regexp_replace(
+										regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
+										',?\s*\d+\s*(GB|TB)', '', 'gi'
+									),
+									'\s+(Jet Black|Blue Shadow|Silver Shadow|Natural Titanium|Blue Titanium|White Titanium|Black Titanium|Desert Titanium|Space Gray|Space Grey|Rose Gold|Midnight Blue|Midnight Green|Pacific Blue|Sierra Blue|Alpine Green|Deep Purple|Phantom Black|Phantom White|Mystic Bronze|Cosmic Gray|Cosmic Black|Prism White|Prism Black|Cloud Blue|Cloud Pink|Cloud White|Mineral Grey|Mineral Gray|Starlight Blue|Ultramarine Blue|Coral Orange|Ocean Blue)\s*$', '', 'gi'
+								),
+								'\s+(Black|White|Silver|Gold|Blue|Red|Green|Pink|Purple|Yellow|Orange|Gray|Grey|Bronze|Coral|Graphite|Titanium|Cream|Lavender|Mint|Burgundy|Navy|Teal|Brown|Beige|Champagne|Violet|Starlight|Midnight|Product)\s*$', '', 'gi'
 							),
 							',\s*', ' ', 'g'
 						),
