@@ -148,6 +148,25 @@ bun dev          # Starts on http://localhost:3000
   - Parses variant info from product names (handles "12/256Gb", "16/1Tb" formats)
   - Shows stock indicators and prices per variant
   - Uses variant_group_id for grouping related products
+- **Product Detail Page Enhancements**: Comprehensive data display for admin CMS
+  - **JSON View Button**: Shows full raw JSON data (product, properties, characteristics, variants)
+  - **All Currency Prices**: MDL, EUR, USD columns with price_min/max
+  - **Technical Details**: All UUIDs, flags (is_active, is_group, is_service), timestamps
+  - **Characteristics Table**: Code, Ultra ID, stock (warehouse/showroom/total), prices per currency
+  - **Properties with Tabs**: Grouped by group_name with filter/modification badges
+  - **Full-width Layout**: All sections displayed as single-column full-width cards
+  - **Performance Optimizations**: useMemo for groupedProperties, stock calculations, currencies
+- **Comprehensive Product Detail Page** (Nov 2025): Complete admin view of ALL product data
+  - **All Currency Prices**: MDL, EUR, USD displayed with min/max ranges
+  - **Raw JSONB Data**: Collapsible view of raw price array for debugging
+  - **Technical Details Card**: All IDs (UUID, Ultra ID, Brand ID, Category ID, Parent ID, Variant Group ID)
+  - **All Product Flags**: is_active, is_group, is_service, is_in_stock with badge indicators
+  - **Warranty Information**: Displayed with Shield icon
+  - **Full Timestamps**: Created/Updated with formatted datetime
+  - **Characteristics Table**: Complete SKU data with code, Ultra ID, warehouse/showroom/total stock, per-variant prices
+  - **Enhanced Properties Table**: Grouped by category with tabs, value_type badges, is_filter and is_modification flags
+  - **Copyable Fields**: All IDs, codes, and barcodes have copy-to-clipboard buttons
+  - **Status Indicators**: CheckCircle/XCircle icons for boolean flags
 
 ### Tech Stack
 
@@ -172,6 +191,7 @@ bun dev          # Starts on http://localhost:3000
 | `src/components/ui/sonner.tsx` | Toast notifications |
 | `src/contexts/currency-context.tsx` | Global currency state with localStorage persistence |
 | `src/components/variant-selector.tsx` | Two-level color/memory variant selector with parsing logic |
+| `src/app/products/[id]/page.tsx` | Comprehensive product detail page with all data fields |
 
 ### Key Dependencies
 

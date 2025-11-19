@@ -45,11 +45,14 @@ export interface Characteristic {
   id: string;
   product_id: string;
   ultra_id: string;
+  code: string | null;
+  reference: string | null;
   name: string;
   prices: PriceEntry[];
   stock_warehouse: number;
   stock_showroom: number;
   stock_total: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -58,11 +61,26 @@ export interface Characteristic {
 export interface Property {
   id: string;
   product_id: string;
+  property_uuid: string | null;
   property_name: string;
+  property_code: string | null;
   value: string;
+  value_type: string | null;
+  group_uuid: string | null;
   group_name: string | null;
+  sort_order: number;
   is_filter: boolean;
+  is_modification: boolean;
   created_at: string;
+  updated_at: string;
+}
+
+// Product-level price entry
+export interface ProductPriceEntry {
+  price: number;
+  currency: string;
+  type: string;
+  type_uuid?: string;
 }
 
 // Product types
@@ -72,22 +90,28 @@ export interface Product {
   code: string;
   article: string;
   name: string;
+  slug: string;
   description: string | null;
   brand_id: string | null;
   brand_name?: string;
   category_id: string | null;
   category_name?: string;
   parent_id: string | null;
+  main_image_url: string | null;
   images: ImageEntry[];
+  warranty: string | null;
   barcodes: string[];
+  prices: ProductPriceEntry[];
   price_min: number | null;
   price_max: number | null;
   price_mdl: number | null;
   price_eur: number | null;
   price_usd: number | null;
   total_stock: number;
+  is_in_stock: boolean;
   is_group: boolean;
   is_active: boolean;
+  is_service: boolean;
   variant_group_id: string | null;
   created_at: string;
   updated_at: string;
