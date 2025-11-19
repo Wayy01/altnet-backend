@@ -1368,29 +1368,68 @@ func (r *Repository) UpdateProductAggregates(ctx context.Context) error {
 
 // UpdateProductPricesFromJSONB extracts currency-specific prices from the products.prices JSONB field
 // This is called after UpdateCharacteristicPrices for products without characteristics
-// The Ultra API returns prices in order: [EUR, USD, MDL] based on array position
+// The Ultra API typically returns prices in order [EUR, USD, MDL] but this is not guaranteed
+// We use heuristics: MDL is always the largest value (1 EUR ≈ 18 MDL)
 // Note: Products with fewer than 3 prices will have NULL for missing currencies
-// This is expected for products with only EUR/USD pricing (4.4% of products)
 func (r *Repository) UpdateProductPricesFromJSONB(ctx context.Context) error {
 	_, err := r.pool.Exec(ctx, `
 		UPDATE products p
 		SET
-			-- MDL is the 3rd element (index 2), used for price_min/price_max as primary currency
+			-- Use heuristics to assign currencies:
+			-- MDL = GREATEST (largest value, since 1 EUR ≈ 18 MDL)
+			-- EUR = LEAST (smallest value)
+			-- USD = middle value (sum - max - min)
+			price_mdl = COALESCE(
+				GREATEST(
+					NULLIF(p.prices->0->>'price', '')::DECIMAL,
+					NULLIF(p.prices->1->>'price', '')::DECIMAL,
+					NULLIF(p.prices->2->>'price', '')::DECIMAL
+				),
+				p.price_mdl
+			),
+			price_eur = COALESCE(
+				LEAST(
+					NULLIF(p.prices->0->>'price', '')::DECIMAL,
+					NULLIF(p.prices->1->>'price', '')::DECIMAL,
+					NULLIF(p.prices->2->>'price', '')::DECIMAL
+				),
+				p.price_eur
+			),
+			price_usd = COALESCE(
+				(NULLIF(p.prices->0->>'price', '')::DECIMAL +
+				 NULLIF(p.prices->1->>'price', '')::DECIMAL +
+				 NULLIF(p.prices->2->>'price', '')::DECIMAL) -
+				GREATEST(
+					NULLIF(p.prices->0->>'price', '')::DECIMAL,
+					NULLIF(p.prices->1->>'price', '')::DECIMAL,
+					NULLIF(p.prices->2->>'price', '')::DECIMAL
+				) -
+				LEAST(
+					NULLIF(p.prices->0->>'price', '')::DECIMAL,
+					NULLIF(p.prices->1->>'price', '')::DECIMAL,
+					NULLIF(p.prices->2->>'price', '')::DECIMAL
+				),
+				p.price_usd
+			),
+			-- price_min/max use MDL as primary currency
 			price_min = COALESCE(
-				NULLIF(p.prices->2->>'price', '')::DECIMAL,
+				GREATEST(
+					NULLIF(p.prices->0->>'price', '')::DECIMAL,
+					NULLIF(p.prices->1->>'price', '')::DECIMAL,
+					NULLIF(p.prices->2->>'price', '')::DECIMAL
+				),
 				p.price_min
 			),
 			price_max = COALESCE(
-				NULLIF(p.prices->2->>'price', '')::DECIMAL,
+				GREATEST(
+					NULLIF(p.prices->0->>'price', '')::DECIMAL,
+					NULLIF(p.prices->1->>'price', '')::DECIMAL,
+					NULLIF(p.prices->2->>'price', '')::DECIMAL
+				),
 				p.price_max
 			),
-			-- Extract by array position: [0]=EUR, [1]=USD, [2]=MDL
-			-- Use COALESCE to preserve existing values when new values are NULL
-			price_eur = COALESCE(NULLIF(p.prices->0->>'price', '')::DECIMAL, p.price_eur),
-			price_usd = COALESCE(NULLIF(p.prices->1->>'price', '')::DECIMAL, p.price_usd),
-			price_mdl = COALESCE(NULLIF(p.prices->2->>'price', '')::DECIMAL, p.price_mdl),
 			updated_at = NOW()
-		WHERE jsonb_array_length(p.prices) > 0
+		WHERE jsonb_array_length(p.prices) >= 3
 	`)
 	return err
 }
