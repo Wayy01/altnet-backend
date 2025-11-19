@@ -1,5 +1,7 @@
 import {
   Brand,
+  BrandWithStats,
+  BrandProduct,
   Category,
   Product,
   ProductDetail,
@@ -16,6 +18,9 @@ import {
   BulkDeletePayload,
   LowStockAlert,
   ExportFilters,
+  BrandFilterOptions,
+  BulkUpdateBrandsByFilterPayload,
+  BulkUpdateBrandsByIdsPayload,
 } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -119,11 +124,24 @@ class ApiClient {
   // Brands
   async getBrands(
     limit = 100,
-    offset = 0
+    offset = 0,
+    filters?: BrandFilterOptions
   ): Promise<{ data: Brand[]; total: number }> {
     const params = new URLSearchParams();
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
+    if (filters?.search) {
+      params.append("search", filters.search);
+    }
+    if (filters?.has_products) {
+      params.append("has_products", filters.has_products);
+    }
+    if (filters?.is_active) {
+      params.append("is_active", filters.is_active);
+    }
+    if (filters?.sort_by) {
+      params.append("sort_by", filters.sort_by);
+    }
 
     const response = await this.fetch<{ data: Brand[]; meta: { total: number } }>(
       `/api/v1/brands?${params.toString()}`
@@ -134,6 +152,33 @@ class ApiClient {
   async getBrand(id: string): Promise<Brand> {
     const response = await this.fetch<{ data: Brand }>(`/api/v1/brands/${id}`);
     return response.data;
+  }
+
+  async getBrandWithStats(id: string): Promise<BrandWithStats> {
+    const response = await this.fetch<{ data: BrandWithStats }>(`/api/v1/brands/${id}/stats`);
+    return response.data;
+  }
+
+  async getBrandProducts(
+    id: string,
+    limit = 10,
+    offset = 0
+  ): Promise<{ data: BrandProduct[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<{ data: BrandProduct[]; meta: { total: number } }>(
+      `/api/v1/brands/${id}/products?${params.toString()}`
+    );
+    return { data: response.data, total: response.meta.total };
+  }
+
+  async bulkUpdateBrandProducts(brandId: string, isActive: boolean): Promise<{ updated: number }> {
+    return this.fetch<{ updated: number }>(`/api/v1/brands/${brandId}/products/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: isActive }),
+    });
   }
 
   // Categories
@@ -304,6 +349,22 @@ class ApiClient {
   async deleteBrand(id: string): Promise<void> {
     await this.fetch<void>(`/api/v1/brands/${id}`, {
       method: "DELETE",
+    });
+  }
+
+  // Bulk update brands by IDs
+  async bulkUpdateBrands(payload: BulkUpdateBrandsByIdsPayload): Promise<{ updated: number; message: string }> {
+    return this.fetch<{ updated: number; message: string }>(`/api/v1/brands/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Bulk update brands by filter (for "select all matching" feature)
+  async bulkUpdateBrandsByFilter(payload: BulkUpdateBrandsByFilterPayload): Promise<{ updated: number; message: string }> {
+    return this.fetch<{ updated: number; message: string }>(`/api/v1/brands/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
     });
   }
 

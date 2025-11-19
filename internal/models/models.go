@@ -73,15 +73,16 @@ func (j *JSONBArray) Scan(value interface{}) error {
 
 // Brand represents a brand in the database
 type Brand struct {
-	ID        uuid.UUID  `json:"id"`
-	UltraID   string     `json:"ultra_id"`
-	Code      *string    `json:"code"`
-	Name      string     `json:"name"`
-	Slug      string     `json:"slug"`
-	LogoURL   *string    `json:"logo_url"`
-	IsActive  bool       `json:"is_active"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID           uuid.UUID `json:"id"`
+	UltraID      string    `json:"ultra_id"`
+	Code         *string   `json:"code"`
+	Name         string    `json:"name"`
+	Slug         string    `json:"slug"`
+	LogoURL      *string   `json:"logo_url"`
+	IsActive     bool      `json:"is_active"`
+	ProductCount int       `json:"product_count"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // ============================================================================

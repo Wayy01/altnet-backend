@@ -257,6 +257,30 @@ export interface BulkDeletePayload {
   ids: string[];
 }
 
+// Brand filter for advanced filtering
+export interface BrandFilterOptions {
+  search?: string;
+  has_products?: string; // "true" | "false" | ""
+  is_active?: string; // "true" | "false" | "" for all
+  sort_by?: string; // "name_asc" | "name_desc" | "products_desc" | "products_asc"
+}
+
+// Bulk update brands by filter
+export interface BulkUpdateBrandsByFilterPayload {
+  filter: {
+    search?: string;
+    has_products?: string;
+    is_active?: string; // Filter by current active status
+  };
+  is_active: boolean; // New value to set
+}
+
+// Bulk update brands by IDs
+export interface BulkUpdateBrandsByIdsPayload {
+  ids: string[];
+  is_active: boolean;
+}
+
 // API response wrappers
 export interface ApiResponse<T> {
   data: T;
@@ -365,5 +389,24 @@ export interface BrandWithStatus extends Brand {
 
 // Category with is_active field
 export interface CategoryWithStatus extends Category {
+  is_active: boolean;
+}
+
+// Brand with statistics for brand details page
+export interface BrandWithStats extends Brand {
+  total_products: number;
+  active_products: number;
+  in_stock_products: number;
+  with_prices_products: number;
+}
+
+// Brand product (simplified product for brand details page)
+export interface BrandProduct {
+  id: string;
+  name: string;
+  code: string;
+  price_min: number | null;
+  price_max: number | null;
+  total_stock: number;
   is_active: boolean;
 }

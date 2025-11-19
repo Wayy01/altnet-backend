@@ -117,9 +117,16 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	// API v1 routes
 	api := router.PathPrefix("/api/v1").Subrouter()
 
-	// Brands
+	// Brands (specific routes before parameterized routes)
 	api.HandleFunc("/brands", handler.ListBrands).Methods("GET", "OPTIONS")
+	api.HandleFunc("/brands", handler.CreateBrand).Methods("POST", "OPTIONS")
+	api.HandleFunc("/brands/bulk", handler.BulkUpdateBrands).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/brands/{id}/stats", handler.GetBrandWithStats).Methods("GET", "OPTIONS")
+	api.HandleFunc("/brands/{id}/products/bulk", handler.BulkUpdateBrandProducts).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/brands/{id}/products", handler.GetBrandProducts).Methods("GET", "OPTIONS")
 	api.HandleFunc("/brands/{id}", handler.GetBrand).Methods("GET", "OPTIONS")
+	api.HandleFunc("/brands/{id}", handler.UpdateBrand).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/brands/{id}", handler.DeleteBrand).Methods("DELETE", "OPTIONS")
 
 	// Categories
 	api.HandleFunc("/categories", handler.ListCategories).Methods("GET", "OPTIONS")
@@ -148,10 +155,6 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/products/{id}", handler.DeleteProduct).Methods("DELETE", "OPTIONS")
 
-	// CRUD operations - Brands
-	api.HandleFunc("/brands", handler.CreateBrand).Methods("POST", "OPTIONS")
-	api.HandleFunc("/brands/{id}", handler.UpdateBrand).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/brands/{id}", handler.DeleteBrand).Methods("DELETE", "OPTIONS")
 
 	// CRUD operations - Categories
 	api.HandleFunc("/categories", handler.CreateCategory).Methods("POST", "OPTIONS")

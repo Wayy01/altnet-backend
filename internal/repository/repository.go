@@ -199,15 +199,80 @@ func (r *Repository) GetBrandByUltraID(ctx context.Context, ultraID string) (*mo
 }
 
 func (r *Repository) ListBrands(ctx context.Context, limit, offset int) ([]*models.Brand, error) {
-	query := `
-		SELECT id, ultra_id, code, name, slug, logo_url, is_active, created_at, updated_at
-		FROM brands
-		WHERE is_active = true
-		ORDER BY name ASC
-		LIMIT $1 OFFSET $2
-	`
+	return r.ListBrandsWithSearch(ctx, "", "", "", "", limit, offset)
+}
 
-	rows, err := r.pool.Query(ctx, query, limit, offset)
+// BrandFilter holds filter options for brand queries
+type BrandFilter struct {
+	Search      string // Search by name
+	HasProducts string // "true" = with products, "false" = no products, "" = all
+	SortBy      string // "name_asc", "name_desc", "products_desc", "products_asc"
+}
+
+// ListBrandsWithSearch returns brands with optional search, hasProducts filter, isActive filter, and sorting
+func (r *Repository) ListBrandsWithSearch(ctx context.Context, search string, hasProducts string, isActive string, sortBy string, limit, offset int) ([]*models.Brand, error) {
+	// Build WHERE clause - start empty for admin view (show all by default)
+	whereClauses := []string{}
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	// Apply is_active filter only if specified
+	if isActive == "true" {
+		whereClauses = append(whereClauses, "b.is_active = true")
+	} else if isActive == "false" {
+		whereClauses = append(whereClauses, "b.is_active = false")
+	}
+	// If isActive is "" or any other value, don't filter by active status
+
+	if search != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("b.name ILIKE $%d", argPos))
+		args = append(args, "%"+search+"%")
+		argPos++
+	}
+
+	// Build HAVING clause for product count filter
+	havingClause := ""
+	if hasProducts == "true" {
+		havingClause = "HAVING COUNT(p.id) > 0"
+	} else if hasProducts == "false" {
+		havingClause = "HAVING COUNT(p.id) = 0"
+	}
+
+	// Build ORDER BY clause
+	orderBy := "b.name ASC" // default
+	switch sortBy {
+	case "name_desc":
+		orderBy = "b.name DESC"
+	case "products_desc":
+		orderBy = "product_count DESC, b.name ASC"
+	case "products_asc":
+		orderBy = "product_count ASC, b.name ASC"
+	case "name_asc":
+		orderBy = "b.name ASC"
+	}
+
+	// Add limit and offset to args
+	args = append(args, limit, offset)
+
+	// Build WHERE clause string
+	whereClause := "TRUE" // Default to no filtering
+	if len(whereClauses) > 0 {
+		whereClause = strings.Join(whereClauses, " AND ")
+	}
+
+	query := fmt.Sprintf(`
+		SELECT b.id, b.ultra_id, b.code, b.name, b.slug, b.logo_url, b.is_active,
+			   COALESCE(COUNT(p.id), 0) as product_count, b.created_at, b.updated_at
+		FROM brands b
+		LEFT JOIN products p ON p.brand_id = b.id AND p.is_active = true
+		WHERE %s
+		GROUP BY b.id
+		%s
+		ORDER BY %s
+		LIMIT $%d OFFSET $%d
+	`, whereClause, havingClause, orderBy, argPos, argPos+1)
+
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +283,7 @@ func (r *Repository) ListBrands(ctx context.Context, limit, offset int) ([]*mode
 		var brand models.Brand
 		err := rows.Scan(
 			&brand.ID, &brand.UltraID, &brand.Code, &brand.Name, &brand.Slug,
-			&brand.LogoURL, &brand.IsActive, &brand.CreatedAt, &brand.UpdatedAt,
+			&brand.LogoURL, &brand.IsActive, &brand.ProductCount, &brand.CreatedAt, &brand.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -229,11 +294,122 @@ func (r *Repository) ListBrands(ctx context.Context, limit, offset int) ([]*mode
 	return brands, nil
 }
 
-// CountBrands returns the total count of active brands
+// CountBrands returns the total count of all brands
 func (r *Repository) CountBrands(ctx context.Context) (int, error) {
+	return r.CountBrandsWithSearch(ctx, "", "", "")
+}
+
+// CountBrandsWithSearch returns the total count of brands with optional search, hasProducts, and isActive filters
+func (r *Repository) CountBrandsWithSearch(ctx context.Context, search string, hasProducts string, isActive string) (int, error) {
+	// Build WHERE clause - start empty for admin view (show all by default)
+	whereClauses := []string{}
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	// Apply is_active filter only if specified
+	if isActive == "true" {
+		whereClauses = append(whereClauses, "b.is_active = true")
+	} else if isActive == "false" {
+		whereClauses = append(whereClauses, "b.is_active = false")
+	}
+	// If isActive is "" or any other value, don't filter by active status
+
+	if search != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("b.name ILIKE $%d", argPos))
+		args = append(args, "%"+search+"%")
+		argPos++
+	}
+
+	// Build HAVING clause for product count filter
+	havingClause := ""
+	if hasProducts == "true" {
+		havingClause = "HAVING COUNT(p.id) > 0"
+	} else if hasProducts == "false" {
+		havingClause = "HAVING COUNT(p.id) = 0"
+	}
+
+	// Build WHERE clause string
+	whereClause := "TRUE" // Default to no filtering
+	if len(whereClauses) > 0 {
+		whereClause = strings.Join(whereClauses, " AND ")
+	}
+
+	query := fmt.Sprintf(`
+		SELECT COUNT(*) FROM (
+			SELECT b.id
+			FROM brands b
+			LEFT JOIN products p ON p.brand_id = b.id AND p.is_active = true
+			WHERE %s
+			GROUP BY b.id
+			%s
+		) AS filtered_brands
+	`, whereClause, havingClause)
+
 	var count int
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM brands WHERE is_active = true").Scan(&count)
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&count)
 	return count, err
+}
+
+// BulkUpdateBrandsByFilter updates all brands matching the given filter criteria
+// isActiveFilter is the filter for current status ("true", "false", or "" for all)
+// isActive is the new value to set
+func (r *Repository) BulkUpdateBrandsByFilter(ctx context.Context, search string, hasProducts string, isActiveFilter string, isActive bool) (int, error) {
+	// Build WHERE clause for the subquery - start empty for admin view (show all by default)
+	whereClauses := []string{}
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	// First arg is the isActive value (new value to set)
+	args = append(args, isActive)
+	argPos++
+
+	// Apply is_active filter only if specified
+	if isActiveFilter == "true" {
+		whereClauses = append(whereClauses, "b.is_active = true")
+	} else if isActiveFilter == "false" {
+		whereClauses = append(whereClauses, "b.is_active = false")
+	}
+	// If isActiveFilter is "" or any other value, don't filter by active status
+
+	if search != "" {
+		whereClauses = append(whereClauses, fmt.Sprintf("b.name ILIKE $%d", argPos))
+		args = append(args, "%"+search+"%")
+		argPos++
+	}
+
+	// Build HAVING clause for product count filter
+	havingClause := ""
+	if hasProducts == "true" {
+		havingClause = "HAVING COUNT(p.id) > 0"
+	} else if hasProducts == "false" {
+		havingClause = "HAVING COUNT(p.id) = 0"
+	}
+
+	// Build WHERE clause string
+	whereClause := "TRUE" // Default to no filtering
+	if len(whereClauses) > 0 {
+		whereClause = strings.Join(whereClauses, " AND ")
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE brands
+		SET is_active = $1, updated_at = NOW()
+		WHERE id IN (
+			SELECT b.id
+			FROM brands b
+			LEFT JOIN products p ON p.brand_id = b.id AND p.is_active = true
+			WHERE %s
+			GROUP BY b.id
+			%s
+		)
+	`, whereClause, havingClause)
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk update brands by filter: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
 }
 
 // ============================================================================
@@ -894,6 +1070,104 @@ func (r *Repository) GetBrandsByIDs(ctx context.Context, ids []uuid.UUID) ([]*mo
 	}
 
 	return brands, nil
+}
+
+// BrandWithStats represents a brand with product statistics
+type BrandWithStats struct {
+	models.Brand
+	TotalProducts      int `json:"total_products"`
+	ActiveProducts     int `json:"active_products"`
+	InStockProducts    int `json:"in_stock_products"`
+	WithPricesProducts int `json:"with_prices_products"`
+}
+
+// GetBrandWithStats returns a brand with product statistics
+func (r *Repository) GetBrandWithStats(ctx context.Context, id uuid.UUID) (*BrandWithStats, error) {
+	query := `
+		SELECT
+			b.id, b.ultra_id, b.code, b.name, b.slug, b.logo_url, b.is_active, b.created_at, b.updated_at,
+			COUNT(p.id) as total_products,
+			COUNT(CASE WHEN p.is_active = true THEN 1 END) as active_products,
+			COUNT(CASE WHEN p.is_active = true AND p.total_stock > 0 THEN 1 END) as in_stock_products,
+			COUNT(CASE WHEN p.is_active = true AND jsonb_array_length(p.prices) > 0 THEN 1 END) as with_prices_products
+		FROM brands b
+		LEFT JOIN products p ON p.brand_id = b.id
+		WHERE b.id = $1
+		GROUP BY b.id, b.ultra_id, b.code, b.name, b.slug, b.logo_url, b.is_active, b.created_at, b.updated_at
+	`
+
+	var brand BrandWithStats
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&brand.ID, &brand.UltraID, &brand.Code, &brand.Name, &brand.Slug,
+		&brand.LogoURL, &brand.IsActive, &brand.CreatedAt, &brand.UpdatedAt,
+		&brand.TotalProducts, &brand.ActiveProducts, &brand.InStockProducts, &brand.WithPricesProducts,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &brand, nil
+}
+
+// BrandProduct represents a simplified product for brand details page
+type BrandProduct struct {
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Code       string    `json:"code"`
+	PriceMin   *float64  `json:"price_min"`
+	PriceMax   *float64  `json:"price_max"`
+	TotalStock int       `json:"total_stock"`
+	IsActive   bool      `json:"is_active"`
+}
+
+// GetProductsByBrandID returns paginated products for a specific brand
+func (r *Repository) GetProductsByBrandID(ctx context.Context, brandID uuid.UUID, limit, offset int) ([]*BrandProduct, error) {
+	query := `
+		SELECT id, name, COALESCE(code, ''), price_min, price_max, total_stock, is_active
+		FROM products
+		WHERE brand_id = $1
+		ORDER BY name ASC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.pool.Query(ctx, query, brandID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	products := make([]*BrandProduct, 0)
+	for rows.Next() {
+		var product BrandProduct
+		err := rows.Scan(
+			&product.ID, &product.Name, &product.Code, &product.PriceMin,
+			&product.PriceMax, &product.TotalStock, &product.IsActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, &product)
+	}
+
+	return products, nil
+}
+
+// CountProductsByBrandID returns the total count of products for a brand
+func (r *Repository) CountProductsByBrandID(ctx context.Context, brandID uuid.UUID) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE brand_id = $1", brandID).Scan(&count)
+	return count, err
+}
+
+// BulkUpdateProductsByBrandID updates all products for a brand
+func (r *Repository) BulkUpdateProductsByBrandID(ctx context.Context, brandID uuid.UUID, isActive bool) (int, error) {
+	result, err := r.pool.Exec(ctx, `
+		UPDATE products SET is_active = $1, updated_at = NOW() WHERE brand_id = $2
+	`, isActive, brandID)
+	if err != nil {
+		return 0, err
+	}
+	return int(result.RowsAffected()), nil
 }
 
 // GetCategoriesByIDs fetches multiple categories by their IDs

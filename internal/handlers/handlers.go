@@ -46,14 +46,18 @@ type PaginationMeta struct {
 // ListBrands handles GET /api/v1/brands
 func (h *Handler) ListBrands(w http.ResponseWriter, r *http.Request) {
 	limit, offset := h.parsePagination(r)
+	search := r.URL.Query().Get("search")
+	hasProducts := r.URL.Query().Get("has_products")
+	isActive := r.URL.Query().Get("is_active")
+	sortBy := r.URL.Query().Get("sort_by")
 
-	brands, err := h.repo.ListBrands(r.Context(), limit, offset)
+	brands, err := h.repo.ListBrandsWithSearch(r.Context(), search, hasProducts, isActive, sortBy, limit, offset)
 	if err != nil {
 		h.respondError(w, http.StatusInternalServerError, "Failed to fetch brands", err.Error())
 		return
 	}
 
-	total, err := h.repo.CountBrands(r.Context())
+	total, err := h.repo.CountBrandsWithSearch(r.Context(), search, hasProducts, isActive)
 	if err != nil {
 		h.respondError(w, http.StatusInternalServerError, "Failed to count brands", err.Error())
 		return
@@ -86,6 +90,127 @@ func (h *Handler) GetBrand(w http.ResponseWriter, r *http.Request) {
 
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
 		"data": brand,
+	})
+}
+
+// GetBrandWithStats handles GET /api/v1/brands/{id}/stats
+// @Summary Get brand with statistics
+// @Description Returns brand details with product counts (total, active, in stock, with prices)
+// @Tags Brands
+// @Produce json
+// @Param id path string true "Brand ID"
+// @Success 200 {object} repository.BrandWithStats
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /api/v1/brands/{id}/stats [get]
+func (h *Handler) GetBrandWithStats(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid brand ID", err.Error())
+		return
+	}
+
+	brand, err := h.repo.GetBrandWithStats(r.Context(), id)
+	if err != nil {
+		h.respondError(w, http.StatusNotFound, "Brand not found", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": brand,
+	})
+}
+
+// GetBrandProducts handles GET /api/v1/brands/{id}/products
+// @Summary Get products for a brand
+// @Description Returns paginated list of products for a specific brand
+// @Tags Brands
+// @Produce json
+// @Param id path string true "Brand ID"
+// @Param limit query int false "Number of records to return" default(10)
+// @Param offset query int false "Number of records to skip" default(0)
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/brands/{id}/products [get]
+func (h *Handler) GetBrandProducts(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid brand ID", err.Error())
+		return
+	}
+
+	limit, offset := h.parsePagination(r)
+
+	products, err := h.repo.GetProductsByBrandID(r.Context(), id, limit, offset)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch brand products", err.Error())
+		return
+	}
+
+	total, err := h.repo.CountProductsByBrandID(r.Context(), id)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to count brand products", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": products,
+		"meta": PaginationMeta{
+			Limit:  limit,
+			Offset: offset,
+			Total:  total,
+		},
+	})
+}
+
+// BulkUpdateBrandProductsRequest represents the request body for bulk updating brand products
+type BulkUpdateBrandProductsRequest struct {
+	IsActive bool `json:"is_active"`
+}
+
+// BulkUpdateBrandProducts handles PATCH /api/v1/brands/{id}/products/bulk
+// @Summary Bulk update all products for a brand
+// @Description Activates or deactivates all products belonging to a brand
+// @Tags Brands
+// @Accept json
+// @Produce json
+// @Param id path string true "Brand ID"
+// @Param request body BulkUpdateBrandProductsRequest true "Update data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/brands/{id}/products/bulk [patch]
+func (h *Handler) BulkUpdateBrandProducts(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid brand ID", err.Error())
+		return
+	}
+
+	var req BulkUpdateBrandProductsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	updated, err := h.repo.BulkUpdateProductsByBrandID(r.Context(), id, req.IsActive)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update products", err.Error())
+		return
+	}
+
+	action := "deactivated"
+	if req.IsActive {
+		action = "activated"
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Successfully %s %d products", action, updated),
+		"updated": updated,
 	})
 }
 
@@ -1570,42 +1695,81 @@ func (h *Handler) BulkDeleteProducts(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// BulkUpdateBrandsRequest represents a bulk update operation request for brands
+// Supports both specific IDs and filter-based updates
+type BulkUpdateBrandsRequest struct {
+	IDs      []uuid.UUID `json:"ids,omitempty"`
+	Filter   *struct {
+		Search      string `json:"search"`
+		HasProducts string `json:"has_products"`
+		IsActive    string `json:"is_active"` // Filter by current active status: "true", "false", or "" for all
+	} `json:"filter,omitempty"`
+	IsActive *bool `json:"is_active"` // New value to set
+}
+
 // BulkUpdateBrands handles PATCH /api/v1/brands/bulk
 // @Summary Bulk update brands
-// @Description Updates multiple brands at once (e.g., enable/disable)
+// @Description Updates multiple brands at once (e.g., enable/disable). Supports both specific IDs and filter-based updates.
 // @Tags Brands
 // @Accept json
 // @Produce json
-// @Param request body BulkUpdateRequest true "Bulk update data"
+// @Param request body BulkUpdateBrandsRequest true "Bulk update data"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/brands/bulk [patch]
 func (h *Handler) BulkUpdateBrands(w http.ResponseWriter, r *http.Request) {
-	var req BulkUpdateRequest
+	var req BulkUpdateBrandsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 
-	if len(req.IDs) == 0 {
-		h.respondError(w, http.StatusBadRequest, "Validation failed", "ids array is required")
+	if req.IsActive == nil {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "is_active is required")
 		return
 	}
 
-	if len(req.IDs) > 100 {
-		h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+	var updated int
+	var err error
+
+	// Check if this is a filter-based update or ID-based update
+	if req.Filter != nil {
+		// Filter-based update - update all matching brands
+		updated, err = h.repo.BulkUpdateBrandsByFilter(
+			r.Context(),
+			req.Filter.Search,
+			req.Filter.HasProducts,
+			req.Filter.IsActive,
+			*req.IsActive,
+		)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to bulk update brands by filter", err.Error())
+			return
+		}
+	} else if len(req.IDs) > 0 {
+		// ID-based update
+		if len(req.IDs) > 100 {
+			h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+			return
+		}
+		updated, err = h.repo.BulkUpdateBrands(r.Context(), req.IDs, req.IsActive)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to bulk update brands", err.Error())
+			return
+		}
+	} else {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "either ids array or filter is required")
 		return
 	}
 
-	updated, err := h.repo.BulkUpdateBrands(r.Context(), req.IDs, req.IsActive)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update brands", err.Error())
-		return
+	action := "deactivated"
+	if *req.IsActive {
+		action = "activated"
 	}
 
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
-		"message": fmt.Sprintf("Successfully updated %d brands", updated),
+		"message": fmt.Sprintf("Successfully %s %d brands", action, updated),
 		"updated": updated,
 	})
 }

@@ -162,7 +162,7 @@ PUT    /api/v1/products/{id}                 # Update product
 DELETE /api/v1/products/{id}                 # Soft delete product
 
 # Brands
-GET    /api/v1/brands                        # List brands
+GET    /api/v1/brands                        # List brands (supports ?search=)
 GET    /api/v1/brands/{id}                   # Get brand details
 POST   /api/v1/brands                        # Create brand
 PUT    /api/v1/brands/{id}                   # Update brand
@@ -216,6 +216,7 @@ GET /api/v1/health                           # Health check
 - `category_id` - Filter by category UUID
 - `in_stock` - Filter in-stock products (true/false)
 - `min_price` / `max_price` - Price range filter
+- `search` - Brand name search (case-insensitive ILIKE)
 
 ### Examples
 

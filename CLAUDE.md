@@ -117,7 +117,8 @@ bun dev          # Starts on http://localhost:3000
 | `/` | Dashboard with real-time statistics, low stock alerts, recent sync activity |
 | `/products` | Products table with bulk actions, export, status toggles |
 | `/products/[id]` | Product detail with properties & characteristics |
-| `/brands` | Brands management with status toggles and delete actions |
+| `/brands` | Brands management with advanced filtering, sorting, bulk selection, and status toggles |
+| `/brands/[id]` | Brand detail with statistics, products preview, admin actions |
 | `/categories` | Hierarchical category tree with status toggles |
 | `/sync` | Real-time sync progress with step-by-step tracking, auto-refresh, and history |
 | `/settings` | Configuration info |
@@ -131,6 +132,36 @@ bun dev          # Starts on http://localhost:3000
 - **Toast Notifications**: Success/error feedback using Sonner
 - **Confirmation Dialogs**: Destructive action confirmations
 - **Status Toggles**: Enable/disable products, brands, categories inline
+- **Enhanced Brands Management Page** (Nov 2025): Comprehensive brand management with filtering, sorting, and bulk actions
+  - **Advanced Filtering**:
+    - Product count filter: All brands / With products / Without products
+    - Status filter: All / Active / Inactive (admin CMS shows all brands by default)
+    - Sort options: Name A-Z, Name Z-A, Most products, Least products
+    - Search with debounced input (500ms)
+    - Filter state persisted in URL query params
+    - Clear all filters button
+  - **Bulk Selection**: Select brands across all pages
+    - Checkbox in header to select/deselect all on current page
+    - Individual checkboxes for each brand row
+    - "Select all X matching brands" option for filter-based bulk operations
+    - Selection banner shows count: "X brands selected" or "All X matching brands selected"
+    - Selection preserved during pagination when selectAllMode is active
+  - **Bulk Actions Toolbar**: Appears when items are selected
+    - Activate Selected (green button with Power icon)
+    - Deactivate Selected (red button with PowerOff icon)
+    - Clear Selection button
+    - Supports both ID-based and filter-based bulk updates
+  - **Stats Cards**: Updated based on filters
+    - Total Brands shows filtered count with "(filtered)" indicator
+    - With Logos shows count on current page
+    - Displayed shows current page count of total
+  - **Backend Support**: New API parameters and endpoints
+    - `GET /api/v1/brands?has_products=true|false&is_active=true|false&sort_by=name_asc|name_desc|products_desc|products_asc`
+    - `PATCH /api/v1/brands/bulk` supports both `{ ids: [...], is_active: true }` and `{ filter: { search, has_products, is_active }, is_active: true }`
+  - **Repository Functions**:
+    - `ListBrandsWithSearch(ctx, search, hasProducts, isActive, sortBy, limit, offset)`
+    - `CountBrandsWithSearch(ctx, search, hasProducts, isActive)`
+    - `BulkUpdateBrandsByFilter(ctx, search, hasProducts, isActiveFilter, isActive)`
 - **Enhanced Sync Status Page**: Real-time sync progress with:
   - Step-by-step progress indicators (7 steps)
   - Change deltas per step: "X extracted", "+Y added, Z updated"
@@ -167,6 +198,30 @@ bun dev          # Starts on http://localhost:3000
   - **Enhanced Properties Table**: Grouped by category with tabs, value_type badges, is_filter and is_modification flags
   - **Copyable Fields**: All IDs, codes, and barcodes have copy-to-clipboard buttons
   - **Status Indicators**: CheckCircle/XCircle icons for boolean flags
+- **Brand Details Page** (Nov 2025): Full admin CMS controls for brand management
+  - **Brand Information Card**: Logo, name, slug, Ultra ID, UUID (copyable), timestamps, status toggle
+  - **Statistics Cards**: Total products, active products, in stock products, with prices products
+  - **Products Table with Full Pagination**: Complete products management within brand page
+    - Pagination controls (Previous/Next, page X of Y)
+    - 10 products per page with total count display
+    - Clickable product names linking to product detail
+    - Code column with monospace font
+    - Price MDL column with formatted currency ("No price" badge if null)
+    - Stock status badges (green "X in stock" or red "Out of stock")
+    - Active status toggle switch for each product
+    - Actions dropdown menu per product:
+      - View Details (link to /products/{id})
+      - Activate/Deactivate toggle
+      - Delete with confirmation dialog
+  - **Admin Actions**: Activate/deactivate all brand products, delete brand
+  - **Bulk Operations**: One-click activate/deactivate all products belonging to brand
+  - **Confirmation Dialogs**: Confirmations for all destructive actions
+  - **Toast Notifications**: Success/error feedback for all operations
+- **Brands List Product Count Fix** (Nov 2025):
+  - Added `product_count` field to Brand model
+  - Updated `ListBrandsWithSearch()` query to include LEFT JOIN with products table
+  - Counts only active products per brand
+  - Displays accurate product counts in brands table
 
 ### Tech Stack
 
@@ -192,6 +247,7 @@ bun dev          # Starts on http://localhost:3000
 | `src/contexts/currency-context.tsx` | Global currency state with localStorage persistence |
 | `src/components/variant-selector.tsx` | Two-level color/memory variant selector with parsing logic |
 | `src/app/products/[id]/page.tsx` | Comprehensive product detail page with all data fields |
+| `src/app/brands/[id]/page.tsx` | Brand details page with stats, products preview, admin actions |
 
 ### Key Dependencies
 
@@ -253,8 +309,11 @@ PUT    /api/v1/products/{id}                 # Update product
 DELETE /api/v1/products/{id}                 # Soft delete product
 
 # Brands
-GET    /api/v1/brands                        # List brands
+GET    /api/v1/brands                        # List brands (supports ?search=, ?has_products=true|false, ?is_active=true|false, ?sort_by=name_asc|name_desc|products_desc|products_asc)
 GET    /api/v1/brands/{id}                   # Get brand details
+GET    /api/v1/brands/{id}/stats             # Get brand with product statistics
+GET    /api/v1/brands/{id}/products          # Get paginated products for brand
+PATCH  /api/v1/brands/{id}/products/bulk     # Bulk activate/deactivate brand products
 POST   /api/v1/brands                        # Create brand
 PUT    /api/v1/brands/{id}                   # Update brand
 DELETE /api/v1/brands/{id}                   # Soft delete brand
@@ -310,6 +369,9 @@ GET /api/v1/health                           # Health check with DB status
 ?min_price=100&max_price=500              # Price range
 ?status=completed&sync_type=full          # Sync log filters
 ?format=json|csv                          # Export format
+?search=apple                             # Brand name search (ILIKE)
+?has_products=true|false                  # Brand filter: with/without products
+?sort_by=name_asc|name_desc|products_desc|products_asc  # Brand sort options
 ```
 
 ## Data Model Notes

@@ -6,7 +6,7 @@ CMS Dashboard for Ultra B2B product data management. Built with Next.js 14, Type
 
 - **Dashboard** - Real-time statistics, low stock alerts, recent sync activity
 - **Products Management** - Full CRUD, bulk operations, CSV export, status toggles
-- **Brands Management** - List, edit, toggle active/inactive, delete with confirmation
+- **Brands Management** - Server-side search across all 1,133 brands, debounced input (300ms), edit, toggle active/inactive, delete with confirmation
 - **Categories** - Hierarchical tree view with status toggles and actions
 - **Product Details** - Properties, characteristics, prices, and stock information
 - **Sync Management** - Live sync logs with pagination, refresh, and status history
