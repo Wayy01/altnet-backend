@@ -276,7 +276,7 @@ export default function BrandsPage() {
                     </TableCell>
                     <TableCell>
                       <Switch
-                        checked={true}
+                        checked={brand.is_active}
                         onCheckedChange={(checked) =>
                           handleToggleActive(brand.id, checked)
                         }

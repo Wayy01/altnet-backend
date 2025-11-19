@@ -463,7 +463,7 @@ export function ProductsTable({
                   </TableCell>
                   <TableCell>
                     <Switch
-                      checked={product.is_active ?? true}
+                      checked={product.is_active}
                       onCheckedChange={(checked) =>
                         handleToggleActive(product.id, checked)
                       }
@@ -509,8 +509,14 @@ export function ProductsTable({
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {offset + 1} to {Math.min(offset + limit, total)} of{" "}
-          {total.toLocaleString()} products
+          {total > 0 ? (
+            <>
+              Showing {offset + 1} to {Math.min(offset + limit, total)} of{" "}
+              {total.toLocaleString()} products
+            </>
+          ) : (
+            "No products found"
+          )}
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -523,13 +529,13 @@ export function ProductsTable({
             Previous
           </Button>
           <span className="text-sm">
-            Page {currentPage} of {totalPages}
+            Page {currentPage} of {totalPages || 1}
           </span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || totalPages === 0}
           >
             Next
             <ChevronRight className="h-4 w-4" />

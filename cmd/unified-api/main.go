@@ -110,32 +110,71 @@ func main() {
 func setupRouter(handler *handlers.Handler) *mux.Router {
 	router := mux.NewRouter()
 
+	// Add middleware FIRST (before routes)
+	router.Use(corsMiddleware)
+	router.Use(loggingMiddleware)
+
 	// API v1 routes
 	api := router.PathPrefix("/api/v1").Subrouter()
 
 	// Brands
-	api.HandleFunc("/brands", handler.ListBrands).Methods("GET")
-	api.HandleFunc("/brands/{id}", handler.GetBrand).Methods("GET")
+	api.HandleFunc("/brands", handler.ListBrands).Methods("GET", "OPTIONS")
+	api.HandleFunc("/brands/{id}", handler.GetBrand).Methods("GET", "OPTIONS")
 
 	// Categories
-	api.HandleFunc("/categories", handler.ListCategories).Methods("GET")
-	api.HandleFunc("/categories/{id}", handler.GetCategory).Methods("GET")
+	api.HandleFunc("/categories", handler.ListCategories).Methods("GET", "OPTIONS")
+	api.HandleFunc("/categories/{id}", handler.GetCategory).Methods("GET", "OPTIONS")
 
 	// Products
-	api.HandleFunc("/products", handler.ListProducts).Methods("GET")
-	api.HandleFunc("/products/{id}", handler.GetProduct).Methods("GET")
-	api.HandleFunc("/products/{id}/properties", handler.GetProductProperties).Methods("GET")
-	api.HandleFunc("/products/{id}/characteristics", handler.GetProductCharacteristics).Methods("GET")
+	api.HandleFunc("/products", handler.ListProducts).Methods("GET", "OPTIONS")
+	api.HandleFunc("/products/{id}", handler.GetProduct).Methods("GET", "OPTIONS")
+	api.HandleFunc("/products/{id}/properties", handler.GetProductProperties).Methods("GET", "OPTIONS")
+	api.HandleFunc("/products/{id}/characteristics", handler.GetProductCharacteristics).Methods("GET", "OPTIONS")
 
 	// Search
-	api.HandleFunc("/search", handler.SearchProducts).Methods("GET")
+	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
+
+	// Sync logs
+	api.HandleFunc("/sync/logs", handler.ListSyncLogs).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/logs/{id}", handler.GetSyncLog).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/status", handler.GetLatestSyncStatus).Methods("GET", "OPTIONS")
+
+	// CRUD operations - Products (bulk routes must come before {id} routes)
+	api.HandleFunc("/products", handler.CreateProduct).Methods("POST", "OPTIONS")
+	api.HandleFunc("/products/bulk", handler.BulkUpdateProducts).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/products/bulk", handler.BulkDeleteProducts).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/products/{id}", handler.DeleteProduct).Methods("DELETE", "OPTIONS")
+
+	// CRUD operations - Brands
+	api.HandleFunc("/brands", handler.CreateBrand).Methods("POST", "OPTIONS")
+	api.HandleFunc("/brands/{id}", handler.UpdateBrand).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/brands/{id}", handler.DeleteBrand).Methods("DELETE", "OPTIONS")
+
+	// CRUD operations - Categories
+	api.HandleFunc("/categories", handler.CreateCategory).Methods("POST", "OPTIONS")
+	api.HandleFunc("/categories/{id}", handler.UpdateCategory).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/categories/{id}", handler.DeleteCategory).Methods("DELETE", "OPTIONS")
+
+	// Export endpoints
+	api.HandleFunc("/export/products", handler.ExportProducts).Methods("GET", "OPTIONS")
+	api.HandleFunc("/export/brands", handler.ExportBrands).Methods("GET", "OPTIONS")
+	api.HandleFunc("/export/categories", handler.ExportCategories).Methods("GET", "OPTIONS")
+
+	// Dashboard endpoints
+	api.HandleFunc("/dashboard/stats", handler.GetDashboardStats).Methods("GET", "OPTIONS")
+	api.HandleFunc("/dashboard/stock-summary", handler.GetStockSummary).Methods("GET", "OPTIONS")
+	api.HandleFunc("/dashboard/price-summary", handler.GetPriceSummary).Methods("GET", "OPTIONS")
+
+	// Config endpoint
+	api.HandleFunc("/config", handler.GetConfig).Methods("GET", "OPTIONS")
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
-	}).Methods("GET")
+	}).Methods("GET", "OPTIONS")
 
 	// Root endpoint
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -153,13 +192,7 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 				"health": "/health"
 			}
 		}`))
-	}).Methods("GET")
-
-	// Add CORS middleware
-	router.Use(corsMiddleware)
-
-	// Add logging middleware
-	router.Use(loggingMiddleware)
+	}).Methods("GET", "OPTIONS")
 
 	return router
 }
@@ -167,8 +200,9 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		w.Header().Set("Access-Control-Max-Age", "86400")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)

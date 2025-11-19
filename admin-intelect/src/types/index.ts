@@ -6,6 +6,7 @@ export interface Brand {
   slug: string;
   logo_url: string | null;
   product_count?: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -19,8 +20,17 @@ export interface Category {
   sort_order: number;
   product_count: number;
   children?: Category[];
+  is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// Image entry in products
+export interface ImageEntry {
+  uuid: string;
+  url: string;
+  description: string;
+  path_global: string;
 }
 
 // Price entry in characteristics
@@ -68,12 +78,13 @@ export interface Product {
   category_id: string | null;
   category_name?: string;
   parent_id: string | null;
-  images: string[];
+  images: ImageEntry[];
   barcodes: string[];
   price_min: number | null;
   price_max: number | null;
   total_stock: number;
   is_group: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -130,10 +141,18 @@ export interface SyncLog {
   id: string;
   sync_type: string;
   status: string;
-  items_synced: number;
-  duration_ms: number;
+  started_at: string;
+  finished_at: string | null;
+  duration_seconds: number | null;
+  brands_synced: number;
+  categories_synced: number;
+  products_synced: number;
+  properties_synced: number;
+  characteristics_synced: number;
+  prices_synced: number;
+  stock_synced: number;
   error_message: string | null;
-  created_at: string;
+  details: Record<string, unknown> | null;
 }
 
 // Exchange rate
@@ -220,10 +239,7 @@ export interface SyncLogExtended extends SyncLog {
   details?: Record<string, unknown>;
 }
 
-// Product with is_active field
-export interface ProductWithStatus extends Product {
-  is_active: boolean;
-}
+// Note: Product already includes is_active field
 
 // Brand with is_active field
 export interface BrandWithStatus extends Brand {

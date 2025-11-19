@@ -96,8 +96,31 @@ func (h *Handler) GetBrand(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListCategories(w http.ResponseWriter, r *http.Request) {
 	limit, offset := h.parsePagination(r)
 
+	// Check if parent_id filter is provided
+	parentIDStr := r.URL.Query().Get("parent_id")
+
+	// If no parent_id filter, return all categories for the dashboard
+	if parentIDStr == "" {
+		categories, err := h.repo.ListAllCategories(r.Context())
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to fetch categories", err.Error())
+			return
+		}
+
+		h.respondJSON(w, http.StatusOK, map[string]interface{}{
+			"data": categories,
+			"meta": PaginationMeta{
+				Limit:  len(categories),
+				Offset: 0,
+				Total:  len(categories),
+			},
+		})
+		return
+	}
+
+	// Filter by parent_id
 	var parentID *uuid.UUID
-	if parentIDStr := r.URL.Query().Get("parent_id"); parentIDStr != "" && parentIDStr != "null" {
+	if parentIDStr != "null" {
 		id, err := uuid.Parse(parentIDStr)
 		if err == nil {
 			parentID = &id

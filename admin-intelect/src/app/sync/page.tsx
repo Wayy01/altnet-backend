@@ -17,8 +17,8 @@ import {
 import { api } from "@/lib/api";
 import { SyncLog } from "@/types";
 
-function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
+function formatDuration(seconds: number | null): string {
+  if (seconds === null) return "N/A";
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
 
@@ -211,14 +211,14 @@ export default function SyncPage() {
                   {lastSync.status}
                 </Badge>
                 <span className="text-sm">
-                  <strong>{lastSync.sync_type}</strong> - {lastSync.items_synced.toLocaleString()} items
+                  <strong>{lastSync.sync_type}</strong> - {(lastSync.products_synced + lastSync.brands_synced + lastSync.categories_synced).toLocaleString()} items
                 </span>
               </div>
               <div className="text-right text-sm text-muted-foreground">
-                <div>{formatDate(lastSync.created_at)}</div>
+                <div>{formatDate(lastSync.started_at)}</div>
                 <div className="flex items-center justify-end gap-1">
                   <Clock className="h-3 w-3" />
-                  {formatDuration(lastSync.duration_ms)}
+                  {formatDuration(lastSync.duration_seconds)}
                 </div>
               </div>
             </div>
@@ -282,16 +282,16 @@ export default function SyncPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-mono">
-                        {log.items_synced.toLocaleString()}
+                        {(log.products_synced + log.brands_synced + log.categories_synced).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <span className="flex items-center justify-end gap-1">
                           <Clock className="h-3 w-3 text-muted-foreground" />
-                          {formatDuration(log.duration_ms)}
+                          {formatDuration(log.duration_seconds)}
                         </span>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {formatDate(log.created_at)}
+                        {formatDate(log.started_at)}
                       </TableCell>
                       <TableCell className="max-w-[200px]">
                         {log.error_message ? (

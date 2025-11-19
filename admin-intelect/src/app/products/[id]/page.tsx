@@ -133,7 +133,7 @@ export default async function ProductDetailPage({
                 <div className="flex flex-wrap gap-2">
                   {product.images.map((image, index) => (
                     <Badge key={index} variant="outline" className="font-mono text-xs">
-                      {image.substring(0, 20)}...
+                      {image.uuid ? image.uuid.substring(0, 8) : `Image ${index + 1}`}...
                     </Badge>
                   ))}
                 </div>

@@ -310,6 +310,30 @@ IsActive: isActiveFromString(b.Active)
 
 This fix applies to brands, categories, and products with robust handling for case variations and whitespace.
 
+### Comprehensive Bug Audit (Nov 2025)
+
+A comprehensive audit of the codebase identified and fixed 15 bugs:
+
+**Backend Issues Fixed:**
+- 33 API endpoints registered in router (`cmd/unified-api/main.go`)
+- Route order fixed: bulk routes before parameterized routes to prevent gorilla/mux conflicts
+- CORS middleware moved before routes for proper application
+- N+1 query problem fixed with batch queries (`GetProductsWithDetails`, `GetBrandsByIDs`, `GetCategoriesByIDs`)
+
+**Frontend Issues Fixed:**
+- Type mismatches: `ImageEntry`, `SyncLog`, `is_active` fields aligned with backend
+- API response unwrapping: All endpoints now properly extract `response.data`
+- Endpoint paths corrected: `/api/v1/sync/logs`, `/api/v1/export/products`
+- Pagination null checks: `total > 0` check before calling `toLocaleString()`
+- Switch states: Use `product.is_active` instead of hardcoded `true`
+
+**Key Pattern:**
+```go
+// Route registration order - specific routes before parameterized
+api.HandleFunc("/products/bulk", handler.BulkUpdateProducts).Methods("PATCH", "OPTIONS")
+api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
+```
+
 ## Database Queries
 
 ```sql

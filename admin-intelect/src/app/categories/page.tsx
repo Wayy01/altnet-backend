@@ -94,7 +94,7 @@ function CategoryItem({
       </span>
       <Badge variant="secondary">{category.product_count}</Badge>
       <Switch
-        checked={true}
+        checked={category.is_active}
         onCheckedChange={(checked) => onToggleActive(category.id, checked)}
         disabled={isProcessing}
         className="mr-2"

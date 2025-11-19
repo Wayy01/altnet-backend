@@ -63,8 +63,8 @@ async function getDashboardData(): Promise<{
   }
 }
 
-function formatDuration(ms: number): string {
-  const seconds = Math.floor(ms / 1000);
+function formatDuration(seconds: number | null): string {
+  if (seconds === null) return "N/A";
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
 
@@ -207,17 +207,17 @@ async function DashboardContent() {
                       <div>
                         <p className="text-sm font-medium">{sync.sync_type}</p>
                         <p className="text-xs text-muted-foreground">
-                          {sync.items_synced.toLocaleString()} items
+                          {(sync.products_synced + sync.brands_synced + sync.categories_synced).toLocaleString()} items
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-muted-foreground">
-                        {formatRelativeTime(sync.created_at)}
+                        {formatRelativeTime(sync.started_at)}
                       </p>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {formatDuration(sync.duration_ms)}
+                        {formatDuration(sync.duration_seconds)}
                       </div>
                     </div>
                   </div>
@@ -297,14 +297,14 @@ async function DashboardContent() {
                 </Badge>
                 <span className="text-sm">
                   <strong>{latestSync.sync_type}</strong> -{" "}
-                  {latestSync.items_synced.toLocaleString()} items synced
+                  {(latestSync.products_synced + latestSync.brands_synced + latestSync.categories_synced).toLocaleString()} items synced
                 </span>
               </div>
               <div className="text-right text-sm text-muted-foreground">
-                <div>{new Date(latestSync.created_at).toLocaleString()}</div>
+                <div>{new Date(latestSync.started_at).toLocaleString()}</div>
                 <div className="flex items-center justify-end gap-1">
                   <Clock className="h-3 w-3" />
-                  Duration: {formatDuration(latestSync.duration_ms)}
+                  Duration: {formatDuration(latestSync.duration_seconds)}
                 </div>
               </div>
             </div>
