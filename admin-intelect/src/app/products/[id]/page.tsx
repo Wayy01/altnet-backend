@@ -43,6 +43,7 @@ import {
 import { api } from "@/lib/api";
 import { Property, Characteristic, ProductDetail, ImageEntry, Product } from "@/types";
 import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
+import { VariantSelector } from "@/components/variant-selector";
 
 interface ProductDetailPageProps {
   params: Promise<{
@@ -382,52 +383,10 @@ export default function ProductDetailPage({
 
       {/* Variant Selector */}
       {variants.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Product Variants ({variants.length})
-            </CardTitle>
-            <CardDescription>
-              Select a variant to view its details
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {variants.map((variant) => {
-                const isCurrentVariant = variant.id === product.id;
-                const variantPrice = getPriceByCurrency(variant, currency);
-
-                // Extract variant name (e.g., "256GB", "512GB" from product name)
-                const variantLabel = variant.name.split(" ").pop() || variant.name;
-
-                return (
-                  <Link
-                    key={variant.id}
-                    href={`/products/${variant.id}`}
-                  >
-                    <Button
-                      variant={isCurrentVariant ? "default" : "outline"}
-                      className="flex items-center gap-2"
-                    >
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          variant.total_stock > 0 ? "bg-green-500" : "bg-red-500"
-                        }`}
-                      />
-                      <span>{variantLabel}</span>
-                      {variantPrice !== null && (
-                        <span className="text-xs opacity-70">
-                          {formatPrice(variantPrice)}
-                        </span>
-                      )}
-                    </Button>
-                  </Link>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+        <VariantSelector
+          variants={variants}
+          currentProductId={product.id}
+        />
       )}
 
       {/* Product Details */}

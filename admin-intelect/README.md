@@ -16,7 +16,11 @@ CMS Dashboard for Ultra B2B product data management. Built with Next.js 14, Type
 - **Confirmations** - Dialogs for destructive actions
 - **Dark/Light Mode** - Full theme support
 - **Global Currency Selector** - Switch between MDL, EUR, USD with localStorage persistence
-- **Product Variant Display** - Navigate between related products (e.g., storage variants)
+- **Product Variant Selector** - Two-level selector for color and memory variants:
+  - Color selection (e.g., Jet Black, Blue Shadow, Silver Shadow)
+  - Memory options filtered by selected color (e.g., 256GB, 512GB, 1TB)
+  - Parses variant info from product names automatically
+  - Stock indicators and pricing per variant
 
 ## Tech Stack
 
@@ -78,7 +82,8 @@ admin-intelect/
 │   │   ├── products/          # Product-specific components
 │   │   ├── app-sidebar.tsx    # Navigation sidebar
 │   │   ├── header.tsx         # Page header with breadcrumbs
-│   │   └── theme-toggle.tsx   # Dark/light mode toggle
+│   │   ├── theme-toggle.tsx   # Dark/light mode toggle
+│   │   └── variant-selector.tsx # Two-level color/memory variant selector
 │   ├── contexts/
 │   │   └── currency-context.tsx # Global currency state with localStorage
 │   ├── lib/
@@ -167,8 +172,8 @@ bun run lint
 - ✅ Status toggles for products, brands, categories
 - ✅ Low stock alerts on dashboard
 - ✅ Global currency selector (MDL, EUR, USD) with localStorage persistence
-- ✅ Product variant display and navigation between related products
 - ✅ Multi-currency pricing support (price_mdl, price_eur, price_usd)
+- ✅ Two-level product variant selector (color + memory) with automatic name parsing
 
 ## Future Enhancements
 

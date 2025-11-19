@@ -142,10 +142,12 @@ bun dev          # Starts on http://localhost:3000
   - Persists selection in localStorage
   - Updates all product prices across the app
   - Located in sidebar footer
-- **Product Variant Display**: Related products shown on detail page
-  - Variant selector buttons (e.g., 256GB, 512GB, 1TB)
-  - Links to other variants in same product group
-  - Uses variant_group_id for grouping
+- **Product Variant Display**: Enhanced two-level variant selector on product detail page
+  - **Color Selector**: Shows unique colors (e.g., "Jet Black", "Blue Shadow", "Silver Shadow")
+  - **Memory Selector**: Filtered by selected color (e.g., 256GB, 512GB, 1TB)
+  - Parses variant info from product names (handles "12/256Gb", "16/1Tb" formats)
+  - Shows stock indicators and prices per variant
+  - Uses variant_group_id for grouping related products
 
 ### Tech Stack
 
@@ -169,6 +171,7 @@ bun dev          # Starts on http://localhost:3000
 | `src/components/ui/switch.tsx` | Toggle switch component |
 | `src/components/ui/sonner.tsx` | Toast notifications |
 | `src/contexts/currency-context.tsx` | Global currency state with localStorage persistence |
+| `src/components/variant-selector.tsx` | Two-level color/memory variant selector with parsing logic |
 
 ### Key Dependencies
 
