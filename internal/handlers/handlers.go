@@ -335,6 +335,26 @@ func (h *Handler) GetProductCharacteristics(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+// GetProductVariants handles GET /api/v1/products/{id}/variants
+func (h *Handler) GetProductVariants(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid product ID", err.Error())
+		return
+	}
+
+	variants, err := h.repo.GetProductVariants(r.Context(), id)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch variants", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": variants,
+	})
+}
+
 // SearchProducts handles GET /api/v1/search
 func (h *Handler) SearchProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")

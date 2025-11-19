@@ -41,7 +41,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
-import { Property, Characteristic, ProductDetail, ImageEntry } from "@/types";
+import { Property, Characteristic, ProductDetail, ImageEntry, Product } from "@/types";
+import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
 
 interface ProductDetailPageProps {
   params: Promise<{
@@ -165,10 +166,12 @@ export default function ProductDetailPage({
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [characteristics, setCharacteristics] = useState<Characteristic[]>([]);
+  const [variants, setVariants] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const { currency, formatPrice } = useCurrency();
 
   useEffect(() => {
     let cancelled = false;
@@ -178,10 +181,11 @@ export default function ProductDetailPage({
         const { id } = await params;
         if (cancelled) return;
 
-        const [productData, propertiesData, characteristicsData] = await Promise.all([
+        const [productData, propertiesData, characteristicsData, variantsData] = await Promise.all([
           api.getProduct(id),
           api.getProductProperties(id),
           api.getProductCharacteristics(id),
+          api.getProductVariants(id),
         ]);
 
         if (cancelled) return;
@@ -194,6 +198,7 @@ export default function ProductDetailPage({
         setProduct(productData);
         setProperties(propertiesData);
         setCharacteristics(characteristicsData);
+        setVariants(variantsData);
       } catch (err) {
         if (cancelled) return;
         console.error("Failed to fetch product:", err);
@@ -319,21 +324,21 @@ export default function ProductDetailPage({
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Price Range</CardTitle>
+            <CardTitle className="text-sm font-medium">Price ({currency})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {product.price_min && product.price_max ? (
-                <>
-                  {product.price_min.toLocaleString()} -{" "}
-                  {product.price_max.toLocaleString()}
-                </>
-              ) : (
-                <span className="text-muted-foreground">N/A</span>
-              )}
+              {(() => {
+                const price = getPriceByCurrency(product, currency);
+                return price !== null ? (
+                  formatPrice(price)
+                ) : (
+                  <span className="text-muted-foreground">N/A</span>
+                );
+              })()}
             </div>
             <p className="text-xs text-muted-foreground">
-              {allCurrencies.length > 0 ? allCurrencies.join(", ") : "USD"}
+              {allCurrencies.length > 0 ? allCurrencies.join(", ") : "MDL"}
             </p>
           </CardContent>
         </Card>
@@ -374,6 +379,56 @@ export default function ProductDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Variant Selector */}
+      {variants.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Product Variants ({variants.length})
+            </CardTitle>
+            <CardDescription>
+              Select a variant to view its details
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {variants.map((variant) => {
+                const isCurrentVariant = variant.id === product.id;
+                const variantPrice = getPriceByCurrency(variant, currency);
+
+                // Extract variant name (e.g., "256GB", "512GB" from product name)
+                const variantLabel = variant.name.split(" ").pop() || variant.name;
+
+                return (
+                  <Link
+                    key={variant.id}
+                    href={`/products/${variant.id}`}
+                  >
+                    <Button
+                      variant={isCurrentVariant ? "default" : "outline"}
+                      className="flex items-center gap-2"
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          variant.total_stock > 0 ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      />
+                      <span>{variantLabel}</span>
+                      {variantPrice !== null && (
+                        <span className="text-xs opacity-70">
+                          {formatPrice(variantPrice)}
+                        </span>
+                      )}
+                    </Button>
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Product Details */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -570,14 +625,11 @@ export default function ProductDetailPage({
         </Card>
       )}
 
-      {/* Tabs for Properties and Characteristics */}
+      {/* Properties Section */}
       <Tabs defaultValue="properties" className="w-full">
         <TabsList>
           <TabsTrigger value="properties">
             Properties ({properties.length})
-          </TabsTrigger>
-          <TabsTrigger value="characteristics">
-            Variants ({characteristics.length})
           </TabsTrigger>
         </TabsList>
 
@@ -628,82 +680,6 @@ export default function ProductDetailPage({
               </Card>
             ))
           )}
-        </TabsContent>
-
-        <TabsContent value="characteristics">
-          <Card>
-            <CardContent className="pt-6">
-              {characteristics.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-8">
-                  <Package className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    No variants found for this product
-                  </p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Variant Name</TableHead>
-                      <TableHead>Ultra ID</TableHead>
-                      <TableHead>Prices</TableHead>
-                      <TableHead className="text-right">Warehouse</TableHead>
-                      <TableHead className="text-right">Showroom</TableHead>
-                      <TableHead className="text-right">Total Stock</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {characteristics.map((char) => (
-                      <TableRow key={char.id}>
-                        <TableCell className="font-medium">
-                          {char.name}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {char.ultra_id.substring(0, 8)}...
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {char.prices?.map((price, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="font-mono text-xs"
-                              >
-                                {price.currency}: {price.price.toLocaleString()}
-                                {price.price_type && price.price_type !== "default" && (
-                                  <span className="ml-1 text-muted-foreground">
-                                    ({price.price_type})
-                                  </span>
-                                )}
-                              </Badge>
-                            ))}
-                            {(!char.prices || char.prices.length === 0) && (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {char.stock_warehouse}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {char.stock_showroom}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge
-                            variant={
-                              char.stock_total > 0 ? "default" : "secondary"
-                            }
-                          >
-                            {char.stock_total}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 

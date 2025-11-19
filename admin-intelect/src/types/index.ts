@@ -82,11 +82,24 @@ export interface Product {
   barcodes: string[];
   price_min: number | null;
   price_max: number | null;
+  price_mdl: number | null;
+  price_eur: number | null;
+  price_usd: number | null;
   total_stock: number;
   is_group: boolean;
   is_active: boolean;
+  variant_group_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Currency types
+export type CurrencyCode = 'MDL' | 'EUR' | 'USD';
+
+export interface CurrencyOption {
+  code: CurrencyCode;
+  label: string;
+  symbol: string;
 }
 
 // Product with relations

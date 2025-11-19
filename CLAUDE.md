@@ -137,6 +137,14 @@ bun dev          # Starts on http://localhost:3000
   - Detailed statistics (brands, categories, products, variants, properties, prices, stock)
   - Database totals comparison
   - Sync history with pagination
+- **Global Currency Selector**: Switch between MDL, EUR, USD currencies
+  - Persists selection in localStorage
+  - Updates all product prices across the app
+  - Located in sidebar footer
+- **Product Variant Display**: Related products shown on detail page
+  - Variant selector buttons (e.g., 256GB, 512GB, 1TB)
+  - Links to other variants in same product group
+  - Uses variant_group_id for grouping
 
 ### Tech Stack
 
@@ -159,6 +167,7 @@ bun dev          # Starts on http://localhost:3000
 | `src/app/sync/page.tsx` | Enhanced sync status page with real-time progress |
 | `src/components/ui/switch.tsx` | Toggle switch component |
 | `src/components/ui/sonner.tsx` | Toast notifications |
+| `src/contexts/currency-context.tsx` | Global currency state with localStorage persistence |
 
 ### Key Dependencies
 
@@ -188,7 +197,7 @@ ULTRA_API_TIMEOUT=60s
 ULTRA_API_MAX_RETRIES=3
 ```
 
-## Sync Process (7 Steps)
+## Sync Process (7 Steps + Post-Processing)
 
 1. **Brands** - Fetch all brands with logos
 2. **Categories** - Fetch hierarchical category tree
@@ -197,6 +206,10 @@ ULTRA_API_MAX_RETRIES=3
 5. **Prices** - Update characteristic prices (multi-currency)
 6. **Stock** - Update characteristic stock levels
 7. **Exchange Rates** - Fetch current rates
+
+**Post-Processing (Automatic):**
+- **Extract Multi-Currency Prices** - Populates price_mdl, price_eur, price_usd from JSONB
+- **Group Product Variants** - Links related products (e.g., iPhone 256GB/512GB/1TB) by name similarity
 
 ## API Endpoints
 
@@ -210,6 +223,7 @@ GET    /api/v1/products                      # List products (with filters)
 GET    /api/v1/products/{id}                 # Get product details
 GET    /api/v1/products/{id}/properties      # Get product properties
 GET    /api/v1/products/{id}/characteristics # Get product variants
+GET    /api/v1/products/{id}/variants        # Get related variants (same product group)
 POST   /api/v1/products                      # Create product
 PUT    /api/v1/products/{id}                 # Update product
 DELETE /api/v1/products/{id}                 # Soft delete product

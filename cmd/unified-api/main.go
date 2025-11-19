@@ -130,6 +130,7 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/products/{id}", handler.GetProduct).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/properties", handler.GetProductProperties).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/characteristics", handler.GetProductCharacteristics).Methods("GET", "OPTIONS")
+	api.HandleFunc("/products/{id}/variants", handler.GetProductVariants).Methods("GET", "OPTIONS")
 
 	// Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")

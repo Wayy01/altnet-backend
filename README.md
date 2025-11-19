@@ -8,8 +8,10 @@ A Go application for fetching and storing the complete Ultra B2B product catalog
 - **Malformed XML Handling**: Automatically fixes broken XML from the API
 - **Normalized Database**: Products, Properties, and Characteristics in separate tables
 - **Full REST API**: CRUD operations, bulk actions, CSV export, dashboard stats
+- **Multi-Currency Support**: MDL (primary), EUR, USD pricing with automatic extraction
+- **Product Variant Grouping**: Auto-links related products (e.g., storage variants)
 - **Complete Audit Trail**: Tracks every sync with detailed metrics
-- **CMS Dashboard**: Next.js admin panel for data management (see `admin-intelect/`)
+- **CMS Dashboard**: Next.js admin panel with global currency selector (see `admin-intelect/`)
 
 ## Quick Start
 
@@ -67,6 +69,10 @@ The sync performs 7 steps:
 5. **Prices** - Updates prices for characteristics (36,682)
 6. **Stock** - Updates stock levels (15,488)
 7. **Exchange Rates** - Current rates
+
+**Post-Processing (Automatic):**
+- Extract multi-currency prices (MDL, EUR, USD) from JSONB
+- Group product variants by name similarity
 
 ### Expected Output
 
@@ -150,6 +156,7 @@ GET    /api/v1/products                      # List products
 GET    /api/v1/products/{id}                 # Get product details
 GET    /api/v1/products/{id}/properties      # Get product specifications
 GET    /api/v1/products/{id}/characteristics # Get product variants
+GET    /api/v1/products/{id}/variants        # Get related variants (same product group)
 POST   /api/v1/products                      # Create product
 PUT    /api/v1/products/{id}                 # Update product
 DELETE /api/v1/products/{id}                 # Soft delete product

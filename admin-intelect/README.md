@@ -15,6 +15,8 @@ CMS Dashboard for Ultra B2B product data management. Built with Next.js 14, Type
 - **Notifications** - Toast feedback for all actions
 - **Confirmations** - Dialogs for destructive actions
 - **Dark/Light Mode** - Full theme support
+- **Global Currency Selector** - Switch between MDL, EUR, USD with localStorage persistence
+- **Product Variant Display** - Navigate between related products (e.g., storage variants)
 
 ## Tech Stack
 
@@ -77,6 +79,8 @@ admin-intelect/
 │   │   ├── app-sidebar.tsx    # Navigation sidebar
 │   │   ├── header.tsx         # Page header with breadcrumbs
 │   │   └── theme-toggle.tsx   # Dark/light mode toggle
+│   ├── contexts/
+│   │   └── currency-context.tsx # Global currency state with localStorage
 │   ├── lib/
 │   │   ├── api.ts             # API client for Go backend
 │   │   └── utils.ts           # Utility functions
@@ -162,6 +166,9 @@ bun run lint
 - ✅ Toast notifications and confirmation dialogs
 - ✅ Status toggles for products, brands, categories
 - ✅ Low stock alerts on dashboard
+- ✅ Global currency selector (MDL, EUR, USD) with localStorage persistence
+- ✅ Product variant display and navigation between related products
+- ✅ Multi-currency pricing support (price_mdl, price_eur, price_usd)
 
 ## Future Enhancements
 

@@ -7,6 +7,7 @@ import {
   FolderTree,
   RefreshCw,
   Settings,
+  Coins,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,6 +24,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCurrency, CURRENCY_OPTIONS } from "@/contexts/currency-context";
+import { CurrencyCode } from "@/types";
 
 const menuItems = [
   {
@@ -54,6 +64,7 @@ const menuItems = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { currency, setCurrency } = useCurrency();
 
   return (
     <Sidebar>
@@ -97,6 +108,26 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center gap-2 px-2 py-1.5">
+              <Coins className="h-4 w-4 text-muted-foreground" />
+              <Select
+                value={currency}
+                onValueChange={(value) => setCurrency(value as CurrencyCode)}
+              >
+                <SelectTrigger className="h-8 w-[100px]">
+                  <SelectValue placeholder="Currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCY_OPTIONS.map((option) => (
+                    <SelectItem key={option.code} value={option.code}>
+                      {option.code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/settings">

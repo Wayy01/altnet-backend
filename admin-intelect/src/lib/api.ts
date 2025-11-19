@@ -93,6 +93,13 @@ class ApiClient {
     return response.data;
   }
 
+  async getProductVariants(id: string): Promise<Product[]> {
+    const response = await this.fetch<{ data: Product[] }>(
+      `/api/v1/products/${id}/variants`
+    );
+    return response.data;
+  }
+
   async searchProducts(
     query: string,
     limit = 50,

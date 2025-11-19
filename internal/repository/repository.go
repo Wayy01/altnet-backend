@@ -1146,6 +1146,64 @@ func (r *Repository) GetProductCharacteristics(ctx context.Context, productID uu
 	return characteristics, nil
 }
 
+// GetProductVariants returns all products that share the same variant_group_id as the given product
+func (r *Repository) GetProductVariants(ctx context.Context, productID uuid.UUID) ([]*models.Product, error) {
+	// First, get the variant_group_id of the product
+	var variantGroupID *uuid.UUID
+	err := r.pool.QueryRow(ctx, "SELECT variant_group_id FROM products WHERE id = $1", productID).Scan(&variantGroupID)
+	if err != nil {
+		return nil, fmt.Errorf("product not found: %w", err)
+	}
+
+	// If product has no variant group, return just itself
+	if variantGroupID == nil {
+		product, err := r.GetProduct(ctx, productID)
+		if err != nil {
+			return nil, err
+		}
+		return []*models.Product{product}, nil
+	}
+
+	// Get all products with the same variant_group_id
+	query := `
+		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
+		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
+		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		       is_active, is_service, created_at, updated_at,
+		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+		FROM products
+		WHERE variant_group_id = $1
+		ORDER BY name ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query, variantGroupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	products := make([]*models.Product, 0)
+	for rows.Next() {
+		var product models.Product
+		err := rows.Scan(
+			&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
+			&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
+			&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
+			&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+			&product.VariantGroupID, &product.IsGroup,
+		)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, &product)
+	}
+
+	return products, nil
+}
+
 // UpdateCharacteristicPrices updates prices for characteristics
 func (r *Repository) UpdateCharacteristicPrices(ctx context.Context, prices []*models.PriceInput) (int, error) {
 	if len(prices) == 0 {
