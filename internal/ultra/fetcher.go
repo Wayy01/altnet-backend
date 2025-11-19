@@ -5,9 +5,17 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"ultra-api-testing/internal/models"
 )
+
+// isActiveFromString converts API boolean string to bool, defaulting to true.
+// Handles common falsy values case-insensitively: "false", "0", "no", "n"
+func isActiveFromString(value string) bool {
+	v := strings.ToLower(strings.TrimSpace(value))
+	return v != "false" && v != "0" && v != "no" && v != "n"
+}
 
 // Fetcher handles fetching and parsing data from Ultra API
 type Fetcher struct {
@@ -79,7 +87,7 @@ func (f *Fetcher) FetchBrands(ctx context.Context, all bool) ([]*models.BrandInp
 			Code:     codePtr,
 			Name:     b.Name,
 			LogoURL:  logoURLPtr,
-			IsActive: b.Active == "true" || b.Active == "1",
+			IsActive: isActiveFromString(b.Active),
 		}
 
 		brands = append(brands, brand)
@@ -155,7 +163,7 @@ func (f *Fetcher) FetchCategories(ctx context.Context, all bool) ([]*models.Cate
 			SortOrder:     orderBy,
 			ImageURL:      imageURL,
 			ProductCount:  quantity,
-			IsActive:      c.Active == "true" || c.Active == "1",
+			IsActive:      isActiveFromString(c.Active),
 		}
 
 		categories = append(categories, category)
@@ -303,7 +311,7 @@ func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.Produc
 			Images:          images,
 			Warranty:        warrantyPtr,
 			Barcodes:        barcodes,
-			IsActive:        p.Active == "true" || p.Active == "1",
+			IsActive:        isActiveFromString(p.Active),
 			IsService:       p.Service == "true" || p.Service == "1",
 		}
 

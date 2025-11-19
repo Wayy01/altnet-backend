@@ -213,6 +213,27 @@ The Ultra API returns malformed XML. Parser in `internal/ultra/parser.go` automa
 - Bare left angle brackets
 - Known typos
 
+## Important Bug Fixes
+
+### is_active Flag (Nov 2025)
+
+The Ultra API returns inconsistent values for the `Active` field (empty string, undefined, etc.). The sync now defaults to `is_active = true` unless explicitly marked inactive.
+
+**Location**: `internal/ultra/fetcher.go`
+
+```go
+// Helper function handles case-insensitive falsy values
+func isActiveFromString(value string) bool {
+    v := strings.ToLower(strings.TrimSpace(value))
+    return v != "false" && v != "0" && v != "no" && v != "n"
+}
+
+// Usage for brands, categories, products
+IsActive: isActiveFromString(b.Active)
+```
+
+This fix applies to brands, categories, and products with robust handling for case variations and whitespace.
+
 ## Database Queries
 
 ```sql
