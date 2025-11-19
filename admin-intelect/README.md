@@ -4,12 +4,16 @@ CMS Dashboard for Ultra B2B product data management. Built with Next.js 14, Type
 
 ## Features
 
-- **Dashboard** - Overview statistics of products, brands, categories, and more
-- **Products Management** - List, search, filter, and view product details
-- **Brands Management** - View all brands with logos and product counts
-- **Categories** - Hierarchical tree view of product categories
+- **Dashboard** - Real-time statistics, low stock alerts, recent sync activity
+- **Products Management** - Full CRUD, bulk operations, CSV export, status toggles
+- **Brands Management** - List, edit, toggle active/inactive, delete with confirmation
+- **Categories** - Hierarchical tree view with status toggles and actions
 - **Product Details** - Properties, characteristics, prices, and stock information
-- **Sync Status** - View synchronization history (placeholder)
+- **Sync Management** - Live sync logs with pagination, refresh, and status history
+- **Bulk Operations** - Select multiple items to activate/deactivate/delete
+- **Export** - Download filtered product data as CSV
+- **Notifications** - Toast feedback for all actions
+- **Confirmations** - Dialogs for destructive actions
 - **Dark/Light Mode** - Full theme support
 
 ## Tech Stack
@@ -88,15 +92,26 @@ admin-intelect/
 
 The dashboard connects to the Go backend API at `http://localhost:8080` (configurable via `NEXT_PUBLIC_API_URL`).
 
-### Available Endpoints
+### Core Endpoints
 
 - `GET /api/v1/products` - List products with filters
 - `GET /api/v1/products/{id}` - Get product details
-- `GET /api/v1/products/{id}/properties` - Get product properties
-- `GET /api/v1/products/{id}/characteristics` - Get product variants
+- `PUT /api/v1/products/{id}` - Update product
+- `DELETE /api/v1/products/{id}` - Soft delete product
 - `GET /api/v1/brands` - List brands
+- `PUT /api/v1/brands/{id}` - Update brand
 - `GET /api/v1/categories` - List categories
+- `PUT /api/v1/categories/{id}` - Update category
 - `GET /api/v1/search?q=query` - Search products
+
+### Dashboard & Management Endpoints
+
+- `GET /api/v1/dashboard/stats` - Dashboard statistics
+- `GET /api/v1/sync/logs` - Sync logs with pagination
+- `GET /api/v1/sync/status` - Latest sync status
+- `PATCH /api/v1/products/bulk` - Bulk update products
+- `DELETE /api/v1/products/bulk` - Bulk delete products
+- `GET /api/v1/export/products?format=csv` - Export products
 
 ## Development
 
@@ -138,14 +153,22 @@ bun run lint
 - Individual prices (multi-currency)
 - Stock levels (warehouse, showroom)
 
+## Recent Updates (Nov 2025)
+
+- ✅ Real-time sync status from backend
+- ✅ Product/brand/category editing capabilities
+- ✅ Bulk operations (activate/deactivate/delete)
+- ✅ CSV export functionality
+- ✅ Toast notifications and confirmation dialogs
+- ✅ Status toggles for products, brands, categories
+- ✅ Low stock alerts on dashboard
+
 ## Future Enhancements
 
-- Real-time sync status from backend
-- Product editing capabilities
-- Bulk operations
-- Advanced filtering and sorting
-- Export functionality
 - User authentication
+- Advanced filtering and sorting
+- Real-time updates via WebSocket
+- Image upload and management
 
 ## License
 

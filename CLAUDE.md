@@ -14,10 +14,22 @@ After every code change, you MUST:
 
 1. **Update this CLAUDE.md file** with the latest context for the codebase (new tables, endpoints, models, etc.)
 2. **Call the senior-code-reviewer agent** to review the code changes
-3. The reviewer should also update CLAUDE.md if needed
-4. **Create git commits** if everything passes review
+3. Fix any critical issues identified by the reviewer
+4. **Update README.md files** with new features and API endpoints:
+   - `/README.md` - Main project README with API endpoints and features
+   - `/admin-intelect/README.md` - Dashboard README with frontend features
+5. **Create git commits** if everything passes review
 
 This ensures documentation stays current and code quality is maintained.
+
+### Documentation Checklist
+
+- [ ] CLAUDE.md updated with new endpoints, tables, or features
+- [ ] README.md (root) updated with API changes
+- [ ] admin-intelect/README.md updated with dashboard features
+- [ ] Code reviewed by senior-code-reviewer agent
+- [ ] Critical issues from review fixed
+- [ ] Git commit created with descriptive message
 
 ## Build & Development Commands
 

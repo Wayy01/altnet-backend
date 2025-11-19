@@ -7,8 +7,9 @@ A Go application for fetching and storing the complete Ultra B2B product catalog
 - **Complete Ultra API Integration**: Fetches ALL services (Products, Brands, Categories, Prices, Stock, Rates)
 - **Malformed XML Handling**: Automatically fixes broken XML from the API
 - **Normalized Database**: Products, Properties, and Characteristics in separate tables
-- **REST API**: Query products with properties and variants
+- **Full REST API**: CRUD operations, bulk actions, CSV export, dashboard stats
 - **Complete Audit Trail**: Tracks every sync with detailed metrics
+- **CMS Dashboard**: Next.js admin panel for data management (see `admin-intelect/`)
 
 ## Quick Start
 
@@ -141,19 +142,63 @@ categories┘      │
 
 Server runs on `http://localhost:8080`
 
-### Endpoints
+### Core Endpoints
 
 ```bash
 # Products
-GET /api/v1/products                      # List products
-GET /api/v1/products/{id}                 # Get product details
-GET /api/v1/products/{id}/properties      # Get product specifications
-GET /api/v1/products/{id}/characteristics # Get product variants
+GET    /api/v1/products                      # List products
+GET    /api/v1/products/{id}                 # Get product details
+GET    /api/v1/products/{id}/properties      # Get product specifications
+GET    /api/v1/products/{id}/characteristics # Get product variants
+POST   /api/v1/products                      # Create product
+PUT    /api/v1/products/{id}                 # Update product
+DELETE /api/v1/products/{id}                 # Soft delete product
 
-# Other
-GET /api/v1/brands                        # List brands
-GET /api/v1/categories                    # List categories
-GET /api/v1/search?q=query                # Search products
+# Brands
+GET    /api/v1/brands                        # List brands
+GET    /api/v1/brands/{id}                   # Get brand details
+POST   /api/v1/brands                        # Create brand
+PUT    /api/v1/brands/{id}                   # Update brand
+DELETE /api/v1/brands/{id}                   # Soft delete brand
+
+# Categories
+GET    /api/v1/categories                    # List categories
+GET    /api/v1/categories/{id}               # Get category with children
+POST   /api/v1/categories                    # Create category
+PUT    /api/v1/categories/{id}               # Update category
+DELETE /api/v1/categories/{id}               # Soft delete category
+
+# Search
+GET    /api/v1/search?q=query                # Search products
+```
+
+### Dashboard & Management Endpoints
+
+```bash
+# Dashboard Statistics
+GET /api/v1/dashboard/stats                  # Aggregate counts, stock summaries
+GET /api/v1/dashboard/stock-summary          # Stock by category
+GET /api/v1/dashboard/price-summary          # Price distribution
+
+# Sync Management
+GET /api/v1/sync/logs                        # List sync logs (paginated)
+GET /api/v1/sync/logs/{id}                   # Get sync log details
+GET /api/v1/sync/status                      # Latest sync status
+
+# Bulk Operations
+PATCH  /api/v1/products/bulk                 # Bulk update products
+DELETE /api/v1/products/bulk                 # Bulk delete products
+PATCH  /api/v1/brands/bulk                   # Bulk update brands
+PATCH  /api/v1/categories/bulk               # Bulk update categories
+
+# Export
+GET /api/v1/export/products?format=csv       # Export products
+GET /api/v1/export/brands?format=csv         # Export brands
+GET /api/v1/export/categories?format=csv     # Export categories
+
+# Config & Health
+GET /api/v1/config                           # Application configuration
+GET /api/v1/health                           # Health check
 ```
 
 ### Query Parameters
