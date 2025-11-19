@@ -375,6 +375,59 @@ Product detail page (`admin-intelect/src/app/products/[id]/page.tsx`) improvemen
 
 4. **Select Performance**: max-h-[300px] on SelectContent for large lists (1000+ items)
 
+### Multi-Currency Product Pricing (Nov 2025)
+
+Products now support multiple currencies with MDL (Moldovan Leu) as the primary display currency.
+
+**New Product Columns:**
+```sql
+prices JSONB DEFAULT '[]'    -- All currency prices [{price, currency, type, type_uuid}]
+price_mdl DECIMAL(12,2)      -- Price in Moldovan Leu (primary)
+price_eur DECIMAL(12,2)      -- Price in Euro
+price_usd DECIMAL(12,2)      -- Price in US Dollar
+variant_group_id UUID        -- Reference to parent product in variant group
+is_group BOOLEAN             -- True if this is a variant group parent
+```
+
+**Key Implementation Details:**
+
+1. **MDL as Primary Currency**: `price_min` and `price_max` always use MDL prices
+   ```go
+   // UpdateProductAggregates filters by MDL
+   MIN(CASE WHEN price_item->>'currency' = 'MDL' THEN (price_item->>'price')::DECIMAL END)
+   ```
+
+2. **All Currencies Stored**: The `prices` JSONB stores all currencies from PRICELIST
+   ```go
+   // Product-level prices store ALL currencies
+   _, err = tx.Exec(ctx, `
+       UPDATE products SET prices = $1 WHERE ultra_id = $2
+   `, pricesJSON, productUltraID)
+   ```
+
+3. **Variant Grouping**: Products can be grouped by base name (e.g., iPhone 256GB/512GB/1TB)
+   ```go
+   // GroupProductVariants groups by base name
+   regexp_replace(name, '\s+\d+(GB|TB)(\s|$)', '', 'g') as base_name
+   ```
+
+**API Response Format:**
+```json
+{
+  "price_min": 31999.00,     // MDL price
+  "price_max": 31999.00,     // MDL price
+  "price_mdl": 31999.00,
+  "price_eur": 1757.00,
+  "price_usd": 1850.00,
+  "prices": [
+    {"price": 31999, "currency": "MDL", "type": "retail"},
+    {"price": 1757, "currency": "EUR", "type": "retail"}
+  ]
+}
+```
+
+**Migration File:** `migrations/004_multi_currency_variants.sql`
+
 ## Database Queries
 
 ```sql

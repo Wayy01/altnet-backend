@@ -136,6 +136,16 @@ type Product struct {
 	IsService       bool       `json:"is_service"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+
+	// Multi-currency prices
+	Prices   JSONBArray `json:"prices"`
+	PriceMDL *float64   `json:"price_mdl"`
+	PriceEUR *float64   `json:"price_eur"`
+	PriceUSD *float64   `json:"price_usd"`
+
+	// Variant grouping
+	VariantGroupID *uuid.UUID `json:"variant_group_id"`
+	IsGroup        bool       `json:"is_group"`
 }
 
 // ============================================================================

@@ -1184,7 +1184,7 @@ func (h *Handler) exportProductsCSV(w http.ResponseWriter, products []*models.Pr
 	defer writer.Flush()
 
 	// Write header
-	header := []string{"ID", "Code", "Article", "Name", "Description", "Price Min", "Price Max", "Total Stock", "Is Active", "Created At"}
+	header := []string{"ID", "Code", "Article", "Name", "Description", "Price Min", "Price Max", "Price MDL", "Price EUR", "Price USD", "Total Stock", "Is Active", "Created At"}
 	writer.Write(header)
 
 	// Write data
@@ -1209,6 +1209,18 @@ func (h *Handler) exportProductsCSV(w http.ResponseWriter, products []*models.Pr
 		if p.PriceMax != nil {
 			priceMax = fmt.Sprintf("%.2f", *p.PriceMax)
 		}
+		priceMDL := ""
+		if p.PriceMDL != nil {
+			priceMDL = fmt.Sprintf("%.2f", *p.PriceMDL)
+		}
+		priceEUR := ""
+		if p.PriceEUR != nil {
+			priceEUR = fmt.Sprintf("%.2f", *p.PriceEUR)
+		}
+		priceUSD := ""
+		if p.PriceUSD != nil {
+			priceUSD = fmt.Sprintf("%.2f", *p.PriceUSD)
+		}
 
 		row := []string{
 			p.ID.String(),
@@ -1218,6 +1230,9 @@ func (h *Handler) exportProductsCSV(w http.ResponseWriter, products []*models.Pr
 			description,
 			priceMin,
 			priceMax,
+			priceMDL,
+			priceEUR,
+			priceUSD,
 			strconv.Itoa(p.TotalStock),
 			strconv.FormatBool(p.IsActive),
 			p.CreatedAt.Format(time.RFC3339),

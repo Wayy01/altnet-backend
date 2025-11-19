@@ -573,7 +573,8 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
 		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
-		       is_active, is_service, created_at, updated_at
+		       is_active, is_service, created_at, updated_at,
+		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 		FROM products
 		WHERE id = $1
 	`
@@ -586,6 +587,8 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		&product.VariantGroupID, &product.IsGroup,
 	)
 	if err != nil {
 		return nil, err
@@ -599,7 +602,8 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
 		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
-		       is_active, is_service, created_at, updated_at
+		       is_active, is_service, created_at, updated_at,
+		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 		FROM products
 		WHERE ultra_id = $1
 	`
@@ -612,6 +616,8 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		&product.VariantGroupID, &product.IsGroup,
 	)
 	if err != nil {
 		return nil, err
@@ -636,7 +642,8 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
 		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
-		       is_active, is_service, created_at, updated_at
+		       is_active, is_service, created_at, updated_at,
+		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 		FROM products
 		WHERE 1=1
 	`
@@ -704,6 +711,8 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 			&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
 			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+			&product.VariantGroupID, &product.IsGroup,
 		)
 		if err != nil {
 			return nil, err
@@ -1171,12 +1180,12 @@ func (r *Repository) UpdateCharacteristicPrices(ctx context.Context, prices []*m
 		}
 
 		if charUltraID == "" || charUltraID == "00000000-0000-0000-0000-000000000000" {
-			// Product-level price - update product directly
+			// Product-level price - store ALL currencies in prices JSONB
 			_, err = tx.Exec(ctx, `
 				UPDATE products
-				SET price_min = $1, price_max = $1, updated_at = NOW()
+				SET prices = $1, updated_at = NOW()
 				WHERE ultra_id = $2
-			`, pricesForChar[0].Price, productUltraID)
+			`, pricesJSON, productUltraID)
 		} else {
 			// Characteristic-level price
 			_, err = tx.Exec(ctx, `
@@ -1251,27 +1260,96 @@ func (r *Repository) UpdateCharacteristicStock(ctx context.Context, stocks []*mo
 }
 
 // UpdateProductAggregates recalculates product price/stock from characteristics
+// Uses MDL as the primary currency for price_min/price_max
 func (r *Repository) UpdateProductAggregates(ctx context.Context) error {
 	_, err := r.pool.Exec(ctx, `
 		UPDATE products p
 		SET
 			price_min = agg.min_price,
 			price_max = agg.max_price,
+			price_mdl = agg.price_mdl,
+			price_eur = agg.price_eur,
+			price_usd = agg.price_usd,
 			total_stock = agg.total_stock,
 			is_in_stock = agg.total_stock > 0,
 			updated_at = NOW()
 		FROM (
 			SELECT
 				c.product_id,
-				MIN((price_item->>'price')::DECIMAL) as min_price,
-				MAX((price_item->>'price')::DECIMAL) as max_price,
-				COALESCE(SUM(c.stock_total), 0) as total_stock
+				-- Use MDL for min/max price calculations (primary display currency)
+				MIN(CASE WHEN price_item->>'currency' = 'MDL' THEN (price_item->>'price')::DECIMAL END) as min_price,
+				MAX(CASE WHEN price_item->>'currency' = 'MDL' THEN (price_item->>'price')::DECIMAL END) as max_price,
+				-- Extract specific currency prices
+				MAX(CASE WHEN price_item->>'currency' = 'MDL' THEN (price_item->>'price')::DECIMAL END) as price_mdl,
+				MAX(CASE WHEN price_item->>'currency' = 'EUR' THEN (price_item->>'price')::DECIMAL END) as price_eur,
+				MAX(CASE WHEN price_item->>'currency' = 'USD' THEN (price_item->>'price')::DECIMAL END) as price_usd,
+				COALESCE(SUM(DISTINCT c.stock_total), 0) as total_stock
 			FROM characteristics c,
 			LATERAL jsonb_array_elements(c.prices) AS price_item
 			WHERE c.is_active = true
 			GROUP BY c.product_id
 		) agg
 		WHERE p.id = agg.product_id
+	`)
+	return err
+}
+
+// UpdateProductPricesFromJSONB extracts currency-specific prices from the products.prices JSONB field
+// This is called after UpdateCharacteristicPrices for products without characteristics
+func (r *Repository) UpdateProductPricesFromJSONB(ctx context.Context) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE products p
+		SET
+			price_min = COALESCE(
+				(SELECT MIN((price_item->>'price')::DECIMAL)
+				 FROM jsonb_array_elements(p.prices) AS price_item
+				 WHERE price_item->>'currency' = 'MDL'),
+				p.price_min
+			),
+			price_max = COALESCE(
+				(SELECT MAX((price_item->>'price')::DECIMAL)
+				 FROM jsonb_array_elements(p.prices) AS price_item
+				 WHERE price_item->>'currency' = 'MDL'),
+				p.price_max
+			),
+			price_mdl = (SELECT MAX((price_item->>'price')::DECIMAL)
+			             FROM jsonb_array_elements(p.prices) AS price_item
+			             WHERE price_item->>'currency' = 'MDL'),
+			price_eur = (SELECT MAX((price_item->>'price')::DECIMAL)
+			             FROM jsonb_array_elements(p.prices) AS price_item
+			             WHERE price_item->>'currency' = 'EUR'),
+			price_usd = (SELECT MAX((price_item->>'price')::DECIMAL)
+			             FROM jsonb_array_elements(p.prices) AS price_item
+			             WHERE price_item->>'currency' = 'USD'),
+			updated_at = NOW()
+		WHERE jsonb_array_length(p.prices) > 0
+	`)
+	return err
+}
+
+// GroupProductVariants groups product variants by base name
+// Products with similar names (e.g., "iPhone 16 128GB" and "iPhone 16 256GB") are grouped together
+func (r *Repository) GroupProductVariants(ctx context.Context) error {
+	_, err := r.pool.Exec(ctx, `
+		WITH variant_groups AS (
+			SELECT
+				brand_id,
+				category_id,
+				regexp_replace(name, '\s+\d+(GB|TB)(\s|$)', '', 'g') as base_name,
+				array_agg(id ORDER BY name) as product_ids,
+				count(*) as variant_count
+			FROM products
+			WHERE is_active = true
+			GROUP BY brand_id, category_id,
+			         regexp_replace(name, '\s+\d+(GB|TB)(\s|$)', '', 'g')
+			HAVING count(*) > 1
+		)
+		UPDATE products p
+		SET
+			variant_group_id = vg.product_ids[1],
+			is_group = (p.id = vg.product_ids[1])
+		FROM variant_groups vg
+		WHERE p.id = ANY(vg.product_ids)
 	`)
 	return err
 }
@@ -1718,7 +1796,8 @@ func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductReques
 		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		          parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
 		          images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
-		          is_active, is_service, created_at, updated_at
+		          is_active, is_service, created_at, updated_at,
+		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 	`
 
 	var product models.Product
@@ -1732,6 +1811,8 @@ func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductReques
 		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		&product.VariantGroupID, &product.IsGroup,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create product: %w", err)
@@ -1813,7 +1894,8 @@ func (r *Repository) UpdateProduct(ctx context.Context, id uuid.UUID, req *Updat
 		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		          parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
 		          images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
-		          is_active, is_service, created_at, updated_at
+		          is_active, is_service, created_at, updated_at,
+		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 	`, strings.Join(updates, ", "), argPos)
 
 	var product models.Product
@@ -1824,6 +1906,8 @@ func (r *Repository) UpdateProduct(ctx context.Context, id uuid.UUID, req *Updat
 		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		&product.VariantGroupID, &product.IsGroup,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
