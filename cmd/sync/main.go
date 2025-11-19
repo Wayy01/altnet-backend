@@ -19,14 +19,14 @@ import (
 func main() {
 	// Setup logging
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("=== Ultra B2B API Testing Tool ===")
+	log.Println("=== Ultra B2B Data Sync Tool ===")
 
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
-	log.Println("✓ Configuration loaded")
+	log.Println("Configuration loaded")
 
 	// Setup context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -37,7 +37,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		log.Println("\n🛑 Shutdown signal received, canceling sync...")
+		log.Println("\nShutdown signal received, canceling sync...")
 		cancel()
 	}()
 
@@ -47,174 +47,216 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
-	log.Println("✓ Database connected")
+	log.Println("Database connected")
 
 	// Initialize repository
 	repo := repository.New(db.Pool)
-
-	// Get Ultra source from database
-	source, err := repo.GetSourceByCode(ctx, "ultra")
-	if err != nil {
-		log.Fatalf("Failed to get Ultra source: %v\nMake sure you ran the migration!", err)
-	}
-	log.Printf("✓ Ultra source found (ID: %s, Priority: %d)\n", source.ID, source.Priority)
 
 	// Initialize Ultra API client
 	ultraClient := ultra.NewClient(cfg.Ultra)
 
 	// Test connection
-	log.Println("\n📡 Testing Ultra API connection...")
+	log.Println("\nTesting Ultra API connection...")
 	if err := ultraClient.TestService(ctx); err != nil {
 		log.Fatalf("Failed to connect to Ultra API: %v", err)
 	}
-	log.Println("✓ Ultra API connection successful")
+	log.Println("Ultra API connection successful")
 
 	// Initialize fetcher
-	fetcher := ultra.NewFetcher(ultraClient, source.ID)
+	fetcher := ultra.NewFetcher(ultraClient)
 
-	// Create sync run
-	syncRun, err := repo.CreateSyncRun(ctx, source.ID, "full")
+	// Create sync log
+	syncLog, err := repo.CreateSyncLog(ctx, "full")
 	if err != nil {
-		log.Fatalf("Failed to create sync run: %v", err)
+		log.Fatalf("Failed to create sync log: %v", err)
 	}
-	log.Printf("✓ Sync run created (ID: %s)\n", syncRun.ID)
+	log.Printf("Sync started (ID: %s)\n", syncLog.ID)
 
 	// Run the sync
-	if err := runSync(ctx, fetcher, repo, syncRun); err != nil {
-		log.Printf("❌ Sync failed: %v\n", err)
-		syncRun.Status = "failed"
+	if err := runSync(ctx, fetcher, repo, syncLog); err != nil {
+		log.Printf("Sync failed: %v\n", err)
+		syncLog.Status = "failed"
 		errMsg := err.Error()
-		syncRun.ErrorMessage = &errMsg
+		syncLog.ErrorMessage = &errMsg
 	} else {
-		log.Println("✅ Sync completed successfully!")
-		syncRun.Status = "success"
+		log.Println("Sync completed successfully!")
+		syncLog.Status = "success"
 	}
 
-	// Update sync run
+	// Update sync log
 	now := time.Now()
-	syncRun.FinishedAt = &now
-	duration := int(now.Sub(syncRun.StartedAt).Seconds())
-	syncRun.DurationSeconds = &duration
+	syncLog.FinishedAt = &now
+	duration := int(now.Sub(syncLog.StartedAt).Seconds())
+	syncLog.DurationSeconds = &duration
 
-	if err := repo.UpdateSyncRun(ctx, syncRun); err != nil {
-		log.Printf("Failed to update sync run: %v\n", err)
+	if err := repo.UpdateSyncLog(ctx, syncLog); err != nil {
+		log.Printf("Failed to update sync log: %v\n", err)
 	}
 
 	log.Printf("\n=== Sync Summary ===\n")
 	log.Printf("Duration: %d seconds\n", duration)
-	log.Printf("Status: %s\n", syncRun.Status)
-	log.Printf("Brands: %d\n", syncRun.BrandsWithData)
-	log.Printf("Categories: %d\n", syncRun.CategoriesWithData)
-	log.Printf("Products: %d\n", syncRun.ProductsWithData)
-	log.Printf("  - With Prices: %d\n", syncRun.ProductsWithPrices)
-	log.Printf("  - With Stock: %d\n", syncRun.ProductsWithStock)
-	log.Printf("  - With Images: %d\n", syncRun.ProductsWithImages)
+	log.Printf("Status: %s\n", syncLog.Status)
+	log.Printf("Brands: %d\n", syncLog.BrandsSynced)
+	log.Printf("Categories: %d\n", syncLog.CategoriesSynced)
+	log.Printf("Products: %d\n", syncLog.ProductsSynced)
+	log.Printf("Properties: %d\n", syncLog.PropertiesSynced)
+	log.Printf("Characteristics: %d\n", syncLog.CharacteristicsSynced)
+	log.Printf("Prices: %d\n", syncLog.PricesSynced)
+	log.Printf("Stock: %d\n", syncLog.StockSynced)
 }
 
-func runSync(ctx context.Context, fetcher *ultra.Fetcher, repo *repository.Repository, syncRun *models.SyncRun) error {
-	log.Println("\n🚀 Starting data synchronization...")
+func runSync(ctx context.Context, fetcher *ultra.Fetcher, repo *repository.Repository, syncLog *models.SyncLog) error {
+	log.Println("\nStarting data synchronization...")
 
-	// Step 1: Fetch Brands
-	log.Println("\n--- Step 1/6: Fetching Brands ---")
-	brands, err := fetcher.FetchBrands(ctx, true)
+	// Step 1: Fetch and store Brands
+	log.Println("\n--- Step 1/7: Fetching Brands ---")
+	brandInputs, err := fetcher.FetchBrands(ctx, true)
 	if err != nil {
 		return fmt.Errorf("fetch brands: %w", err)
 	}
 
-	if err := repo.UpsertBrandSources(ctx, brands); err != nil {
+	count, err := repo.UpsertBrands(ctx, brandInputs)
+	if err != nil {
 		return fmt.Errorf("save brands: %w", err)
 	}
-	syncRun.BrandsWithData = len(brands)
-	log.Printf("✓ Saved %d brands to database\n", len(brands))
+	syncLog.BrandsSynced = count
+	log.Printf("Saved %d brands to database\n", count)
 
-	// Step 2: Fetch Categories
-	log.Println("\n--- Step 2/6: Fetching Categories ---")
-	categories, err := fetcher.FetchCategories(ctx, true)
+	// Step 2: Fetch and store Categories
+	log.Println("\n--- Step 2/7: Fetching Categories ---")
+	categoryInputs, err := fetcher.FetchCategories(ctx, true)
 	if err != nil {
 		return fmt.Errorf("fetch categories: %w", err)
 	}
 
-	if err := repo.UpsertCategorySources(ctx, categories); err != nil {
+	count, err = repo.UpsertCategories(ctx, categoryInputs)
+	if err != nil {
 		return fmt.Errorf("save categories: %w", err)
 	}
-	syncRun.CategoriesWithData = len(categories)
-	log.Printf("✓ Saved %d categories to database\n", len(categories))
+	syncLog.CategoriesSynced = count
+	log.Printf("Saved %d categories to database\n", count)
 
-	// Step 3: Fetch Products
-	log.Println("\n--- Step 3/6: Fetching Products ---")
-	products, err := fetcher.FetchProducts(ctx, true)
+	// Resolve category parent references
+	if err := repo.ResolveCategoryParents(ctx); err != nil {
+		log.Printf("Warning: Failed to resolve category parents: %v\n", err)
+	}
+
+	// Step 3: Fetch and store Products
+	log.Println("\n--- Step 3/7: Fetching Products ---")
+	productInputs, charInputs, err := fetcher.FetchProducts(ctx, true)
 	if err != nil {
 		return fmt.Errorf("fetch products: %w", err)
 	}
 
-	if err := repo.UpsertProductSources(ctx, products); err != nil {
+	count, err = repo.UpsertProducts(ctx, productInputs)
+	if err != nil {
 		return fmt.Errorf("save products: %w", err)
 	}
-	syncRun.ProductsWithData = len(products)
+	syncLog.ProductsSynced = count
+	log.Printf("Saved %d products to database\n", count)
 
-	// Count products with images
-	imagesCount := 0
-	for _, p := range products {
-		if p.Images != nil {
-			if images, ok := p.Images["images"]; ok {
-				if imageArray, ok := images.([]map[string]string); ok && len(imageArray) > 0 {
-					imagesCount++
-				}
+	// Resolve product references (brand_id, category_id, parent_id)
+	if err := repo.ResolveProductReferences(ctx); err != nil {
+		log.Printf("Warning: Failed to resolve product references: %v\n", err)
+	}
+
+	// Store characteristics
+	totalChars := 0
+	for productUltraID, chars := range charInputs {
+		charCount, err := repo.UpsertCharacteristics(ctx, productUltraID, chars)
+		if err != nil {
+			log.Printf("Warning: Failed to save characteristics for %s: %v\n", productUltraID, err)
+			continue
+		}
+		totalChars += charCount
+	}
+	syncLog.CharacteristicsSynced = totalChars
+	log.Printf("Saved %d characteristics to database\n", totalChars)
+
+	// Step 4: Fetch and store Properties
+	log.Println("\n--- Step 4/7: Fetching Properties ---")
+	totalProps := 0
+
+	// Fetch properties for each category with products
+	for _, cat := range categoryInputs {
+		if cat.ProductCount == 0 {
+			continue
+		}
+
+		log.Printf("Fetching properties for category: %s (%d products)\n", cat.Name, cat.ProductCount)
+
+		productProps, err := fetcher.FetchPropertiesForCategory(ctx, cat.UltraID)
+		if err != nil {
+			log.Printf("Warning: Failed to fetch properties for %s: %v\n", cat.Name, err)
+			continue
+		}
+
+		// Store properties for each product
+		for productUltraID, props := range productProps {
+			propCount, err := repo.UpsertProperties(ctx, productUltraID, props)
+			if err != nil {
+				log.Printf("Warning: Failed to save properties for %s: %v\n", productUltraID, err)
+				continue
 			}
+			totalProps += propCount
 		}
 	}
-	syncRun.ProductsWithImages = imagesCount
-	log.Printf("✓ Saved %d products to database (%d with images)\n", len(products), imagesCount)
+	syncLog.PropertiesSynced = totalProps
+	log.Printf("Saved %d properties to database\n", totalProps)
 
-	// Step 4: Fetch Prices
-	log.Println("\n--- Step 4/6: Fetching Prices ---")
-	priceMap, err := fetcher.FetchPrices(ctx, true)
+	// Step 5: Fetch and store Prices
+	log.Println("\n--- Step 5/7: Fetching Prices ---")
+	priceInputs, err := fetcher.FetchPrices(ctx, true)
 	if err != nil {
-		log.Printf("⚠️  Warning: Failed to fetch prices: %v (continuing...)\n", err)
+		log.Printf("Warning: Failed to fetch prices: %v (continuing...)\n", err)
 	} else {
-		if err := repo.UpdateProductPrices(ctx, syncRun.SourceID, priceMap); err != nil {
-			log.Printf("⚠️  Warning: Failed to save prices: %v (continuing...)\n", err)
+		count, err = repo.UpdateCharacteristicPrices(ctx, priceInputs)
+		if err != nil {
+			log.Printf("Warning: Failed to save prices: %v (continuing...)\n", err)
 		} else {
-			syncRun.ProductsWithPrices = len(priceMap)
-			log.Printf("✓ Updated prices for %d products\n", len(priceMap))
+			syncLog.PricesSynced = count
+			log.Printf("Updated prices for %d products/characteristics\n", count)
 		}
 	}
 
-	// Step 5: Fetch Stock
-	log.Println("\n--- Step 5/6: Fetching Stock ---")
-	stockMap, err := fetcher.FetchStock(ctx, true)
+	// Step 6: Fetch and store Stock
+	log.Println("\n--- Step 6/7: Fetching Stock ---")
+	stockInputs, err := fetcher.FetchStock(ctx, true)
 	if err != nil {
-		log.Printf("⚠️  Warning: Failed to fetch stock: %v (continuing...)\n", err)
+		log.Printf("Warning: Failed to fetch stock: %v (continuing...)\n", err)
 	} else {
-		if err := repo.UpdateProductStock(ctx, syncRun.SourceID, stockMap); err != nil {
-			log.Printf("⚠️  Warning: Failed to save stock: %v (continuing...)\n", err)
+		count, err = repo.UpdateCharacteristicStock(ctx, stockInputs)
+		if err != nil {
+			log.Printf("Warning: Failed to save stock: %v (continuing...)\n", err)
 		} else {
-			syncRun.ProductsWithStock = len(stockMap)
-			log.Printf("✓ Updated stock for %d products\n", len(stockMap))
+			syncLog.StockSynced = count
+			log.Printf("Updated stock for %d products/characteristics\n", count)
 		}
 	}
 
-	// Step 6: Fetch Exchange Rates
-	log.Println("\n--- Step 6/6: Fetching Exchange Rates ---")
+	// Step 7: Fetch and store Exchange Rates
+	log.Println("\n--- Step 7/7: Fetching Exchange Rates ---")
 	rates, err := fetcher.FetchRates(ctx)
 	if err != nil {
-		log.Printf("⚠️  Warning: Failed to fetch rates: %v (continuing...)\n", err)
+		log.Printf("Warning: Failed to fetch rates: %v (continuing...)\n", err)
 	} else {
-		log.Printf("✓ Fetched %d exchange rates\n", len(rates))
-		// TODO: Save rates to database (create rates table or store in JSONB)
+		if err := repo.UpsertExchangeRates(ctx, rates); err != nil {
+			log.Printf("Warning: Failed to save rates: %v (continuing...)\n", err)
+		} else {
+			log.Printf("Saved %d exchange rates\n", len(rates))
+		}
+	}
+
+	// Update product aggregates (price_min, price_max, total_stock)
+	log.Println("\nUpdating product aggregates...")
+	if err := repo.UpdateProductAggregates(ctx); err != nil {
+		log.Printf("Warning: Failed to update product aggregates: %v\n", err)
 	}
 
 	// Build sync details
-	syncDetails := models.JSONB{
-		"services_synced": []string{"BRAND", "NOMENCLATURETYPELIST", "NOMENCLATURE", "PRICELIST", "BALANCE", "RATES"},
-		"total_brands":    len(brands),
-		"total_categories": len(categories),
-		"total_products":  len(products),
-		"products_with_prices": len(priceMap),
-		"products_with_stock": len(stockMap),
-		"exchange_rates":  len(rates),
+	syncLog.Details = models.JSONB{
+		"services_synced": []string{"BRAND", "NOMENCLATURETYPELIST", "NOMENCLATURE", "PROPERTIES", "PRICELIST", "BALANCE", "RATES"},
 	}
-	syncRun.SyncDetails = syncDetails
 
 	return nil
 }

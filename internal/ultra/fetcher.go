@@ -2,27 +2,22 @@ package ultra
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
-	"strings"
 
-	"github.com/google/uuid"
 	"ultra-api-testing/internal/models"
 )
 
 // Fetcher handles fetching and parsing data from Ultra API
 type Fetcher struct {
 	client *Client
-	sourceID uuid.UUID
 }
 
 // NewFetcher creates a new fetcher
-func NewFetcher(client *Client, sourceID uuid.UUID) *Fetcher {
+func NewFetcher(client *Client) *Fetcher {
 	return &Fetcher{
-		client:   client,
-		sourceID: sourceID,
+		client: client,
 	}
 }
 
@@ -47,7 +42,7 @@ type BrandXML struct {
 	} `xml:"image"`
 }
 
-func (f *Fetcher) FetchBrands(ctx context.Context, all bool) ([]*models.BrandSource, error) {
+func (f *Fetcher) FetchBrands(ctx context.Context, all bool) ([]*models.BrandInput, error) {
 	log.Println("Fetching BRAND service...")
 
 	xmlData, err := f.client.FetchDataAsync(ctx, RequestTypeBrands, all, "")
@@ -60,13 +55,8 @@ func (f *Fetcher) FetchBrands(ctx context.Context, all bool) ([]*models.BrandSou
 		return nil, fmt.Errorf("parse brands XML: %w", err)
 	}
 
-	brands := make([]*models.BrandSource, 0, len(brandList.Brands))
+	brands := make([]*models.BrandInput, 0, len(brandList.Brands))
 	for _, b := range brandList.Brands {
-		// Convert to JSONB
-		sourceData := make(models.JSONB)
-		data, _ := json.Marshal(b)
-		json.Unmarshal(data, &sourceData)
-
 		logoURL := ""
 		if b.Image.UUID != "" && b.Image.UUID != "00000000-0000-0000-0000-000000000000" {
 			logoURL = fmt.Sprintf("https://cdn-ultra.esempla.com/storage/%s.png", b.Image.UUID)
@@ -74,23 +64,28 @@ func (f *Fetcher) FetchBrands(ctx context.Context, all bool) ([]*models.BrandSou
 			logoURL = b.Image.PathGlobal
 		}
 
-		logoURLPtr := &logoURL
-		codePtr := &b.Code
+		var logoURLPtr *string
+		if logoURL != "" {
+			logoURLPtr = &logoURL
+		}
 
-		brand := &models.BrandSource{
-			SourceID:   f.sourceID,
-			ExternalID: b.UUID,
-			SourceData: sourceData,
-			Name:       b.Name,
-			Code:       codePtr,
-			LogoURL:    logoURLPtr,
-			IsActive:   b.Active == "true" || b.Active == "1",
+		var codePtr *string
+		if b.Code != "" {
+			codePtr = &b.Code
+		}
+
+		brand := &models.BrandInput{
+			UltraID:  b.UUID,
+			Code:     codePtr,
+			Name:     b.Name,
+			LogoURL:  logoURLPtr,
+			IsActive: b.Active == "true" || b.Active == "1",
 		}
 
 		brands = append(brands, brand)
 	}
 
-	log.Printf("✓ Fetched %d brands\n", len(brands))
+	log.Printf("Fetched %d brands\n", len(brands))
 	return brands, nil
 }
 
@@ -114,20 +109,9 @@ type CategoryXML struct {
 		UUID       string `xml:"UUID"`
 		PathGlobal string `xml:"pathGlobal"`
 	} `xml:"image"`
-	PropertyList []struct {
-		Property struct {
-			UUID string `xml:"UUID"`
-			Name string `xml:"name"`
-			Code string `xml:"code"`
-		} `xml:"property"`
-		Value struct {
-			Type        string `xml:"type"`
-			SimpleValue string `xml:"simpleValue"`
-		} `xml:"value"`
-	} `xml:"propertyList>propertyValue"`
 }
 
-func (f *Fetcher) FetchCategories(ctx context.Context, all bool) ([]*models.CategorySource, error) {
+func (f *Fetcher) FetchCategories(ctx context.Context, all bool) ([]*models.CategoryInput, error) {
 	log.Println("Fetching NOMENCLATURETYPELIST service...")
 
 	xmlData, err := f.client.FetchDataAsync(ctx, RequestTypeCategories, all, "")
@@ -140,39 +124,44 @@ func (f *Fetcher) FetchCategories(ctx context.Context, all bool) ([]*models.Cate
 		return nil, fmt.Errorf("parse categories XML: %w", err)
 	}
 
-	categories := make([]*models.CategorySource, 0, len(catList.Categories))
+	categories := make([]*models.CategoryInput, 0, len(catList.Categories))
 	for _, c := range catList.Categories {
-		// Convert to JSONB
-		sourceData := make(models.JSONB)
-		data, _ := json.Marshal(c)
-		json.Unmarshal(data, &sourceData)
-
 		orderBy, _ := strconv.Atoi(c.OrderBy)
 		quantity, _ := strconv.Atoi(c.Quantity)
 
-		var parentExternalID *string
+		var parentUltraID *string
 		if c.Parent != "" && c.Parent != "00000000-0000-0000-0000-000000000000" {
-			parentExternalID = &c.Parent
+			parentUltraID = &c.Parent
 		}
 
-		codePtr := &c.Code
+		var codePtr *string
+		if c.Code != "" {
+			codePtr = &c.Code
+		}
 
-		category := &models.CategorySource{
-			SourceID:         f.sourceID,
-			ExternalID:       c.UUID,
-			ParentExternalID: parentExternalID,
-			SourceData:       sourceData,
-			Name:             c.Name,
-			Code:             codePtr,
-			SortOrder:        orderBy,
-			IsActive:         c.Active == "true" || c.Active == "1",
-			ProductCount:     quantity,
+		var imageURL *string
+		if c.Image.UUID != "" && c.Image.UUID != "00000000-0000-0000-0000-000000000000" {
+			url := fmt.Sprintf("https://cdn-ultra.esempla.com/storage/%s.png", c.Image.UUID)
+			imageURL = &url
+		} else if c.Image.PathGlobal != "" {
+			imageURL = &c.Image.PathGlobal
+		}
+
+		category := &models.CategoryInput{
+			UltraID:       c.UUID,
+			Code:          codePtr,
+			ParentUltraID: parentUltraID,
+			Name:          c.Name,
+			SortOrder:     orderBy,
+			ImageURL:      imageURL,
+			ProductCount:  quantity,
+			IsActive:      c.Active == "true" || c.Active == "1",
 		}
 
 		categories = append(categories, category)
 	}
 
-	log.Printf("✓ Fetched %d categories\n", len(categories))
+	log.Printf("Fetched %d categories\n", len(categories))
 	return categories, nil
 }
 
@@ -202,35 +191,7 @@ type ProductXML struct {
 		Name      string `xml:"name"`
 		Code      string `xml:"code"`
 		Reference string `xml:"reference"`
-		ValueList []struct {
-			Property struct {
-				UUID string `xml:"UUID"`
-				Name string `xml:"name"`
-				Code string `xml:"code"`
-			} `xml:"property"`
-			Value struct {
-				Type        string `xml:"type"`
-				SimpleValue string `xml:"simpleValue"`
-			} `xml:"value"`
-		} `xml:"valueList>propertyCharacteristicValue"`
 	} `xml:"characteristicList>characteristic"`
-	PropertyList []struct {
-		Property struct {
-			UUID string `xml:"UUID"`
-			Name string `xml:"name"`
-			Code string `xml:"code"`
-		} `xml:"property"`
-		Value struct {
-			Type        string `xml:"type"`
-			SimpleValue string `xml:"simpleValue"`
-		} `xml:"value"`
-		Filter       string `xml:"filter"`
-		Modification string `xml:"modification"`
-		PropertyGroup struct {
-			UUID string `xml:"UUID"`
-			Name string `xml:"name"`
-		} `xml:"propertyGroup"`
-	} `xml:"propertyList>propertyValue"`
 	ImageList []struct {
 		UUID       string `xml:"UUID"`
 		Name       string `xml:"name"`
@@ -243,28 +204,26 @@ type ProductXML struct {
 	} `xml:"barcodeList>barcode"`
 }
 
-func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.ProductSource, error) {
+func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.ProductInput, map[string][]*models.CharacteristicInput, error) {
 	log.Println("Fetching NOMENCLATURE service...")
 
 	xmlData, err := f.client.FetchDataAsync(ctx, RequestTypeProducts, all, "")
 	if err != nil {
-		return nil, fmt.Errorf("fetch products: %w", err)
+		return nil, nil, fmt.Errorf("fetch products: %w", err)
 	}
 
 	var prodList ProductListXML
 	if err := ParseXML(xmlData, &prodList); err != nil {
-		return nil, fmt.Errorf("parse products XML: %w", err)
+		return nil, nil, fmt.Errorf("parse products XML: %w", err)
 	}
 
-	products := make([]*models.ProductSource, 0, len(prodList.Products))
-	for _, p := range prodList.Products {
-		// Convert to JSONB
-		sourceData := make(models.JSONB)
-		data, _ := json.Marshal(p)
-		json.Unmarshal(data, &sourceData)
+	products := make([]*models.ProductInput, 0, len(prodList.Products))
+	charInputs := make(map[string][]*models.CharacteristicInput)
 
-		// Build images JSONB
+	for _, p := range prodList.Products {
+		// Build images
 		images := make([]map[string]string, 0)
+		var mainImageURL *string
 		for _, img := range p.ImageList {
 			if img.UUID != "" && img.UUID != "00000000-0000-0000-0000-000000000000" {
 				imageURL := fmt.Sprintf("https://cdn-ultra.esempla.com/storage/%s.png", img.UUID)
@@ -274,27 +233,13 @@ func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.Produc
 					"description": img.Name,
 					"path_global": img.PathGlobal,
 				})
+				if mainImageURL == nil {
+					mainImageURL = &imageURL
+				}
 			}
 		}
 
-		// Build characteristics JSONB
-		characteristics := make([]map[string]interface{}, 0)
-		for _, char := range p.CharacteristicList {
-			characteristics = append(characteristics, map[string]interface{}{
-				"uuid":      char.UUID,
-				"name":      char.Name,
-				"code":      char.Code,
-				"reference": char.Reference,
-			})
-		}
-
-		// Build properties JSONB
-		properties := make(map[string]interface{})
-		for _, prop := range p.PropertyList {
-			properties[prop.Property.Name] = prop.Value.SimpleValue
-		}
-
-		// Build barcodes JSONB
+		// Build barcodes
 		barcodes := make([]map[string]string, 0)
 		for _, barcode := range p.BarcodeList {
 			barcodes = append(barcodes, map[string]string{
@@ -303,42 +248,70 @@ func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.Produc
 			})
 		}
 
-		var brandExtID, catExtID, parentExtID *string
+		// Build characteristics
+		for _, char := range p.CharacteristicList {
+			var codePtr, refPtr *string
+			if char.Code != "" {
+				codePtr = &char.Code
+			}
+			if char.Reference != "" {
+				refPtr = &char.Reference
+			}
+
+			charInput := &models.CharacteristicInput{
+				ProductUltraID: p.UUID,
+				UltraID:        char.UUID,
+				Code:           codePtr,
+				Reference:      refPtr,
+				Name:           char.Name,
+			}
+			charInputs[p.UUID] = append(charInputs[p.UUID], charInput)
+		}
+
+		var brandUltraID, catUltraID, parentUltraID *string
 		if p.Brand != "" && p.Brand != "00000000-0000-0000-0000-000000000000" {
-			brandExtID = &p.Brand
+			brandUltraID = &p.Brand
 		}
 		if p.NomenclatureType != "" && p.NomenclatureType != "00000000-0000-0000-0000-000000000000" {
-			catExtID = &p.NomenclatureType
+			catUltraID = &p.NomenclatureType
 		}
 		if p.Parent != "" && p.Parent != "00000000-0000-0000-0000-000000000000" {
-			parentExtID = &p.Parent
+			parentUltraID = &p.Parent
 		}
 
-		codePtr := &p.Code
-		descPtr := &p.Article
+		var codePtr, articlePtr, warrantyPtr *string
+		if p.Code != "" {
+			codePtr = &p.Code
+		}
+		if p.Article != "" {
+			articlePtr = &p.Article
+		}
+		if p.Warranty != "" {
+			warrantyPtr = &p.Warranty
+		}
 
-		product := &models.ProductSource{
-			SourceID:           f.sourceID,
-			ExternalID:         p.UUID,
-			BrandExternalID:    brandExtID,
-			CategoryExternalID: catExtID,
-			ParentExternalID:   parentExtID,
-			SourceData:         sourceData,
-			Name:               p.Name,
-			Code:               codePtr,
-			Description:        descPtr,
-			IsActive:           p.Active == "true" || p.Active == "1",
-			Images:             models.JSONB{"images": images},
-			Characteristics:    models.JSONB{"characteristics": characteristics},
-			Properties:         models.JSONB(properties),
-			Barcodes:           models.JSONB{"barcodes": barcodes},
+		product := &models.ProductInput{
+			UltraID:         p.UUID,
+			Code:            codePtr,
+			Article:         articlePtr,
+			Name:            p.Name,
+			Description:     articlePtr, // Using article as description
+			BrandUltraID:    brandUltraID,
+			CategoryUltraID: catUltraID,
+			ParentUltraID:   parentUltraID,
+			MainImageURL:    mainImageURL,
+			Images:          images,
+			Warranty:        warrantyPtr,
+			Barcodes:        barcodes,
+			IsActive:        p.Active == "true" || p.Active == "1",
+			IsService:       p.Service == "true" || p.Service == "1",
 		}
 
 		products = append(products, product)
 	}
 
-	log.Printf("✓ Fetched %d products\n", len(products))
-	return products, nil
+	log.Printf("Fetched %d products\n", len(products))
+	return products, charInputs, nil
 }
 
 // ============================================================================
@@ -364,7 +337,7 @@ type PriceXML struct {
 	} `xml:"PriceType"`
 }
 
-func (f *Fetcher) FetchPrices(ctx context.Context, all bool) (map[string][]map[string]interface{}, error) {
+func (f *Fetcher) FetchPrices(ctx context.Context, all bool) ([]*models.PriceInput, error) {
 	log.Println("Fetching PRICELIST service...")
 
 	xmlData, err := f.client.FetchDataAsync(ctx, RequestTypePrices, all, "")
@@ -377,27 +350,29 @@ func (f *Fetcher) FetchPrices(ctx context.Context, all bool) (map[string][]map[s
 		return nil, fmt.Errorf("parse prices XML: %w", err)
 	}
 
-	// Index prices by product external ID
-	priceMap := make(map[string][]map[string]interface{})
-
+	prices := make([]*models.PriceInput, 0, len(priceList.Prices))
 	for _, p := range priceList.Prices {
 		price, _ := strconv.ParseFloat(p.Price, 64)
 
-		priceObj := map[string]interface{}{
-			"price":    price,
-			"currency": p.PriceType.Currency.Code,
-			"type":     p.PriceType.Name,
-		}
-
+		charUUID := ""
 		if p.Characteristic != "" && p.Characteristic != "00000000-0000-0000-0000-000000000000" {
-			priceObj["characteristic"] = p.Characteristic
+			charUUID = p.Characteristic
 		}
 
-		priceMap[p.UUID] = append(priceMap[p.UUID], priceObj)
+		priceInput := &models.PriceInput{
+			ProductUltraID:     p.UUID,
+			CharacteristicUUID: charUUID,
+			Price:              price,
+			Currency:           p.PriceType.Currency.Code,
+			PriceType:          p.PriceType.Name,
+			PriceTypeUUID:      p.PriceType.UUID,
+		}
+
+		prices = append(prices, priceInput)
 	}
 
-	log.Printf("✓ Fetched prices for %d products\n", len(priceMap))
-	return priceMap, nil
+	log.Printf("Fetched %d prices\n", len(prices))
+	return prices, nil
 }
 
 // ============================================================================
@@ -417,7 +392,7 @@ type BalanceXML struct {
 	QuantityShowroom string `xml:"quantityShowroom"`
 }
 
-func (f *Fetcher) FetchStock(ctx context.Context, all bool) (map[string]map[string]interface{}, error) {
+func (f *Fetcher) FetchStock(ctx context.Context, all bool) ([]*models.StockInput, error) {
 	log.Println("Fetching BALANCE service...")
 
 	xmlData, err := f.client.FetchDataAsync(ctx, RequestTypeStock, all, "")
@@ -430,28 +405,28 @@ func (f *Fetcher) FetchStock(ctx context.Context, all bool) (map[string]map[stri
 		return nil, fmt.Errorf("parse stock XML: %w", err)
 	}
 
-	// Index stock by product external ID
-	stockMap := make(map[string]map[string]interface{})
-
+	stocks := make([]*models.StockInput, 0, len(balanceList.Balances))
 	for _, b := range balanceList.Balances {
 		qty, _ := strconv.ParseFloat(b.Quantity, 64)
 		qtyShowroom, _ := strconv.ParseFloat(b.QuantityShowroom, 64)
 
-		stockObj := map[string]interface{}{
-			"warehouse": qty,
-			"showroom":  qtyShowroom,
-			"total":     qty + qtyShowroom,
-		}
-
+		charUUID := ""
 		if b.Characteristic != "" && b.Characteristic != "00000000-0000-0000-0000-000000000000" {
-			stockObj["characteristic"] = b.Characteristic
+			charUUID = b.Characteristic
 		}
 
-		stockMap[b.UUID] = stockObj
+		stockInput := &models.StockInput{
+			ProductUltraID:     b.UUID,
+			CharacteristicUUID: charUUID,
+			Warehouse:          int(qty),
+			Showroom:           int(qtyShowroom),
+		}
+
+		stocks = append(stocks, stockInput)
 	}
 
-	log.Printf("✓ Fetched stock for %d products\n", len(stockMap))
-	return stockMap, nil
+	log.Printf("Fetched stock for %d products\n", len(stocks))
+	return stocks, nil
 }
 
 // ============================================================================
@@ -471,7 +446,7 @@ type RateXML struct {
 	} `xml:"valute"`
 }
 
-func (f *Fetcher) FetchRates(ctx context.Context) ([]map[string]interface{}, error) {
+func (f *Fetcher) FetchRates(ctx context.Context) ([]*models.ExchangeRate, error) {
 	log.Println("Fetching RATES service...")
 
 	xmlData, err := f.client.FetchDataAsync(ctx, RequestTypeRates, true, "")
@@ -484,35 +459,130 @@ func (f *Fetcher) FetchRates(ctx context.Context) ([]map[string]interface{}, err
 		return nil, fmt.Errorf("parse rates XML: %w", err)
 	}
 
-	rates := make([]map[string]interface{}, 0)
+	rates := make([]*models.ExchangeRate, 0, len(rateList.Rates))
 	for _, r := range rateList.Rates {
 		rate, _ := strconv.ParseFloat(r.Rate, 64)
 
-		rateObj := map[string]interface{}{
-			"rate":          rate,
-			"currency_uuid": r.Valute.UUID,
-			"currency_code": r.Valute.Code,
-			"currency_name": r.Valute.Name,
+		rateObj := &models.ExchangeRate{
+			CurrencyUUID: r.Valute.UUID,
+			CurrencyCode: r.Valute.Code,
+			CurrencyName: r.Valute.Name,
+			Rate:         rate,
 		}
 
 		rates = append(rates, rateObj)
 	}
 
-	log.Printf("✓ Fetched %d exchange rates\n", len(rates))
+	log.Printf("Fetched %d exchange rates\n", len(rates))
 	return rates, nil
 }
 
 // ============================================================================
-// Helper Functions
+// PROPERTIES (Per Category)
 // ============================================================================
 
-func getBool(value string) bool {
-	return strings.ToLower(value) == "true" || value == "1"
+type PropertiesListXML struct {
+	Nomenclatures []PropertyNomenclatureXML `xml:"nomenclature"`
 }
 
-func getStringPtr(value string) *string {
-	if value == "" || value == "00000000-0000-0000-0000-000000000000" {
-		return nil
+type PropertyNomenclatureXML struct {
+	UUID         string             `xml:"UUID"`
+	PropertyList []PropertyValueXML `xml:"propertyList>propertyValue"`
+}
+
+type PropertyValueXML struct {
+	Property struct {
+		Name string `xml:"name"`
+		UUID string `xml:"UUID"`
+		Code string `xml:"code"`
+	} `xml:"property"`
+	Value struct {
+		Name        string `xml:"name"`
+		UUID        string `xml:"UUID"`
+		Type        string `xml:"type"`
+		SimpleValue string `xml:"simpleValue"`
+	} `xml:"value"`
+	PropertyGroup struct {
+		Name string `xml:"name"`
+		UUID string `xml:"UUID"`
+		Code string `xml:"code"`
+	} `xml:"propertyGroup"`
+	Filter       string `xml:"filter"`
+	Modification string `xml:"modification"`
+	OrderBy      string `xml:"orderBy"`
+}
+
+// FetchPropertiesForCategory fetches properties for all products in a specific category
+func (f *Fetcher) FetchPropertiesForCategory(ctx context.Context, categoryUUID string) (map[string][]*models.PropertyInput, error) {
+	xmlData, err := f.client.FetchDataAsync(ctx, RequestTypeProperties, false, categoryUUID)
+	if err != nil {
+		return nil, fmt.Errorf("fetch properties for category %s: %w", categoryUUID, err)
 	}
-	return &value
+
+	var propList PropertiesListXML
+	if err := ParseXML(xmlData, &propList); err != nil {
+		return nil, fmt.Errorf("parse properties XML: %w", err)
+	}
+
+	// Build map of product UUID => properties
+	productProperties := make(map[string][]*models.PropertyInput)
+
+	for _, nom := range propList.Nomenclatures {
+		if len(nom.PropertyList) == 0 {
+			continue
+		}
+
+		props := make([]*models.PropertyInput, 0, len(nom.PropertyList))
+		for _, prop := range nom.PropertyList {
+			// Use SimpleValue if available, otherwise use Name (for reference values)
+			value := prop.Value.SimpleValue
+			if value == "" && prop.Value.Name != "" {
+				value = prop.Value.Name
+			}
+
+			var propUUID, propCode, valueType, groupUUID, groupName *string
+			if prop.Property.UUID != "" {
+				propUUID = &prop.Property.UUID
+			}
+			if prop.Property.Code != "" {
+				propCode = &prop.Property.Code
+			}
+			if prop.Value.Type != "" {
+				valueType = &prop.Value.Type
+			}
+			if prop.PropertyGroup.UUID != "" {
+				groupUUID = &prop.PropertyGroup.UUID
+			}
+			if prop.PropertyGroup.Name != "" {
+				groupName = &prop.PropertyGroup.Name
+			}
+
+			var valuePtr *string
+			if value != "" {
+				valuePtr = &value
+			}
+
+			orderBy, _ := strconv.Atoi(prop.OrderBy)
+
+			propInput := &models.PropertyInput{
+				ProductUltraID: nom.UUID,
+				PropertyUUID:   propUUID,
+				PropertyName:   prop.Property.Name,
+				PropertyCode:   propCode,
+				Value:          valuePtr,
+				ValueType:      valueType,
+				GroupUUID:      groupUUID,
+				GroupName:      groupName,
+				SortOrder:      orderBy,
+				IsFilter:       prop.Filter == "true" || prop.Filter == "1",
+				IsModification: prop.Modification == "true" || prop.Modification == "1",
+			}
+
+			props = append(props, propInput)
+		}
+
+		productProperties[nom.UUID] = props
+	}
+
+	return productProperties, nil
 }

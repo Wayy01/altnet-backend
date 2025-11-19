@@ -57,7 +57,7 @@ func Load() (*Config, error) {
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", ""),
-			DBName:   getEnv("DB_NAME", "api-testing"),
+			DBName:   getEnv("DB_NAME", "ultra-data"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		Ultra: UltraConfig{

@@ -25,207 +25,310 @@ func (j *JSONB) Scan(value interface{}) error {
 		return nil
 	}
 
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal JSONB value: %v", value)
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return fmt.Errorf("failed to unmarshal JSONB value: unsupported type %T: %v", value, value)
 	}
 
 	return json.Unmarshal(bytes, j)
 }
 
-// DataSource represents a data source registry entry
-type DataSource struct {
+// JSONBArray is a custom type for PostgreSQL JSONB array columns
+type JSONBArray []interface{}
+
+func (j JSONBArray) Value() (driver.Value, error) {
+	if j == nil {
+		return nil, nil
+	}
+	return json.Marshal(j)
+}
+
+func (j *JSONBArray) Scan(value interface{}) error {
+	if value == nil {
+		*j = make(JSONBArray, 0)
+		return nil
+	}
+
+	var bytes []byte
+	switch v := value.(type) {
+	case []byte:
+		bytes = v
+	case string:
+		bytes = []byte(v)
+	default:
+		return fmt.Errorf("failed to unmarshal JSONBArray value: unsupported type %T: %v", value, value)
+	}
+
+	return json.Unmarshal(bytes, j)
+}
+
+// ============================================================================
+// BRANDS
+// ============================================================================
+
+// Brand represents a brand in the database
+type Brand struct {
+	ID        uuid.UUID  `json:"id"`
+	UltraID   string     `json:"ultra_id"`
+	Code      *string    `json:"code"`
+	Name      string     `json:"name"`
+	Slug      string     `json:"slug"`
+	LogoURL   *string    `json:"logo_url"`
+	IsActive  bool       `json:"is_active"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+// ============================================================================
+// CATEGORIES
+// ============================================================================
+
+// Category represents a category in the database
+type Category struct {
 	ID            uuid.UUID  `json:"id"`
-	SourceCode    string     `json:"source_code"`
-	SourceName    string     `json:"source_name"`
-	SourceType    string     `json:"source_type"`
-	Config        JSONB      `json:"config"`
-	FieldMappings JSONB      `json:"field_mappings"`
-	Capabilities  JSONB      `json:"capabilities"`
-	Priority      int        `json:"priority"`
+	UltraID       string     `json:"ultra_id"`
+	Code          *string    `json:"code"`
+	ParentID      *uuid.UUID `json:"parent_id"`
+	ParentUltraID *string    `json:"parent_ultra_id,omitempty"`
+	Name          string     `json:"name"`
+	Slug          string     `json:"slug"`
+	SortOrder     int        `json:"sort_order"`
+	ImageURL      *string    `json:"image_url"`
+	ProductCount  int        `json:"product_count"`
 	IsActive      bool       `json:"is_active"`
-	IsPrimary     bool       `json:"is_primary"`
-	LastSyncAt          *time.Time `json:"last_sync_at"`
-	LastSyncStatus      *string    `json:"last_sync_status"`
-	SyncIntervalMinutes int        `json:"sync_interval_minutes"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
-	CreatedBy     string     `json:"created_by"`
 }
 
-// Brand represents a unified brand
-type Brand struct {
-	ID              uuid.UUID  `json:"id"`
-	Name            string     `json:"name"`
-	Slug            string     `json:"slug"`
-	Description     *string    `json:"description"`
-	LogoURL         *string    `json:"logo_url"`
-	WebsiteURL      *string    `json:"website_url"`
-	Country         *string    `json:"country"`
-	IsVerified      bool       `json:"is_verified"`
-	MasterBrandID   *uuid.UUID `json:"master_brand_id"`
-	QualityScore    int        `json:"quality_score"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
-}
+// ============================================================================
+// PRODUCTS
+// ============================================================================
 
-// BrandSource represents brand data from a specific source
-type BrandSource struct {
-	ID           uuid.UUID  `json:"id"`
-	BrandID      *uuid.UUID `json:"brand_id"`
-	SourceID     uuid.UUID  `json:"source_id"`
-	ExternalID   string     `json:"external_id"`
-	SourceData   JSONB      `json:"source_data"`
-	Name         string     `json:"name"`
-	Code         *string    `json:"code"`
-	LogoURL      *string    `json:"logo_url"`
-	IsActive     bool       `json:"is_active"`
-	FirstSeenAt  time.Time  `json:"first_seen_at"`
-	LastSeenAt   time.Time  `json:"last_seen_at"`
-	SyncVersion  int        `json:"sync_version"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-}
-
-// Category represents a unified category
-type Category struct {
-	ID                 uuid.UUID  `json:"id"`
-	ParentID           *uuid.UUID `json:"parent_id"`
-	Path               *string    `json:"path"` // LTREE
-	Level              int        `json:"level"`
-	Name               string     `json:"name"`
-	Slug               string     `json:"slug"`
-	Description        *string    `json:"description"`
-	ImageURL           *string    `json:"image_url"`
-	Icon               *string    `json:"icon"`
-	SortOrder          int        `json:"sort_order"`
-	IsVisible          bool       `json:"is_visible"`
-	IsFeatured         bool       `json:"is_featured"`
-	IsVerified         bool       `json:"is_verified"`
-	MasterCategoryID   *uuid.UUID `json:"master_category_id"`
-	ProductCount       int        `json:"product_count"`
-	ActiveProductCount int        `json:"active_product_count"`
-	QualityScore       int        `json:"quality_score"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
-}
-
-// CategorySource represents category data from a specific source
-type CategorySource struct {
-	ID               uuid.UUID  `json:"id"`
-	CategoryID       *uuid.UUID `json:"category_id"`
-	SourceID         uuid.UUID  `json:"source_id"`
-	ExternalID       string     `json:"external_id"`
-	ParentExternalID *string    `json:"parent_external_id"`
-	SourceData       JSONB      `json:"source_data"`
-	Name             string     `json:"name"`
-	Code             *string    `json:"code"`
-	SortOrder        int        `json:"sort_order"`
-	IsActive         bool       `json:"is_active"`
-	ProductCount     int        `json:"product_count"`
-	FirstSeenAt      time.Time  `json:"first_seen_at"`
-	LastSeenAt       time.Time  `json:"last_seen_at"`
-	SyncVersion      int        `json:"sync_version"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
-}
-
-// Product represents a unified product
+// Product represents a product in the database
 type Product struct {
 	ID              uuid.UUID  `json:"id"`
+	UltraID         string     `json:"ultra_id"`
+	Code            *string    `json:"code"`
+	Article         *string    `json:"article"`
 	Name            string     `json:"name"`
 	Slug            string     `json:"slug"`
+	Description     *string    `json:"description"`
 	BrandID         *uuid.UUID `json:"brand_id"`
 	CategoryID      *uuid.UUID `json:"category_id"`
-	Description     *string    `json:"description"`
-	Code            *string    `json:"code"`
-	IsVariant       bool       `json:"is_variant"`
-	ParentProductID *uuid.UUID `json:"parent_product_id"`
+	ParentID        *uuid.UUID `json:"parent_id"`
+	BrandUltraID    *string    `json:"brand_ultra_id,omitempty"`
+	CategoryUltraID *string    `json:"category_ultra_id,omitempty"`
+	ParentUltraID   *string    `json:"parent_ultra_id,omitempty"`
 	MainImageURL    *string    `json:"main_image_url"`
-	Images          JSONB      `json:"images"`
+	Images          JSONBArray `json:"images"`
+	Warranty        *string    `json:"warranty"`
+	Barcodes        JSONBArray `json:"barcodes"`
 	PriceMin        *float64   `json:"price_min"`
 	PriceMax        *float64   `json:"price_max"`
-	PriceCurrency   string     `json:"price_currency"`
-	StockQuantity   int        `json:"stock_quantity"`
+	TotalStock      int        `json:"total_stock"`
 	IsInStock       bool       `json:"is_in_stock"`
-	Attributes      JSONB      `json:"attributes"`
-	QualityScore    int        `json:"quality_score"`
-	SourceCount     int        `json:"source_count"`
 	IsActive        bool       `json:"is_active"`
-	IsFeatured      bool       `json:"is_featured"`
-	IsVerified      bool       `json:"is_verified"`
-	MetaTitle       *string    `json:"meta_title"`
-	MetaDescription *string    `json:"meta_description"`
-	ViewCount       int        `json:"view_count"`
-	FavoriteCount   int        `json:"favorite_count"`
+	IsService       bool       `json:"is_service"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
-// ProductSource represents product data from a specific source
-type ProductSource struct {
-	ID                   uuid.UUID  `json:"id"`
-	ProductID            *uuid.UUID `json:"product_id"`
-	SourceID             uuid.UUID  `json:"source_id"`
-	ExternalID           string     `json:"external_id"`
-	BrandExternalID      *string    `json:"brand_external_id"`
-	CategoryExternalID   *string    `json:"category_external_id"`
-	ParentExternalID     *string    `json:"parent_external_id"`
-	SourceData           JSONB      `json:"source_data"`
-	Name                 string     `json:"name"`
-	Code                 *string    `json:"code"`
-	Description          *string    `json:"description"`
-	IsActive             bool       `json:"is_active"`
-	Prices               JSONB      `json:"prices"`
-	Stock                JSONB      `json:"stock"`
-	Images               JSONB      `json:"images"`
-	Characteristics      JSONB      `json:"characteristics"`
-	Properties           JSONB      `json:"properties"`
-	Barcodes             JSONB      `json:"barcodes"`
-	FirstSeenAt          time.Time  `json:"first_seen_at"`
-	LastSeenAt           time.Time  `json:"last_seen_at"`
-	SyncVersion          int        `json:"sync_version"`
-	CreatedAt            time.Time  `json:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at"`
+// ============================================================================
+// PROPERTIES
+// ============================================================================
+
+// Property represents a product property/specification
+type Property struct {
+	ID             uuid.UUID  `json:"id"`
+	ProductID      uuid.UUID  `json:"product_id"`
+	PropertyUUID   *string    `json:"property_uuid"`
+	PropertyName   string     `json:"property_name"`
+	PropertyCode   *string    `json:"property_code"`
+	Value          *string    `json:"value"`
+	ValueType      *string    `json:"value_type"`
+	GroupUUID      *string    `json:"group_uuid"`
+	GroupName      *string    `json:"group_name"`
+	SortOrder      int        `json:"sort_order"`
+	IsFilter       bool       `json:"is_filter"`
+	IsModification bool       `json:"is_modification"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
-// EntityMatch represents a match between entities from different sources
-type EntityMatch struct {
-	ID               uuid.UUID  `json:"id"`
-	EntityType       string     `json:"entity_type"` // 'brand', 'category', 'product'
-	UnifiedEntityID  uuid.UUID  `json:"unified_entity_id"`
-	SourceMatches    JSONB      `json:"source_matches"`
-	MatchMethod      string     `json:"match_method"` // 'exact', 'fuzzy', 'ml', 'manual'
-	ConfidenceScore  float64    `json:"confidence_score"`
-	MatchCriteria    JSONB      `json:"match_criteria"`
-	IsVerified       bool       `json:"is_verified"`
-	IsRejected       bool       `json:"is_rejected"`
-	MatchedAt        time.Time  `json:"matched_at"`
-	VerifiedAt       *time.Time `json:"verified_at"`
-	VerifiedBy       *string    `json:"verified_by"`
+// ============================================================================
+// CHARACTERISTICS
+// ============================================================================
+
+// Characteristic represents a product variant/SKU
+type Characteristic struct {
+	ID             uuid.UUID  `json:"id"`
+	ProductID      uuid.UUID  `json:"product_id"`
+	UltraID        string     `json:"ultra_id"`
+	Code           *string    `json:"code"`
+	Reference      *string    `json:"reference"`
+	Name           string     `json:"name"`
+	Prices         JSONBArray `json:"prices"`
+	StockWarehouse int        `json:"stock_warehouse"`
+	StockShowroom  int        `json:"stock_showroom"`
+	StockTotal     int        `json:"stock_total"`
+	IsActive       bool       `json:"is_active"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
-// SyncRun represents a synchronization operation
-type SyncRun struct {
+// CharacteristicPrice represents a price for a characteristic
+type CharacteristicPrice struct {
+	Price    float64 `json:"price"`
+	Currency string  `json:"currency"`
+	Type     string  `json:"type"`
+	TypeUUID string  `json:"type_uuid,omitempty"`
+}
+
+// ============================================================================
+// SYNC LOG
+// ============================================================================
+
+// SyncLog represents a sync operation record
+type SyncLog struct {
 	ID                  uuid.UUID  `json:"id"`
-	SourceID            uuid.UUID  `json:"source_id"`
-	SyncType            string     `json:"sync_type"` // 'full', 'incremental', 'manual'
+	SyncType            string     `json:"sync_type"`
 	StartedAt           time.Time  `json:"started_at"`
 	FinishedAt          *time.Time `json:"finished_at"`
 	DurationSeconds     *int       `json:"duration_seconds"`
-	Status              string     `json:"status"` // 'running', 'success', 'failed', 'degraded'
-	RecordsFetched      int        `json:"records_fetched"`
-	RecordsCreated      int        `json:"records_created"`
-	RecordsUpdated      int        `json:"records_updated"`
-	RecordsFailed       int        `json:"records_failed"`
-	BrandsWithData      int        `json:"brands_with_data"`
-	CategoriesWithData  int        `json:"categories_with_data"`
-	ProductsWithData    int        `json:"products_with_data"`
-	ProductsWithPrices  int        `json:"products_with_prices"`
-	ProductsWithStock   int        `json:"products_with_stock"`
-	ProductsWithImages  int        `json:"products_with_images"`
-	SyncDetails         JSONB      `json:"sync_details"`
+	Status              string     `json:"status"`
+	BrandsSynced        int        `json:"brands_synced"`
+	CategoriesSynced    int        `json:"categories_synced"`
+	ProductsSynced      int        `json:"products_synced"`
+	PropertiesSynced    int        `json:"properties_synced"`
+	CharacteristicsSynced int      `json:"characteristics_synced"`
+	PricesSynced        int        `json:"prices_synced"`
+	StockSynced         int        `json:"stock_synced"`
 	ErrorMessage        *string    `json:"error_message"`
-	ErrorDetails        JSONB      `json:"error_details"`
-	TriggeredBy         string     `json:"triggered_by"` // 'system', 'manual', 'webhook', 'cron'
+	Details             JSONB      `json:"details"`
+}
+
+// ============================================================================
+// EXCHANGE RATES
+// ============================================================================
+
+// ExchangeRate represents a currency exchange rate
+type ExchangeRate struct {
+	ID           uuid.UUID `json:"id"`
+	CurrencyUUID string    `json:"currency_uuid"`
+	CurrencyCode string    `json:"currency_code"`
+	CurrencyName string    `json:"currency_name"`
+	Rate         float64   `json:"rate"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+// ============================================================================
+// API RESPONSE TYPES
+// ============================================================================
+
+// ProductWithDetails includes related brand and category info
+type ProductWithDetails struct {
+	*Product
+	Brand           *Brand           `json:"brand,omitempty"`
+	Category        *Category        `json:"category,omitempty"`
+	Properties      []*Property      `json:"properties,omitempty"`
+	Characteristics []*Characteristic `json:"characteristics,omitempty"`
+	VariantCount    int              `json:"variant_count"`
+	PropertyCount   int              `json:"property_count"`
+}
+
+// CategoryWithChildren includes child categories
+type CategoryWithChildren struct {
+	*Category
+	Children []*Category `json:"children,omitempty"`
+	Level    int         `json:"level"`
+}
+
+// ============================================================================
+// INPUT TYPES (for sync operations)
+// ============================================================================
+
+// BrandInput is used when inserting/updating brands from Ultra API
+type BrandInput struct {
+	UltraID  string
+	Code     *string
+	Name     string
+	LogoURL  *string
+	IsActive bool
+}
+
+// CategoryInput is used when inserting/updating categories from Ultra API
+type CategoryInput struct {
+	UltraID       string
+	Code          *string
+	ParentUltraID *string
+	Name          string
+	SortOrder     int
+	ImageURL      *string
+	ProductCount  int
+	IsActive      bool
+}
+
+// ProductInput is used when inserting/updating products from Ultra API
+type ProductInput struct {
+	UltraID         string
+	Code            *string
+	Article         *string
+	Name            string
+	Description     *string
+	BrandUltraID    *string
+	CategoryUltraID *string
+	ParentUltraID   *string
+	MainImageURL    *string
+	Images          []map[string]string
+	Warranty        *string
+	Barcodes        []map[string]string
+	IsActive        bool
+	IsService       bool
+}
+
+// PropertyInput is used when inserting/updating properties
+type PropertyInput struct {
+	ProductUltraID string
+	PropertyUUID   *string
+	PropertyName   string
+	PropertyCode   *string
+	Value          *string
+	ValueType      *string
+	GroupUUID      *string
+	GroupName      *string
+	SortOrder      int
+	IsFilter       bool
+	IsModification bool
+}
+
+// CharacteristicInput is used when inserting/updating characteristics
+type CharacteristicInput struct {
+	ProductUltraID string
+	UltraID        string
+	Code           *string
+	Reference      *string
+	Name           string
+}
+
+// PriceInput is used when updating prices for characteristics
+type PriceInput struct {
+	ProductUltraID     string
+	CharacteristicUUID string // Empty string means product-level price
+	Price              float64
+	Currency           string
+	PriceType          string
+	PriceTypeUUID      string
+}
+
+// StockInput is used when updating stock for characteristics
+type StockInput struct {
+	ProductUltraID     string
+	CharacteristicUUID string // Empty string means product-level stock
+	Warehouse          int
+	Showroom           int
 }
