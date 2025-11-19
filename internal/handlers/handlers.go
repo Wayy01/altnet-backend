@@ -1,9 +1,13 @@
 package handlers
 
 import (
+	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -48,11 +52,18 @@ func (h *Handler) ListBrands(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	total, err := h.repo.CountBrands(r.Context())
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to count brands", err.Error())
+		return
+	}
+
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
 		"data": brands,
 		"meta": PaginationMeta{
 			Limit:  limit,
 			Offset: offset,
+			Total:  total,
 		},
 	})
 }
@@ -99,11 +110,18 @@ func (h *Handler) ListCategories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	total, err := h.repo.CountCategories(r.Context(), parentID)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to count categories", err.Error())
+		return
+	}
+
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
 		"data": categories,
 		"meta": PaginationMeta{
 			Limit:  limit,
 			Offset: offset,
+			Total:  total,
 		},
 	})
 }
@@ -185,22 +203,18 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enrich with brand and category
-	enriched := make([]*models.ProductWithDetails, len(products))
-	for i, product := range products {
-		response := &models.ProductWithDetails{Product: product}
+	// Get total count with same filters
+	total, err := h.repo.CountProducts(r.Context(), filter)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to count products", err.Error())
+		return
+	}
 
-		if product.BrandID != nil {
-			brand, _ := h.repo.GetBrand(r.Context(), *product.BrandID)
-			response.Brand = brand
-		}
-
-		if product.CategoryID != nil {
-			category, _ := h.repo.GetCategory(r.Context(), *product.CategoryID)
-			response.Category = category
-		}
-
-		enriched[i] = response
+	// Get products with brand and category data in single query (avoids N+1)
+	enriched, err := h.repo.GetProductsWithDetails(r.Context(), products)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to enrich products", err.Error())
+		return
 	}
 
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
@@ -208,6 +222,7 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		"meta": PaginationMeta{
 			Limit:  limit,
 			Offset: offset,
+			Total:  total,
 		},
 	})
 }
@@ -317,22 +332,18 @@ func (h *Handler) SearchProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Enrich with brand and category
-	enriched := make([]*models.ProductWithDetails, len(products))
-	for i, product := range products {
-		response := &models.ProductWithDetails{Product: product}
+	// Get total count with same filters
+	total, err := h.repo.CountProducts(r.Context(), filter)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to count search results", err.Error())
+		return
+	}
 
-		if product.BrandID != nil {
-			brand, _ := h.repo.GetBrand(r.Context(), *product.BrandID)
-			response.Brand = brand
-		}
-
-		if product.CategoryID != nil {
-			category, _ := h.repo.GetCategory(r.Context(), *product.CategoryID)
-			response.Category = category
-		}
-
-		enriched[i] = response
+	// Get products with brand and category data in single query (avoids N+1)
+	enriched, err := h.repo.GetProductsWithDetails(r.Context(), products)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to enrich search results", err.Error())
+		return
 	}
 
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
@@ -340,6 +351,7 @@ func (h *Handler) SearchProducts(w http.ResponseWriter, r *http.Request) {
 		"meta": PaginationMeta{
 			Limit:  limit,
 			Offset: offset,
+			Total:  total,
 		},
 		"query": query,
 	})
@@ -381,4 +393,1032 @@ func (h *Handler) respondError(w http.ResponseWriter, status int, message, detai
 			Details: details,
 		},
 	})
+}
+
+// ============================================================================
+// DASHBOARD STATISTICS ENDPOINTS
+// ============================================================================
+
+// DashboardStats response structure
+type DashboardStats struct {
+	TotalProducts      int                    `json:"total_products"`
+	TotalBrands        int                    `json:"total_brands"`
+	TotalCategories    int                    `json:"total_categories"`
+	TotalProperties    int                    `json:"total_properties"`
+	TotalCharacteristics int                  `json:"total_characteristics"`
+	ProductsInStock    int                    `json:"products_in_stock"`
+	ProductsOutOfStock int                    `json:"products_out_of_stock"`
+	TotalStockValue    float64                `json:"total_stock_value"`
+	LastSyncAt         *time.Time             `json:"last_sync_at"`
+	LastSyncStatus     string                 `json:"last_sync_status"`
+	RecentActivity     []map[string]interface{} `json:"recent_activity"`
+}
+
+// GetDashboardStats handles GET /api/v1/dashboard/stats
+// @Summary Get dashboard statistics
+// @Description Returns aggregate counts, stock summaries, and recent activity for the CMS dashboard
+// @Tags Dashboard
+// @Produce json
+// @Success 200 {object} DashboardStats
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/dashboard/stats [get]
+func (h *Handler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	stats, err := h.repo.GetDashboardStats(ctx)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch dashboard stats", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": stats,
+	})
+}
+
+// GetStockSummary handles GET /api/v1/dashboard/stock-summary
+// @Summary Get stock summary by category
+// @Description Returns stock levels grouped by category
+// @Tags Dashboard
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/dashboard/stock-summary [get]
+func (h *Handler) GetStockSummary(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	summary, err := h.repo.GetStockSummaryByCategory(ctx)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch stock summary", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": summary,
+	})
+}
+
+// GetPriceSummary handles GET /api/v1/dashboard/price-summary
+// @Summary Get price distribution summary
+// @Description Returns price range distribution across products
+// @Tags Dashboard
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/dashboard/price-summary [get]
+func (h *Handler) GetPriceSummary(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	summary, err := h.repo.GetPriceSummary(ctx)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch price summary", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": summary,
+	})
+}
+
+// ============================================================================
+// SYNC MANAGEMENT ENDPOINTS
+// ============================================================================
+
+// ListSyncLogs handles GET /api/v1/sync/logs
+// @Summary List sync operation logs
+// @Description Returns paginated list of sync operation logs with filtering
+// @Tags Sync
+// @Produce json
+// @Param limit query int false "Number of records to return" default(50)
+// @Param offset query int false "Number of records to skip" default(0)
+// @Param status query string false "Filter by status (running, completed, failed)"
+// @Param sync_type query string false "Filter by sync type"
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/sync/logs [get]
+func (h *Handler) ListSyncLogs(w http.ResponseWriter, r *http.Request) {
+	limit, offset := h.parsePagination(r)
+	status := r.URL.Query().Get("status")
+	syncType := r.URL.Query().Get("sync_type")
+
+	logs, err := h.repo.ListSyncLogs(r.Context(), limit, offset, status, syncType)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch sync logs", err.Error())
+		return
+	}
+
+	total, err := h.repo.CountSyncLogs(r.Context(), status, syncType)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to count sync logs", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": logs,
+		"meta": PaginationMeta{
+			Limit:  limit,
+			Offset: offset,
+			Total:  total,
+		},
+	})
+}
+
+// GetSyncLog handles GET /api/v1/sync/logs/{id}
+// @Summary Get sync log details
+// @Description Returns detailed information about a specific sync operation
+// @Tags Sync
+// @Produce json
+// @Param id path string true "Sync log ID"
+// @Success 200 {object} models.SyncLog
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /api/v1/sync/logs/{id} [get]
+func (h *Handler) GetSyncLog(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid sync log ID", err.Error())
+		return
+	}
+
+	syncLog, err := h.repo.GetSyncLog(r.Context(), id)
+	if err != nil {
+		h.respondError(w, http.StatusNotFound, "Sync log not found", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": syncLog,
+	})
+}
+
+// GetLatestSyncStatus handles GET /api/v1/sync/status
+// @Summary Get latest sync status
+// @Description Returns the status of the most recent sync operation
+// @Tags Sync
+// @Produce json
+// @Success 200 {object} models.SyncLog
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/sync/status [get]
+func (h *Handler) GetLatestSyncStatus(w http.ResponseWriter, r *http.Request) {
+	syncLog, err := h.repo.GetLatestSyncLog(r.Context())
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch sync status", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": syncLog,
+	})
+}
+
+// ============================================================================
+// ENHANCED CRUD OPERATIONS - PRODUCTS
+// ============================================================================
+
+// CreateProduct handles POST /api/v1/products
+// @Summary Create a new product
+// @Description Creates a new product in the database
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Param product body CreateProductRequest true "Product data"
+// @Success 201 {object} models.Product
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/products [post]
+func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
+	var req repository.CreateProductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "name is required")
+		return
+	}
+
+	product, err := h.repo.CreateProduct(r.Context(), &req)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to create product", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"data": product,
+	})
+}
+
+// UpdateProduct handles PUT /api/v1/products/{id}
+// @Summary Update a product
+// @Description Updates an existing product by ID
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Param id path string true "Product ID"
+// @Param product body UpdateProductRequest true "Product data"
+// @Success 200 {object} models.Product
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/products/{id} [put]
+func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid product ID", err.Error())
+		return
+	}
+
+	var req repository.UpdateProductRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	product, err := h.repo.UpdateProduct(r.Context(), id, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.respondError(w, http.StatusNotFound, "Product not found", err.Error())
+			return
+		}
+		h.respondError(w, http.StatusInternalServerError, "Failed to update product", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": product,
+	})
+}
+
+// DeleteProduct handles DELETE /api/v1/products/{id}
+// @Summary Delete a product
+// @Description Soft deletes a product by setting is_active to false
+// @Tags Products
+// @Produce json
+// @Param id path string true "Product ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/products/{id} [delete]
+func (h *Handler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid product ID", err.Error())
+		return
+	}
+
+	err = h.repo.DeleteProduct(r.Context(), id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.respondError(w, http.StatusNotFound, "Product not found", err.Error())
+			return
+		}
+		h.respondError(w, http.StatusInternalServerError, "Failed to delete product", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Product deleted successfully",
+	})
+}
+
+// ============================================================================
+// ENHANCED CRUD OPERATIONS - BRANDS
+// ============================================================================
+
+// CreateBrand handles POST /api/v1/brands
+// @Summary Create a new brand
+// @Description Creates a new brand in the database
+// @Tags Brands
+// @Accept json
+// @Produce json
+// @Param brand body CreateBrandRequest true "Brand data"
+// @Success 201 {object} models.Brand
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/brands [post]
+func (h *Handler) CreateBrand(w http.ResponseWriter, r *http.Request) {
+	var req repository.CreateBrandRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "name is required")
+		return
+	}
+
+	brand, err := h.repo.CreateBrand(r.Context(), &req)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to create brand", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"data": brand,
+	})
+}
+
+// UpdateBrand handles PUT /api/v1/brands/{id}
+// @Summary Update a brand
+// @Description Updates an existing brand by ID
+// @Tags Brands
+// @Accept json
+// @Produce json
+// @Param id path string true "Brand ID"
+// @Param brand body UpdateBrandRequest true "Brand data"
+// @Success 200 {object} models.Brand
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/brands/{id} [put]
+func (h *Handler) UpdateBrand(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid brand ID", err.Error())
+		return
+	}
+
+	var req repository.UpdateBrandRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	brand, err := h.repo.UpdateBrand(r.Context(), id, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.respondError(w, http.StatusNotFound, "Brand not found", err.Error())
+			return
+		}
+		h.respondError(w, http.StatusInternalServerError, "Failed to update brand", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": brand,
+	})
+}
+
+// DeleteBrand handles DELETE /api/v1/brands/{id}
+// @Summary Delete a brand
+// @Description Soft deletes a brand by setting is_active to false
+// @Tags Brands
+// @Produce json
+// @Param id path string true "Brand ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/brands/{id} [delete]
+func (h *Handler) DeleteBrand(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid brand ID", err.Error())
+		return
+	}
+
+	err = h.repo.DeleteBrand(r.Context(), id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.respondError(w, http.StatusNotFound, "Brand not found", err.Error())
+			return
+		}
+		h.respondError(w, http.StatusInternalServerError, "Failed to delete brand", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Brand deleted successfully",
+	})
+}
+
+// ============================================================================
+// ENHANCED CRUD OPERATIONS - CATEGORIES
+// ============================================================================
+
+// CreateCategory handles POST /api/v1/categories
+// @Summary Create a new category
+// @Description Creates a new category in the database
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Param category body CreateCategoryRequest true "Category data"
+// @Success 201 {object} models.Category
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/categories [post]
+func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) {
+	var req repository.CreateCategoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate required fields
+	if req.Name == "" {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "name is required")
+		return
+	}
+
+	category, err := h.repo.CreateCategory(r.Context(), &req)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to create category", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"data": category,
+	})
+}
+
+// UpdateCategory handles PUT /api/v1/categories/{id}
+// @Summary Update a category
+// @Description Updates an existing category by ID
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Param id path string true "Category ID"
+// @Param category body UpdateCategoryRequest true "Category data"
+// @Success 200 {object} models.Category
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/categories/{id} [put]
+func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid category ID", err.Error())
+		return
+	}
+
+	var req repository.UpdateCategoryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	category, err := h.repo.UpdateCategory(r.Context(), id, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.respondError(w, http.StatusNotFound, "Category not found", err.Error())
+			return
+		}
+		h.respondError(w, http.StatusInternalServerError, "Failed to update category", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": category,
+	})
+}
+
+// DeleteCategory handles DELETE /api/v1/categories/{id}
+// @Summary Delete a category
+// @Description Soft deletes a category by setting is_active to false
+// @Tags Categories
+// @Produce json
+// @Param id path string true "Category ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/categories/{id} [delete]
+func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid category ID", err.Error())
+		return
+	}
+
+	err = h.repo.DeleteCategory(r.Context(), id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.respondError(w, http.StatusNotFound, "Category not found", err.Error())
+			return
+		}
+		h.respondError(w, http.StatusInternalServerError, "Failed to delete category", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Category deleted successfully",
+	})
+}
+
+// ============================================================================
+// BULK OPERATIONS ENDPOINTS
+// ============================================================================
+
+// BulkUpdateRequest represents a bulk update operation request
+type BulkUpdateRequest struct {
+	IDs      []uuid.UUID `json:"ids"`
+	IsActive *bool       `json:"is_active"`
+}
+
+// BulkDeleteRequest represents a bulk delete operation request
+type BulkDeleteRequest struct {
+	IDs []uuid.UUID `json:"ids"`
+}
+
+// BulkUpdateProducts handles PATCH /api/v1/products/bulk
+// @Summary Bulk update products
+// @Description Updates multiple products at once (e.g., enable/disable)
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Param request body BulkUpdateRequest true "Bulk update data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/products/bulk [patch]
+func (h *Handler) BulkUpdateProducts(w http.ResponseWriter, r *http.Request) {
+	var req BulkUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "ids array is required")
+		return
+	}
+
+	if len(req.IDs) > 100 {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+		return
+	}
+
+	updated, err := h.repo.BulkUpdateProducts(r.Context(), req.IDs, req.IsActive)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update products", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Successfully updated %d products", updated),
+		"updated": updated,
+	})
+}
+
+// BulkDeleteProducts handles DELETE /api/v1/products/bulk
+// @Summary Bulk delete products
+// @Description Soft deletes multiple products at once
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Param request body BulkDeleteRequest true "Bulk delete data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/products/bulk [delete]
+func (h *Handler) BulkDeleteProducts(w http.ResponseWriter, r *http.Request) {
+	var req BulkDeleteRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "ids array is required")
+		return
+	}
+
+	if len(req.IDs) > 100 {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+		return
+	}
+
+	deleted, err := h.repo.BulkDeleteProducts(r.Context(), req.IDs)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to bulk delete products", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Successfully deleted %d products", deleted),
+		"deleted": deleted,
+	})
+}
+
+// BulkUpdateBrands handles PATCH /api/v1/brands/bulk
+// @Summary Bulk update brands
+// @Description Updates multiple brands at once (e.g., enable/disable)
+// @Tags Brands
+// @Accept json
+// @Produce json
+// @Param request body BulkUpdateRequest true "Bulk update data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/brands/bulk [patch]
+func (h *Handler) BulkUpdateBrands(w http.ResponseWriter, r *http.Request) {
+	var req BulkUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "ids array is required")
+		return
+	}
+
+	if len(req.IDs) > 100 {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+		return
+	}
+
+	updated, err := h.repo.BulkUpdateBrands(r.Context(), req.IDs, req.IsActive)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update brands", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Successfully updated %d brands", updated),
+		"updated": updated,
+	})
+}
+
+// BulkUpdateCategories handles PATCH /api/v1/categories/bulk
+// @Summary Bulk update categories
+// @Description Updates multiple categories at once (e.g., enable/disable)
+// @Tags Categories
+// @Accept json
+// @Produce json
+// @Param request body BulkUpdateRequest true "Bulk update data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/categories/bulk [patch]
+func (h *Handler) BulkUpdateCategories(w http.ResponseWriter, r *http.Request) {
+	var req BulkUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "ids array is required")
+		return
+	}
+
+	if len(req.IDs) > 100 {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+		return
+	}
+
+	updated, err := h.repo.BulkUpdateCategories(r.Context(), req.IDs, req.IsActive)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update categories", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Successfully updated %d categories", updated),
+		"updated": updated,
+	})
+}
+
+// ============================================================================
+// EXPORT ENDPOINTS
+// ============================================================================
+
+// ExportProducts handles GET /api/v1/export/products
+// @Summary Export products
+// @Description Exports products data in CSV or JSON format
+// @Tags Export
+// @Produce json,text/csv
+// @Param format query string false "Export format (json or csv)" default(json)
+// @Param brand_id query string false "Filter by brand ID"
+// @Param category_id query string false "Filter by category ID"
+// @Param in_stock query bool false "Filter by stock availability"
+// @Success 200 {array} models.Product
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/export/products [get]
+func (h *Handler) ExportProducts(w http.ResponseWriter, r *http.Request) {
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "json"
+	}
+
+	filter := &repository.ProductFilter{
+		IsActive: true,
+	}
+
+	if brandIDStr := r.URL.Query().Get("brand_id"); brandIDStr != "" {
+		if id, err := uuid.Parse(brandIDStr); err == nil {
+			filter.BrandID = &id
+		}
+	}
+
+	if categoryIDStr := r.URL.Query().Get("category_id"); categoryIDStr != "" {
+		if id, err := uuid.Parse(categoryIDStr); err == nil {
+			filter.CategoryID = &id
+		}
+	}
+
+	if inStockStr := r.URL.Query().Get("in_stock"); inStockStr == "true" {
+		inStock := true
+		filter.InStock = &inStock
+	}
+
+	// Get all products matching filter (no pagination for export)
+	products, err := h.repo.ListProducts(r.Context(), filter, 10000, 0)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to export products", err.Error())
+		return
+	}
+
+	switch format {
+	case "csv":
+		h.exportProductsCSV(w, products)
+	default:
+		h.respondJSON(w, http.StatusOK, map[string]interface{}{
+			"data":  products,
+			"count": len(products),
+		})
+	}
+}
+
+func (h *Handler) exportProductsCSV(w http.ResponseWriter, products []*models.Product) {
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=products.csv")
+
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	// Write header
+	header := []string{"ID", "Code", "Article", "Name", "Description", "Price Min", "Price Max", "Total Stock", "Is Active", "Created At"}
+	writer.Write(header)
+
+	// Write data
+	for _, p := range products {
+		code := ""
+		if p.Code != nil {
+			code = *p.Code
+		}
+		article := ""
+		if p.Article != nil {
+			article = *p.Article
+		}
+		description := ""
+		if p.Description != nil {
+			description = *p.Description
+		}
+		priceMin := ""
+		if p.PriceMin != nil {
+			priceMin = fmt.Sprintf("%.2f", *p.PriceMin)
+		}
+		priceMax := ""
+		if p.PriceMax != nil {
+			priceMax = fmt.Sprintf("%.2f", *p.PriceMax)
+		}
+
+		row := []string{
+			p.ID.String(),
+			code,
+			article,
+			p.Name,
+			description,
+			priceMin,
+			priceMax,
+			strconv.Itoa(p.TotalStock),
+			strconv.FormatBool(p.IsActive),
+			p.CreatedAt.Format(time.RFC3339),
+		}
+		writer.Write(row)
+	}
+}
+
+// ExportBrands handles GET /api/v1/export/brands
+// @Summary Export brands
+// @Description Exports brands data in CSV or JSON format
+// @Tags Export
+// @Produce json,text/csv
+// @Param format query string false "Export format (json or csv)" default(json)
+// @Success 200 {array} models.Brand
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/export/brands [get]
+func (h *Handler) ExportBrands(w http.ResponseWriter, r *http.Request) {
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "json"
+	}
+
+	brands, err := h.repo.ListBrands(r.Context(), 10000, 0)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to export brands", err.Error())
+		return
+	}
+
+	switch format {
+	case "csv":
+		h.exportBrandsCSV(w, brands)
+	default:
+		h.respondJSON(w, http.StatusOK, map[string]interface{}{
+			"data":  brands,
+			"count": len(brands),
+		})
+	}
+}
+
+func (h *Handler) exportBrandsCSV(w http.ResponseWriter, brands []*models.Brand) {
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=brands.csv")
+
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	// Write header
+	header := []string{"ID", "Code", "Name", "Slug", "Logo URL", "Is Active", "Created At"}
+	writer.Write(header)
+
+	// Write data
+	for _, b := range brands {
+		code := ""
+		if b.Code != nil {
+			code = *b.Code
+		}
+		logoURL := ""
+		if b.LogoURL != nil {
+			logoURL = *b.LogoURL
+		}
+
+		row := []string{
+			b.ID.String(),
+			code,
+			b.Name,
+			b.Slug,
+			logoURL,
+			strconv.FormatBool(b.IsActive),
+			b.CreatedAt.Format(time.RFC3339),
+		}
+		writer.Write(row)
+	}
+}
+
+// ExportCategories handles GET /api/v1/export/categories
+// @Summary Export categories
+// @Description Exports categories data in CSV or JSON format
+// @Tags Export
+// @Produce json,text/csv
+// @Param format query string false "Export format (json or csv)" default(json)
+// @Success 200 {array} models.Category
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/export/categories [get]
+func (h *Handler) ExportCategories(w http.ResponseWriter, r *http.Request) {
+	format := r.URL.Query().Get("format")
+	if format == "" {
+		format = "json"
+	}
+
+	categories, err := h.repo.ListAllCategories(r.Context())
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to export categories", err.Error())
+		return
+	}
+
+	switch format {
+	case "csv":
+		h.exportCategoriesCSV(w, categories)
+	default:
+		h.respondJSON(w, http.StatusOK, map[string]interface{}{
+			"data":  categories,
+			"count": len(categories),
+		})
+	}
+}
+
+func (h *Handler) exportCategoriesCSV(w http.ResponseWriter, categories []*models.Category) {
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", "attachment; filename=categories.csv")
+
+	writer := csv.NewWriter(w)
+	defer writer.Flush()
+
+	// Write header
+	header := []string{"ID", "Code", "Name", "Slug", "Parent ID", "Sort Order", "Product Count", "Is Active", "Created At"}
+	writer.Write(header)
+
+	// Write data
+	for _, c := range categories {
+		code := ""
+		if c.Code != nil {
+			code = *c.Code
+		}
+		parentID := ""
+		if c.ParentID != nil {
+			parentID = c.ParentID.String()
+		}
+
+		row := []string{
+			c.ID.String(),
+			code,
+			c.Name,
+			c.Slug,
+			parentID,
+			strconv.Itoa(c.SortOrder),
+			strconv.Itoa(c.ProductCount),
+			strconv.FormatBool(c.IsActive),
+			c.CreatedAt.Format(time.RFC3339),
+		}
+		writer.Write(row)
+	}
+}
+
+// ============================================================================
+// SETTINGS/CONFIG ENDPOINTS
+// ============================================================================
+
+// ConfigInfo represents application configuration info
+type ConfigInfo struct {
+	DatabaseName    string            `json:"database_name"`
+	DatabaseHost    string            `json:"database_host"`
+	APIVersion      string            `json:"api_version"`
+	Environment     string            `json:"environment"`
+	Features        map[string]bool   `json:"features"`
+	Limits          map[string]int    `json:"limits"`
+	ExchangeRates   []*models.ExchangeRate `json:"exchange_rates"`
+}
+
+// GetConfig handles GET /api/v1/config
+// @Summary Get application configuration
+// @Description Returns current application configuration and settings
+// @Tags Config
+// @Produce json
+// @Success 200 {object} ConfigInfo
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/config [get]
+func (h *Handler) GetConfig(w http.ResponseWriter, r *http.Request) {
+	rates, err := h.repo.GetExchangeRates(r.Context())
+	if err != nil {
+		rates = []*models.ExchangeRate{}
+	}
+
+	config := ConfigInfo{
+		DatabaseName: "ultra-data",
+		DatabaseHost: "localhost",
+		APIVersion:   "v1",
+		Environment:  "production",
+		Features: map[string]bool{
+			"bulk_operations": true,
+			"csv_export":      true,
+			"json_export":     true,
+			"sync_management": true,
+		},
+		Limits: map[string]int{
+			"pagination_max":    100,
+			"bulk_operation_max": 100,
+			"export_max":        10000,
+		},
+		ExchangeRates: rates,
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": config,
+	})
+}
+
+// GetHealth handles GET /api/v1/health
+// @Summary Health check endpoint
+// @Description Returns the health status of the API and database connection
+// @Tags Health
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/health [get]
+func (h *Handler) GetHealth(w http.ResponseWriter, r *http.Request) {
+	// Check database connection
+	err := h.repo.Pool().Ping(r.Context())
+	dbStatus := "healthy"
+	if err != nil {
+		dbStatus = "unhealthy"
+	}
+
+	health := map[string]interface{}{
+		"status":    "ok",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"database":  dbStatus,
+		"version":   "1.0.0",
+	}
+
+	if err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		health["status"] = "degraded"
+	}
+
+	h.respondJSON(w, http.StatusOK, health)
 }

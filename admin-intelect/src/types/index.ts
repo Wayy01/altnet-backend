@@ -143,3 +143,94 @@ export interface ExchangeRate {
   rate: number;
   updated_at: string;
 }
+
+// Extended Dashboard stats with more details
+export interface DashboardStatsExtended extends DashboardStats {
+  low_stock_count: number;
+  out_of_stock_count: number;
+  last_sync_at: string | null;
+  last_sync_status: string | null;
+}
+
+// Low stock product alert
+export interface LowStockAlert {
+  id: string;
+  name: string;
+  code: string;
+  total_stock: number;
+  brand_name?: string;
+}
+
+// API mutation payloads
+export interface UpdateProductPayload {
+  is_active?: boolean;
+  name?: string;
+  description?: string;
+}
+
+export interface UpdateBrandPayload {
+  is_active?: boolean;
+  name?: string;
+}
+
+export interface UpdateCategoryPayload {
+  is_active?: boolean;
+  name?: string;
+}
+
+export interface BulkUpdatePayload {
+  ids: string[];
+  is_active?: boolean;
+}
+
+export interface BulkDeletePayload {
+  ids: string[];
+}
+
+// API response wrappers
+export interface ApiResponse<T> {
+  data: T;
+  message?: string;
+}
+
+export interface ApiListResponse<T> {
+  data: T[];
+  meta: {
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+
+export interface ApiErrorResponse {
+  error: string;
+  message: string;
+  status: number;
+}
+
+// Export filters
+export interface ExportFilters extends ProductFilters {
+  format?: 'csv' | 'json';
+}
+
+// Sync log with additional metadata
+export interface SyncLogExtended extends SyncLog {
+  started_at?: string;
+  completed_at?: string;
+  details?: Record<string, unknown>;
+}
+
+// Product with is_active field
+export interface ProductWithStatus extends Product {
+  is_active: boolean;
+}
+
+// Brand with is_active field
+export interface BrandWithStatus extends Brand {
+  is_active: boolean;
+}
+
+// Category with is_active field
+export interface CategoryWithStatus extends Category {
+  is_active: boolean;
+}

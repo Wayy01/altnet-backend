@@ -8,9 +8,76 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gosimple/slug"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"ultra-api-testing/internal/models"
 )
+
+// ============================================================================
+// REQUEST TYPES FOR CRUD OPERATIONS
+// ============================================================================
+
+// CreateProductRequest represents the request body for creating a product
+type CreateProductRequest struct {
+	Name        string     `json:"name"`
+	Code        *string    `json:"code"`
+	Article     *string    `json:"article"`
+	Description *string    `json:"description"`
+	BrandID     *uuid.UUID `json:"brand_id"`
+	CategoryID  *uuid.UUID `json:"category_id"`
+	IsActive    bool       `json:"is_active"`
+	IsService   bool       `json:"is_service"`
+}
+
+// UpdateProductRequest represents the request body for updating a product
+type UpdateProductRequest struct {
+	Name        *string    `json:"name"`
+	Code        *string    `json:"code"`
+	Article     *string    `json:"article"`
+	Description *string    `json:"description"`
+	BrandID     *uuid.UUID `json:"brand_id"`
+	CategoryID  *uuid.UUID `json:"category_id"`
+	IsActive    *bool      `json:"is_active"`
+	IsService   *bool      `json:"is_service"`
+}
+
+// CreateBrandRequest represents the request body for creating a brand
+type CreateBrandRequest struct {
+	Name     string  `json:"name"`
+	Code     *string `json:"code"`
+	LogoURL  *string `json:"logo_url"`
+	IsActive bool    `json:"is_active"`
+}
+
+// UpdateBrandRequest represents the request body for updating a brand
+type UpdateBrandRequest struct {
+	Name     *string `json:"name"`
+	Code     *string `json:"code"`
+	LogoURL  *string `json:"logo_url"`
+	IsActive *bool   `json:"is_active"`
+}
+
+// CreateCategoryRequest represents the request body for creating a category
+type CreateCategoryRequest struct {
+	Name         string     `json:"name"`
+	Code         *string    `json:"code"`
+	ParentID     *uuid.UUID `json:"parent_id"`
+	SortOrder    int        `json:"sort_order"`
+	ImageURL     *string    `json:"image_url"`
+	ProductCount int        `json:"product_count"`
+	IsActive     bool       `json:"is_active"`
+}
+
+// UpdateCategoryRequest represents the request body for updating a category
+type UpdateCategoryRequest struct {
+	Name         *string    `json:"name"`
+	Code         *string    `json:"code"`
+	ParentID     *uuid.UUID `json:"parent_id"`
+	SortOrder    *int       `json:"sort_order"`
+	ImageURL     *string    `json:"image_url"`
+	ProductCount *int       `json:"product_count"`
+	IsActive     *bool      `json:"is_active"`
+}
 
 type Repository struct {
 	pool *pgxpool.Pool
@@ -160,6 +227,13 @@ func (r *Repository) ListBrands(ctx context.Context, limit, offset int) ([]*mode
 	}
 
 	return brands, nil
+}
+
+// CountBrands returns the total count of active brands
+func (r *Repository) CountBrands(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM brands WHERE is_active = true").Scan(&count)
+	return count, err
 }
 
 // ============================================================================
@@ -343,6 +417,20 @@ func (r *Repository) ListCategories(ctx context.Context, parentID *uuid.UUID, li
 	}
 
 	return categories, nil
+}
+
+// CountCategories returns the total count of active categories, optionally filtered by parent
+func (r *Repository) CountCategories(ctx context.Context, parentID *uuid.UUID) (int, error) {
+	var count int
+	var err error
+
+	if parentID == nil {
+		err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE parent_id IS NULL AND is_active = true").Scan(&count)
+	} else {
+		err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories WHERE parent_id = $1 AND is_active = true", parentID).Scan(&count)
+	}
+
+	return count, err
 }
 
 // ============================================================================
@@ -624,6 +712,231 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 	}
 
 	return products, nil
+}
+
+// CountProducts returns the total count of products matching the filter
+func (r *Repository) CountProducts(ctx context.Context, filter *ProductFilter) (int, error) {
+	query := `SELECT COUNT(*) FROM products WHERE 1=1`
+
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if filter != nil {
+		if filter.BrandID != nil {
+			query += fmt.Sprintf(" AND brand_id = $%d", argPos)
+			args = append(args, filter.BrandID)
+			argPos++
+		}
+
+		if filter.CategoryID != nil {
+			query += fmt.Sprintf(" AND category_id = $%d", argPos)
+			args = append(args, filter.CategoryID)
+			argPos++
+		}
+
+		if filter.InStock != nil && *filter.InStock {
+			query += " AND is_in_stock = true"
+		}
+
+		if filter.MinPrice != nil {
+			query += fmt.Sprintf(" AND price_min >= $%d", argPos)
+			args = append(args, filter.MinPrice)
+			argPos++
+		}
+
+		if filter.MaxPrice != nil {
+			query += fmt.Sprintf(" AND price_max <= $%d", argPos)
+			args = append(args, filter.MaxPrice)
+			argPos++
+		}
+
+		if filter.Search != "" {
+			query += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d OR code ILIKE $%d)", argPos, argPos, argPos)
+			searchPattern := "%" + filter.Search + "%"
+			args = append(args, searchPattern)
+			argPos++
+		}
+
+		query += fmt.Sprintf(" AND is_active = $%d", argPos)
+		args = append(args, filter.IsActive)
+	}
+
+	var count int
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&count)
+	return count, err
+}
+
+// CountAllProducts returns the total count of all active products (for stats)
+func (r *Repository) CountAllProducts(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE is_active = true").Scan(&count)
+	return count, err
+}
+
+// GetProductsWithDetails enriches products with brand and category data using batch queries
+func (r *Repository) GetProductsWithDetails(ctx context.Context, products []*models.Product) ([]*models.ProductWithDetails, error) {
+	if len(products) == 0 {
+		return []*models.ProductWithDetails{}, nil
+	}
+
+	// Collect unique brand and category IDs
+	brandIDs := make([]uuid.UUID, 0)
+	categoryIDs := make([]uuid.UUID, 0)
+	brandIDSet := make(map[uuid.UUID]bool)
+	categoryIDSet := make(map[uuid.UUID]bool)
+
+	for _, p := range products {
+		if p.BrandID != nil && !brandIDSet[*p.BrandID] {
+			brandIDs = append(brandIDs, *p.BrandID)
+			brandIDSet[*p.BrandID] = true
+		}
+		if p.CategoryID != nil && !categoryIDSet[*p.CategoryID] {
+			categoryIDs = append(categoryIDs, *p.CategoryID)
+			categoryIDSet[*p.CategoryID] = true
+		}
+	}
+
+	// Batch fetch brands
+	brandMap := make(map[uuid.UUID]*models.Brand)
+	if len(brandIDs) > 0 {
+		brands, err := r.GetBrandsByIDs(ctx, brandIDs)
+		if err != nil {
+			return nil, fmt.Errorf("fetch brands: %w", err)
+		}
+		for _, b := range brands {
+			brandMap[b.ID] = b
+		}
+	}
+
+	// Batch fetch categories
+	categoryMap := make(map[uuid.UUID]*models.Category)
+	if len(categoryIDs) > 0 {
+		categories, err := r.GetCategoriesByIDs(ctx, categoryIDs)
+		if err != nil {
+			return nil, fmt.Errorf("fetch categories: %w", err)
+		}
+		for _, c := range categories {
+			categoryMap[c.ID] = c
+		}
+	}
+
+	// Build enriched results
+	enriched := make([]*models.ProductWithDetails, len(products))
+	for i, product := range products {
+		response := &models.ProductWithDetails{Product: product}
+
+		if product.BrandID != nil {
+			response.Brand = brandMap[*product.BrandID]
+		}
+		if product.CategoryID != nil {
+			response.Category = categoryMap[*product.CategoryID]
+		}
+
+		enriched[i] = response
+	}
+
+	return enriched, nil
+}
+
+// GetBrandsByIDs fetches multiple brands by their IDs
+func (r *Repository) GetBrandsByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Brand, error) {
+	if len(ids) == 0 {
+		return []*models.Brand{}, nil
+	}
+
+	// Build IN clause
+	args := make([]interface{}, len(ids))
+	placeholders := make([]string, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, ultra_id, code, name, slug, logo_url, is_active, created_at, updated_at
+		FROM brands
+		WHERE id IN (%s)
+	`, strings.Join(placeholders, ", "))
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	brands := make([]*models.Brand, 0)
+	for rows.Next() {
+		var brand models.Brand
+		err := rows.Scan(
+			&brand.ID, &brand.UltraID, &brand.Code, &brand.Name, &brand.Slug,
+			&brand.LogoURL, &brand.IsActive, &brand.CreatedAt, &brand.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		brands = append(brands, &brand)
+	}
+
+	return brands, nil
+}
+
+// GetCategoriesByIDs fetches multiple categories by their IDs
+func (r *Repository) GetCategoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]*models.Category, error) {
+	if len(ids) == 0 {
+		return []*models.Category{}, nil
+	}
+
+	// Build IN clause
+	args := make([]interface{}, len(ids))
+	placeholders := make([]string, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
+		       image_url, product_count, is_active, created_at, updated_at
+		FROM categories
+		WHERE id IN (%s)
+	`, strings.Join(placeholders, ", "))
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	categories := make([]*models.Category, 0)
+	for rows.Next() {
+		var category models.Category
+		err := rows.Scan(
+			&category.ID, &category.UltraID, &category.Code, &category.ParentID,
+			&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
+			&category.ImageURL, &category.ProductCount, &category.IsActive,
+			&category.CreatedAt, &category.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, &category)
+	}
+
+	return categories, nil
+}
+
+// CountProperties returns the total count of all properties
+func (r *Repository) CountProperties(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM properties").Scan(&count)
+	return count, err
+}
+
+// CountCharacteristics returns the total count of all characteristics
+func (r *Repository) CountCharacteristics(ctx context.Context) (int, error) {
+	var count int
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM characteristics WHERE is_active = true").Scan(&count)
+	return count, err
 }
 
 // ============================================================================
@@ -1084,4 +1397,940 @@ func toInterfaceSlicePrices(input []models.CharacteristicPrice) []interface{} {
 		result[i] = v
 	}
 	return result
+}
+
+// ============================================================================
+// DASHBOARD STATISTICS
+// ============================================================================
+
+// DashboardStats holds aggregate statistics for the dashboard
+type DashboardStats struct {
+	TotalProducts        int                      `json:"total_products"`
+	TotalBrands          int                      `json:"total_brands"`
+	TotalCategories      int                      `json:"total_categories"`
+	TotalProperties      int                      `json:"total_properties"`
+	TotalCharacteristics int                      `json:"total_characteristics"`
+	ProductsInStock      int                      `json:"products_in_stock"`
+	ProductsOutOfStock   int                      `json:"products_out_of_stock"`
+	TotalStockValue      float64                  `json:"total_stock_value"`
+	LastSyncAt           *time.Time               `json:"last_sync_at"`
+	LastSyncStatus       string                   `json:"last_sync_status"`
+	RecentActivity       []map[string]interface{} `json:"recent_activity"`
+}
+
+// GetDashboardStats retrieves aggregate statistics for the CMS dashboard
+func (r *Repository) GetDashboardStats(ctx context.Context) (*DashboardStats, error) {
+	stats := &DashboardStats{}
+
+	// Get counts in parallel using a single query
+	query := `
+		SELECT
+			(SELECT COUNT(*) FROM products WHERE is_active = true) as total_products,
+			(SELECT COUNT(*) FROM brands WHERE is_active = true) as total_brands,
+			(SELECT COUNT(*) FROM categories WHERE is_active = true) as total_categories,
+			(SELECT COUNT(*) FROM properties) as total_properties,
+			(SELECT COUNT(*) FROM characteristics WHERE is_active = true) as total_characteristics,
+			(SELECT COUNT(*) FROM products WHERE is_active = true AND is_in_stock = true) as products_in_stock,
+			(SELECT COUNT(*) FROM products WHERE is_active = true AND is_in_stock = false) as products_out_of_stock,
+			(SELECT COALESCE(SUM(total_stock * COALESCE(price_min, 0)), 0) FROM products WHERE is_active = true) as total_stock_value
+	`
+
+	err := r.pool.QueryRow(ctx, query).Scan(
+		&stats.TotalProducts,
+		&stats.TotalBrands,
+		&stats.TotalCategories,
+		&stats.TotalProperties,
+		&stats.TotalCharacteristics,
+		&stats.ProductsInStock,
+		&stats.ProductsOutOfStock,
+		&stats.TotalStockValue,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("get dashboard stats: %w", err)
+	}
+
+	// Get latest sync info
+	syncLog, err := r.GetLatestSyncLog(ctx)
+	if err == nil && syncLog != nil {
+		stats.LastSyncAt = &syncLog.StartedAt
+		stats.LastSyncStatus = syncLog.Status
+	}
+
+	// Get recent activity (last 10 sync logs)
+	logs, err := r.ListSyncLogs(ctx, 10, 0, "", "")
+	if err == nil {
+		stats.RecentActivity = make([]map[string]interface{}, len(logs))
+		for i, log := range logs {
+			stats.RecentActivity[i] = map[string]interface{}{
+				"id":         log.ID,
+				"type":       log.SyncType,
+				"status":     log.Status,
+				"started_at": log.StartedAt,
+				"duration":   log.DurationSeconds,
+			}
+		}
+	}
+
+	return stats, nil
+}
+
+// GetStockSummaryByCategory returns stock levels grouped by category
+func (r *Repository) GetStockSummaryByCategory(ctx context.Context) ([]map[string]interface{}, error) {
+	query := `
+		SELECT
+			c.id,
+			c.name,
+			COUNT(p.id) as product_count,
+			COALESCE(SUM(p.total_stock), 0) as total_stock,
+			COALESCE(AVG(p.price_min), 0) as avg_price
+		FROM categories c
+		LEFT JOIN products p ON p.category_id = c.id AND p.is_active = true
+		WHERE c.is_active = true
+		GROUP BY c.id, c.name
+		ORDER BY total_stock DESC
+		LIMIT 20
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make([]map[string]interface{}, 0)
+	for rows.Next() {
+		var id uuid.UUID
+		var name string
+		var productCount int
+		var totalStock int
+		var avgPrice float64
+
+		err := rows.Scan(&id, &name, &productCount, &totalStock, &avgPrice)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, map[string]interface{}{
+			"id":            id,
+			"name":          name,
+			"product_count": productCount,
+			"total_stock":   totalStock,
+			"avg_price":     avgPrice,
+		})
+	}
+
+	return results, nil
+}
+
+// GetPriceSummary returns price distribution summary
+func (r *Repository) GetPriceSummary(ctx context.Context) (map[string]interface{}, error) {
+	query := `
+		SELECT
+			MIN(price_min) as min_price,
+			MAX(price_max) as max_price,
+			AVG(price_min) as avg_price,
+			PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price_min) as median_price,
+			COUNT(*) FILTER (WHERE price_min < 100) as under_100,
+			COUNT(*) FILTER (WHERE price_min >= 100 AND price_min < 500) as range_100_500,
+			COUNT(*) FILTER (WHERE price_min >= 500 AND price_min < 1000) as range_500_1000,
+			COUNT(*) FILTER (WHERE price_min >= 1000) as over_1000
+		FROM products
+		WHERE is_active = true AND price_min IS NOT NULL
+	`
+
+	var minPrice, maxPrice, avgPrice, medianPrice *float64
+	var under100, range100_500, range500_1000, over1000 int
+
+	err := r.pool.QueryRow(ctx, query).Scan(
+		&minPrice, &maxPrice, &avgPrice, &medianPrice,
+		&under100, &range100_500, &range500_1000, &over1000,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"min_price":      minPrice,
+		"max_price":      maxPrice,
+		"avg_price":      avgPrice,
+		"median_price":   medianPrice,
+		"distribution": map[string]int{
+			"under_100":      under100,
+			"100_to_500":     range100_500,
+			"500_to_1000":    range500_1000,
+			"over_1000":      over1000,
+		},
+	}, nil
+}
+
+// ============================================================================
+// SYNC LOG QUERIES
+// ============================================================================
+
+// ListSyncLogs returns paginated sync logs with optional filtering
+func (r *Repository) ListSyncLogs(ctx context.Context, limit, offset int, status, syncType string) ([]*models.SyncLog, error) {
+	query := `
+		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
+		       brands_synced, categories_synced, products_synced, properties_synced,
+		       characteristics_synced, prices_synced, stock_synced, error_message, details
+		FROM sync_logs
+		WHERE 1=1
+	`
+
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if status != "" {
+		query += fmt.Sprintf(" AND status = $%d", argPos)
+		args = append(args, status)
+		argPos++
+	}
+
+	if syncType != "" {
+		query += fmt.Sprintf(" AND sync_type = $%d", argPos)
+		args = append(args, syncType)
+		argPos++
+	}
+
+	query += fmt.Sprintf(" ORDER BY started_at DESC LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	logs := make([]*models.SyncLog, 0)
+	for rows.Next() {
+		var log models.SyncLog
+		err := rows.Scan(
+			&log.ID, &log.SyncType, &log.StartedAt, &log.FinishedAt, &log.DurationSeconds,
+			&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
+			&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
+			&log.StockSynced, &log.ErrorMessage, &log.Details,
+		)
+		if err != nil {
+			return nil, err
+		}
+		logs = append(logs, &log)
+	}
+
+	return logs, nil
+}
+
+// CountSyncLogs returns the total count of sync logs with optional filtering
+func (r *Repository) CountSyncLogs(ctx context.Context, status, syncType string) (int, error) {
+	query := `SELECT COUNT(*) FROM sync_logs WHERE 1=1`
+
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if status != "" {
+		query += fmt.Sprintf(" AND status = $%d", argPos)
+		args = append(args, status)
+		argPos++
+	}
+
+	if syncType != "" {
+		query += fmt.Sprintf(" AND sync_type = $%d", argPos)
+		args = append(args, syncType)
+	}
+
+	var count int
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&count)
+	return count, err
+}
+
+// GetSyncLog returns a specific sync log by ID
+func (r *Repository) GetSyncLog(ctx context.Context, id uuid.UUID) (*models.SyncLog, error) {
+	query := `
+		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
+		       brands_synced, categories_synced, products_synced, properties_synced,
+		       characteristics_synced, prices_synced, stock_synced, error_message, details
+		FROM sync_logs
+		WHERE id = $1
+	`
+
+	var log models.SyncLog
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&log.ID, &log.SyncType, &log.StartedAt, &log.FinishedAt, &log.DurationSeconds,
+		&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
+		&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
+		&log.StockSynced, &log.ErrorMessage, &log.Details,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &log, nil
+}
+
+// GetLatestSyncLog returns the most recent sync log
+func (r *Repository) GetLatestSyncLog(ctx context.Context) (*models.SyncLog, error) {
+	query := `
+		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
+		       brands_synced, categories_synced, products_synced, properties_synced,
+		       characteristics_synced, prices_synced, stock_synced, error_message, details
+		FROM sync_logs
+		ORDER BY started_at DESC
+		LIMIT 1
+	`
+
+	var log models.SyncLog
+	err := r.pool.QueryRow(ctx, query).Scan(
+		&log.ID, &log.SyncType, &log.StartedAt, &log.FinishedAt, &log.DurationSeconds,
+		&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
+		&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
+		&log.StockSynced, &log.ErrorMessage, &log.Details,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &log, nil
+}
+
+// ============================================================================
+// CRUD OPERATIONS - PRODUCTS
+// ============================================================================
+
+// CreateProduct creates a new product in the database
+func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductRequest) (*models.Product, error) {
+	productSlug := slug.Make(req.Name)
+	if productSlug == "" {
+		productSlug = "product"
+	}
+
+	// Generate a unique ultra_id for manually created products
+	ultraID := fmt.Sprintf("manual-%s", uuid.New().String())
+
+	query := `
+		INSERT INTO products (
+			ultra_id, code, article, name, slug, description, brand_id, category_id,
+			is_active, is_service
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+		)
+		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
+		          parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
+		          images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		          is_active, is_service, created_at, updated_at
+	`
+
+	var product models.Product
+	err := r.pool.QueryRow(ctx, query,
+		ultraID, req.Code, req.Article, req.Name, productSlug, req.Description,
+		req.BrandID, req.CategoryID, req.IsActive, req.IsService,
+	).Scan(
+		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
+		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
+		&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
+		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create product: %w", err)
+	}
+
+	return &product, nil
+}
+
+// UpdateProduct updates an existing product
+func (r *Repository) UpdateProduct(ctx context.Context, id uuid.UUID, req *UpdateProductRequest) (*models.Product, error) {
+	// Build dynamic update query
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if req.Name != nil {
+		updates = append(updates, fmt.Sprintf("name = $%d", argPos))
+		args = append(args, *req.Name)
+		argPos++
+
+		// Also update slug
+		updates = append(updates, fmt.Sprintf("slug = $%d", argPos))
+		args = append(args, slug.Make(*req.Name))
+		argPos++
+	}
+
+	if req.Code != nil {
+		updates = append(updates, fmt.Sprintf("code = $%d", argPos))
+		args = append(args, *req.Code)
+		argPos++
+	}
+
+	if req.Article != nil {
+		updates = append(updates, fmt.Sprintf("article = $%d", argPos))
+		args = append(args, *req.Article)
+		argPos++
+	}
+
+	if req.Description != nil {
+		updates = append(updates, fmt.Sprintf("description = $%d", argPos))
+		args = append(args, *req.Description)
+		argPos++
+	}
+
+	if req.BrandID != nil {
+		updates = append(updates, fmt.Sprintf("brand_id = $%d", argPos))
+		args = append(args, *req.BrandID)
+		argPos++
+	}
+
+	if req.CategoryID != nil {
+		updates = append(updates, fmt.Sprintf("category_id = $%d", argPos))
+		args = append(args, *req.CategoryID)
+		argPos++
+	}
+
+	if req.IsActive != nil {
+		updates = append(updates, fmt.Sprintf("is_active = $%d", argPos))
+		args = append(args, *req.IsActive)
+		argPos++
+	}
+
+	if req.IsService != nil {
+		updates = append(updates, fmt.Sprintf("is_service = $%d", argPos))
+		args = append(args, *req.IsService)
+		argPos++
+	}
+
+	if len(updates) == 0 {
+		return r.GetProduct(ctx, id)
+	}
+
+	updates = append(updates, "updated_at = NOW()")
+	args = append(args, id)
+
+	query := fmt.Sprintf(`
+		UPDATE products SET %s
+		WHERE id = $%d
+		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
+		          parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
+		          images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		          is_active, is_service, created_at, updated_at
+	`, strings.Join(updates, ", "), argPos)
+
+	var product models.Product
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
+		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
+		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
+		&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
+		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("product not found")
+		}
+		return nil, fmt.Errorf("update product: %w", err)
+	}
+
+	return &product, nil
+}
+
+// DeleteProduct soft deletes a product by setting is_active to false
+func (r *Repository) DeleteProduct(ctx context.Context, id uuid.UUID) error {
+	result, err := r.pool.Exec(ctx, `
+		UPDATE products SET is_active = false, updated_at = NOW()
+		WHERE id = $1
+	`, id)
+	if err != nil {
+		return fmt.Errorf("delete product: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("product not found")
+	}
+
+	return nil
+}
+
+// ============================================================================
+// CRUD OPERATIONS - BRANDS
+// ============================================================================
+
+// CreateBrand creates a new brand in the database
+func (r *Repository) CreateBrand(ctx context.Context, req *CreateBrandRequest) (*models.Brand, error) {
+	brandSlug := slug.Make(req.Name)
+	if brandSlug == "" {
+		brandSlug = "brand"
+	}
+
+	// Generate a unique ultra_id for manually created brands
+	ultraID := fmt.Sprintf("manual-%s", uuid.New().String())
+
+	query := `
+		INSERT INTO brands (ultra_id, code, name, slug, logo_url, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, ultra_id, code, name, slug, logo_url, is_active, created_at, updated_at
+	`
+
+	var brand models.Brand
+	err := r.pool.QueryRow(ctx, query,
+		ultraID, req.Code, req.Name, brandSlug, req.LogoURL, req.IsActive,
+	).Scan(
+		&brand.ID, &brand.UltraID, &brand.Code, &brand.Name, &brand.Slug,
+		&brand.LogoURL, &brand.IsActive, &brand.CreatedAt, &brand.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create brand: %w", err)
+	}
+
+	return &brand, nil
+}
+
+// UpdateBrand updates an existing brand
+func (r *Repository) UpdateBrand(ctx context.Context, id uuid.UUID, req *UpdateBrandRequest) (*models.Brand, error) {
+	// Build dynamic update query
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if req.Name != nil {
+		updates = append(updates, fmt.Sprintf("name = $%d", argPos))
+		args = append(args, *req.Name)
+		argPos++
+
+		// Also update slug
+		updates = append(updates, fmt.Sprintf("slug = $%d", argPos))
+		args = append(args, slug.Make(*req.Name))
+		argPos++
+	}
+
+	if req.Code != nil {
+		updates = append(updates, fmt.Sprintf("code = $%d", argPos))
+		args = append(args, *req.Code)
+		argPos++
+	}
+
+	if req.LogoURL != nil {
+		updates = append(updates, fmt.Sprintf("logo_url = $%d", argPos))
+		args = append(args, *req.LogoURL)
+		argPos++
+	}
+
+	if req.IsActive != nil {
+		updates = append(updates, fmt.Sprintf("is_active = $%d", argPos))
+		args = append(args, *req.IsActive)
+		argPos++
+	}
+
+	if len(updates) == 0 {
+		return r.GetBrand(ctx, id)
+	}
+
+	updates = append(updates, "updated_at = NOW()")
+	args = append(args, id)
+
+	query := fmt.Sprintf(`
+		UPDATE brands SET %s
+		WHERE id = $%d
+		RETURNING id, ultra_id, code, name, slug, logo_url, is_active, created_at, updated_at
+	`, strings.Join(updates, ", "), argPos)
+
+	var brand models.Brand
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
+		&brand.ID, &brand.UltraID, &brand.Code, &brand.Name, &brand.Slug,
+		&brand.LogoURL, &brand.IsActive, &brand.CreatedAt, &brand.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("brand not found")
+		}
+		return nil, fmt.Errorf("update brand: %w", err)
+	}
+
+	return &brand, nil
+}
+
+// DeleteBrand soft deletes a brand by setting is_active to false
+func (r *Repository) DeleteBrand(ctx context.Context, id uuid.UUID) error {
+	result, err := r.pool.Exec(ctx, `
+		UPDATE brands SET is_active = false, updated_at = NOW()
+		WHERE id = $1
+	`, id)
+	if err != nil {
+		return fmt.Errorf("delete brand: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("brand not found")
+	}
+
+	return nil
+}
+
+// ============================================================================
+// CRUD OPERATIONS - CATEGORIES
+// ============================================================================
+
+// CreateCategory creates a new category in the database
+func (r *Repository) CreateCategory(ctx context.Context, req *CreateCategoryRequest) (*models.Category, error) {
+	categorySlug := slug.Make(req.Name)
+	if categorySlug == "" {
+		categorySlug = "category"
+	}
+
+	// Generate a unique ultra_id for manually created categories
+	ultraID := fmt.Sprintf("manual-%s", uuid.New().String())
+
+	query := `
+		INSERT INTO categories (ultra_id, code, parent_id, name, slug, sort_order, image_url, product_count, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
+		          image_url, product_count, is_active, created_at, updated_at
+	`
+
+	var category models.Category
+	err := r.pool.QueryRow(ctx, query,
+		ultraID, req.Code, req.ParentID, req.Name, categorySlug, req.SortOrder,
+		req.ImageURL, req.ProductCount, req.IsActive,
+	).Scan(
+		&category.ID, &category.UltraID, &category.Code, &category.ParentID,
+		&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
+		&category.ImageURL, &category.ProductCount, &category.IsActive,
+		&category.CreatedAt, &category.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create category: %w", err)
+	}
+
+	return &category, nil
+}
+
+// UpdateCategory updates an existing category
+func (r *Repository) UpdateCategory(ctx context.Context, id uuid.UUID, req *UpdateCategoryRequest) (*models.Category, error) {
+	// Build dynamic update query
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if req.Name != nil {
+		updates = append(updates, fmt.Sprintf("name = $%d", argPos))
+		args = append(args, *req.Name)
+		argPos++
+
+		// Also update slug
+		updates = append(updates, fmt.Sprintf("slug = $%d", argPos))
+		args = append(args, slug.Make(*req.Name))
+		argPos++
+	}
+
+	if req.Code != nil {
+		updates = append(updates, fmt.Sprintf("code = $%d", argPos))
+		args = append(args, *req.Code)
+		argPos++
+	}
+
+	if req.ParentID != nil {
+		updates = append(updates, fmt.Sprintf("parent_id = $%d", argPos))
+		args = append(args, *req.ParentID)
+		argPos++
+	}
+
+	if req.SortOrder != nil {
+		updates = append(updates, fmt.Sprintf("sort_order = $%d", argPos))
+		args = append(args, *req.SortOrder)
+		argPos++
+	}
+
+	if req.ImageURL != nil {
+		updates = append(updates, fmt.Sprintf("image_url = $%d", argPos))
+		args = append(args, *req.ImageURL)
+		argPos++
+	}
+
+	if req.ProductCount != nil {
+		updates = append(updates, fmt.Sprintf("product_count = $%d", argPos))
+		args = append(args, *req.ProductCount)
+		argPos++
+	}
+
+	if req.IsActive != nil {
+		updates = append(updates, fmt.Sprintf("is_active = $%d", argPos))
+		args = append(args, *req.IsActive)
+		argPos++
+	}
+
+	if len(updates) == 0 {
+		return r.GetCategory(ctx, id)
+	}
+
+	updates = append(updates, "updated_at = NOW()")
+	args = append(args, id)
+
+	query := fmt.Sprintf(`
+		UPDATE categories SET %s
+		WHERE id = $%d
+		RETURNING id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
+		          image_url, product_count, is_active, created_at, updated_at
+	`, strings.Join(updates, ", "), argPos)
+
+	var category models.Category
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
+		&category.ID, &category.UltraID, &category.Code, &category.ParentID,
+		&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
+		&category.ImageURL, &category.ProductCount, &category.IsActive,
+		&category.CreatedAt, &category.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("category not found")
+		}
+		return nil, fmt.Errorf("update category: %w", err)
+	}
+
+	return &category, nil
+}
+
+// DeleteCategory soft deletes a category by setting is_active to false
+func (r *Repository) DeleteCategory(ctx context.Context, id uuid.UUID) error {
+	result, err := r.pool.Exec(ctx, `
+		UPDATE categories SET is_active = false, updated_at = NOW()
+		WHERE id = $1
+	`, id)
+	if err != nil {
+		return fmt.Errorf("delete category: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("category not found")
+	}
+
+	return nil
+}
+
+// ============================================================================
+// BULK OPERATIONS
+// ============================================================================
+
+// BulkUpdateProducts updates multiple products at once
+func (r *Repository) BulkUpdateProducts(ctx context.Context, ids []uuid.UUID, isActive *bool) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if isActive != nil {
+		updates = append(updates, fmt.Sprintf("is_active = $%d", argPos))
+		args = append(args, *isActive)
+		argPos++
+	}
+
+	if len(updates) == 0 {
+		return 0, nil
+	}
+
+	updates = append(updates, "updated_at = NOW()")
+
+	// Build IN clause for IDs
+	idStrings := make([]string, len(ids))
+	for i, id := range ids {
+		idStrings[i] = fmt.Sprintf("$%d", argPos)
+		args = append(args, id)
+		argPos++
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE products SET %s
+		WHERE id IN (%s)
+	`, strings.Join(updates, ", "), strings.Join(idStrings, ", "))
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk update products: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
+
+// BulkDeleteProducts soft deletes multiple products at once
+func (r *Repository) BulkDeleteProducts(ctx context.Context, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	// Build IN clause for IDs
+	args := make([]interface{}, len(ids))
+	idStrings := make([]string, len(ids))
+	for i, id := range ids {
+		idStrings[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE products SET is_active = false, updated_at = NOW()
+		WHERE id IN (%s)
+	`, strings.Join(idStrings, ", "))
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk delete products: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
+
+// BulkUpdateBrands updates multiple brands at once
+func (r *Repository) BulkUpdateBrands(ctx context.Context, ids []uuid.UUID, isActive *bool) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if isActive != nil {
+		updates = append(updates, fmt.Sprintf("is_active = $%d", argPos))
+		args = append(args, *isActive)
+		argPos++
+	}
+
+	if len(updates) == 0 {
+		return 0, nil
+	}
+
+	updates = append(updates, "updated_at = NOW()")
+
+	// Build IN clause for IDs
+	idStrings := make([]string, len(ids))
+	for i, id := range ids {
+		idStrings[i] = fmt.Sprintf("$%d", argPos)
+		args = append(args, id)
+		argPos++
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE brands SET %s
+		WHERE id IN (%s)
+	`, strings.Join(updates, ", "), strings.Join(idStrings, ", "))
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk update brands: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
+
+// BulkUpdateCategories updates multiple categories at once
+func (r *Repository) BulkUpdateCategories(ctx context.Context, ids []uuid.UUID, isActive *bool) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if isActive != nil {
+		updates = append(updates, fmt.Sprintf("is_active = $%d", argPos))
+		args = append(args, *isActive)
+		argPos++
+	}
+
+	if len(updates) == 0 {
+		return 0, nil
+	}
+
+	updates = append(updates, "updated_at = NOW()")
+
+	// Build IN clause for IDs
+	idStrings := make([]string, len(ids))
+	for i, id := range ids {
+		idStrings[i] = fmt.Sprintf("$%d", argPos)
+		args = append(args, id)
+		argPos++
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE categories SET %s
+		WHERE id IN (%s)
+	`, strings.Join(updates, ", "), strings.Join(idStrings, ", "))
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk update categories: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
+
+// ============================================================================
+// EXPORT HELPERS
+// ============================================================================
+
+// ListAllCategories returns all active categories without pagination (for export)
+func (r *Repository) ListAllCategories(ctx context.Context) ([]*models.Category, error) {
+	query := `
+		SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
+		       image_url, product_count, is_active, created_at, updated_at
+		FROM categories
+		WHERE is_active = true
+		ORDER BY sort_order ASC, name ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	categories := make([]*models.Category, 0)
+	for rows.Next() {
+		var category models.Category
+		err := rows.Scan(
+			&category.ID, &category.UltraID, &category.Code, &category.ParentID,
+			&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
+			&category.ImageURL, &category.ProductCount, &category.IsActive,
+			&category.CreatedAt, &category.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, &category)
+	}
+
+	return categories, nil
+}
+
+// GetExchangeRates returns all exchange rates
+func (r *Repository) GetExchangeRates(ctx context.Context) ([]*models.ExchangeRate, error) {
+	query := `
+		SELECT id, currency_uuid, currency_code, currency_name, rate, updated_at
+		FROM exchange_rates
+		ORDER BY currency_code
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	rates := make([]*models.ExchangeRate, 0)
+	for rows.Next() {
+		var rate models.ExchangeRate
+		err := rows.Scan(
+			&rate.ID, &rate.CurrencyUUID, &rate.CurrencyCode,
+			&rate.CurrencyName, &rate.Rate, &rate.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		rates = append(rates, &rate)
+	}
+
+	return rates, nil
 }

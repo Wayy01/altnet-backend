@@ -101,13 +101,23 @@ bun dev          # Starts on http://localhost:3000
 
 | Route | Purpose |
 |-------|---------|
-| `/` | Dashboard with statistics cards |
-| `/products` | Products table with search, filters, pagination |
+| `/` | Dashboard with real-time statistics, low stock alerts, recent sync activity |
+| `/products` | Products table with bulk actions, export, status toggles |
 | `/products/[id]` | Product detail with properties & characteristics |
-| `/brands` | Brands management table |
-| `/categories` | Hierarchical category tree |
-| `/sync` | Sync status and logs |
+| `/brands` | Brands management with status toggles and delete actions |
+| `/categories` | Hierarchical category tree with status toggles |
+| `/sync` | Sync logs with pagination, refresh, and status history |
 | `/settings` | Configuration info |
+
+### Dashboard Features (Nov 2025)
+
+- **Real-time Statistics**: Product/brand/category counts from backend API
+- **Low Stock Alerts**: Products with stock <= 5 displayed on dashboard
+- **Bulk Operations**: Select multiple products to activate/deactivate/delete
+- **CSV Export**: Export filtered product data to CSV
+- **Toast Notifications**: Success/error feedback using Sonner
+- **Confirmation Dialogs**: Destructive action confirmations
+- **Status Toggles**: Enable/disable products, brands, categories inline
 
 ### Tech Stack
 
@@ -121,10 +131,13 @@ bun dev          # Starts on http://localhost:3000
 
 | File | Purpose |
 |------|---------|
-| `src/lib/api.ts` | API client for Go backend |
+| `src/lib/api.ts` | API client for Go backend (all endpoints) |
 | `src/types/index.ts` | TypeScript type definitions |
 | `src/components/app-sidebar.tsx` | Navigation sidebar |
-| `src/components/products/products-table.tsx` | Reusable products table |
+| `src/components/products/products-table.tsx` | Products table with bulk actions |
+| `src/components/confirm-dialog.tsx` | Reusable confirmation dialog |
+| `src/components/ui/switch.tsx` | Toggle switch component |
+| `src/components/ui/sonner.tsx` | Toast notifications |
 
 ### Key Dependencies
 
@@ -168,24 +181,75 @@ ULTRA_API_MAX_RETRIES=3
 
 Server runs on `http://localhost:8080`
 
+### Core Endpoints
+
 ```bash
 # Products
-GET /api/v1/products                      # List products (with filters)
-GET /api/v1/products/{id}                 # Get product details
-GET /api/v1/products/{id}/properties      # Get product properties
-GET /api/v1/products/{id}/characteristics # Get product variants
+GET    /api/v1/products                      # List products (with filters)
+GET    /api/v1/products/{id}                 # Get product details
+GET    /api/v1/products/{id}/properties      # Get product properties
+GET    /api/v1/products/{id}/characteristics # Get product variants
+POST   /api/v1/products                      # Create product
+PUT    /api/v1/products/{id}                 # Update product
+DELETE /api/v1/products/{id}                 # Soft delete product
 
-# Other
-GET /api/v1/brands                        # List brands
-GET /api/v1/categories                    # List categories
-GET /api/v1/search?q=query                # Search products
+# Brands
+GET    /api/v1/brands                        # List brands
+GET    /api/v1/brands/{id}                   # Get brand details
+POST   /api/v1/brands                        # Create brand
+PUT    /api/v1/brands/{id}                   # Update brand
+DELETE /api/v1/brands/{id}                   # Soft delete brand
 
-# Query parameters
-?limit=50&offset=0                        # Pagination
+# Categories
+GET    /api/v1/categories                    # List categories
+GET    /api/v1/categories/{id}               # Get category details
+POST   /api/v1/categories                    # Create category
+PUT    /api/v1/categories/{id}               # Update category
+DELETE /api/v1/categories/{id}               # Soft delete category
+
+# Search
+GET    /api/v1/search?q=query                # Search products
+```
+
+### Dashboard & Management Endpoints
+
+```bash
+# Dashboard Statistics
+GET /api/v1/dashboard/stats                  # Aggregate counts, stock summaries
+GET /api/v1/dashboard/stock-summary          # Stock by category (top 20)
+GET /api/v1/dashboard/price-summary          # Price distribution and ranges
+
+# Sync Management
+GET /api/v1/sync/logs                        # List sync logs (paginated, filterable)
+GET /api/v1/sync/logs/{id}                   # Get sync log details
+GET /api/v1/sync/status                      # Latest sync status
+
+# Bulk Operations
+PATCH  /api/v1/products/bulk                 # Bulk update products (enable/disable)
+DELETE /api/v1/products/bulk                 # Bulk soft delete products
+PATCH  /api/v1/brands/bulk                   # Bulk update brands
+PATCH  /api/v1/categories/bulk               # Bulk update categories
+
+# Export
+GET /api/v1/export/products?format=csv       # Export products (JSON or CSV)
+GET /api/v1/export/brands?format=csv         # Export brands
+GET /api/v1/export/categories?format=csv     # Export categories
+
+# Config & Health
+GET /api/v1/config                           # Application configuration
+GET /api/v1/health                           # Health check with DB status
+```
+
+### Query Parameters
+
+```bash
+?limit=50&offset=0                        # Pagination (max 100)
 ?brand_id=uuid                            # Filter by brand
 ?category_id=uuid                         # Filter by category
 ?in_stock=true                            # Filter in-stock only
 ?min_price=100&max_price=500              # Price range
+?status=completed&sync_type=full          # Sync log filters
+?format=json|csv                          # Export format
 ```
 
 ## Data Model Notes
