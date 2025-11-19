@@ -81,6 +81,50 @@ products (48,316) ← categories (418)
 | `internal/handlers` | REST API HTTP handlers |
 | `cmd/sync` | Main sync application |
 | `cmd/unified-api` | REST API server |
+| `admin-intelect/` | Next.js CMS dashboard |
+
+## Admin Intelect Dashboard
+
+Next.js 14+ CMS dashboard for managing the Ultra B2B backend.
+
+**Location**: `admin-intelect/`
+
+### Running the Dashboard
+
+```bash
+cd admin-intelect
+bun install
+bun dev          # Starts on http://localhost:3000
+```
+
+### Dashboard Pages
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Dashboard with statistics cards |
+| `/products` | Products table with search, filters, pagination |
+| `/products/[id]` | Product detail with properties & characteristics |
+| `/brands` | Brands management table |
+| `/categories` | Hierarchical category tree |
+| `/sync` | Sync status and logs |
+| `/settings` | Configuration info |
+
+### Tech Stack
+
+- Next.js 14+ (App Router)
+- TypeScript
+- Tailwind CSS
+- shadcn/ui components
+- bun package manager
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/api.ts` | API client for Go backend |
+| `src/types/index.ts` | TypeScript type definitions |
+| `src/components/app-sidebar.tsx` | Navigation sidebar |
+| `src/components/products/products-table.tsx` | Reusable products table |
 
 ### Key Dependencies
 
