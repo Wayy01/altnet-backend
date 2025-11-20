@@ -426,7 +426,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
       {/* Header Section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">
-          <Button variant="outline" size="icon" asChild className="shrink-0 mt-1">
+          <Button variant="outline" size="icon" asChild className="shrink-0 mt-1 transition-colors hover:bg-secondary">
             <Link href="/categories">
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -436,7 +436,9 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
               <h1 className="text-3xl font-bold tracking-tight">{category.name}</h1>
               <Badge
                 variant={category.is_active ? "default" : "secondary"}
-                className={category.is_active ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100" : ""}
+                className={category.is_active
+                  ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100"
+                  : "bg-gray-100 text-gray-700 border-gray-200"}
               >
                 {category.is_active ? "Active" : "Inactive"}
               </Badge>
@@ -468,25 +470,19 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
 
       {/* Statistics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm">
+        <Card className="shadow-sm transition-all hover:shadow-md border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Total Products
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Products</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{category.total_products.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-foreground">{category.total_products.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">All products in this category</p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-sm transition-all hover:shadow-md border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              Active Products
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Products</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{category.active_products.toLocaleString()}</div>
@@ -498,12 +494,9 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-sm transition-all hover:shadow-md border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Warehouse className="h-4 w-4 text-blue-600" />
-              In Stock
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">In Stock</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{category.in_stock_products.toLocaleString()}</div>
@@ -515,12 +508,9 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-sm transition-all hover:shadow-md border-border">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Tag className="h-4 w-4 text-purple-600" />
-              With Prices
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">With Prices</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">{category.with_prices_products.toLocaleString()}</div>
@@ -686,7 +676,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 <Link key={sub.id} href={`/categories/${sub.id}`}>
                   <Badge
                     variant="outline"
-                    className="cursor-pointer hover:bg-muted transition-colors px-3 py-1.5"
+                    className="cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all px-3 py-1.5 border-border"
                   >
                     <FolderTree className="h-3 w-3 mr-1.5" />
                     {sub.name}
@@ -733,7 +723,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
             <>
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead className="font-semibold">Name</TableHead>
                     <TableHead className="font-semibold">Code</TableHead>
                     <TableHead className="text-right font-semibold">Price</TableHead>
@@ -744,11 +734,11 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 </TableHeader>
                 <TableBody>
                   {products.map((product) => (
-                    <TableRow key={product.id} className="hover:bg-muted/30 transition-colors">
+                    <TableRow key={product.id} className="hover:bg-blue-50/30 transition-colors border-b">
                       <TableCell className="font-medium max-w-[300px]">
                         <Link
                           href={`/products/${product.id}`}
-                          className="hover:underline text-primary truncate block"
+                          className="hover:underline text-primary truncate block transition-colors"
                         >
                           {product.name.length > 50
                             ? `${product.name.substring(0, 50)}...`
@@ -760,7 +750,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                       </TableCell>
                       <TableCell className="text-right">
                         {product.price_min !== null ? (
-                          <span className="font-medium">
+                          <span className="font-medium text-foreground">
                             {formatPrice(product.price_min)}
                           </span>
                         ) : (
@@ -771,8 +761,8 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                         <Badge
                           variant={product.total_stock > 0 ? "outline" : "destructive"}
                           className={product.total_stock > 0
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : ""
+                            ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                            : "bg-red-50 text-red-700 border-red-200"
                           }
                         >
                           <Warehouse className="h-3 w-3 mr-1" />
@@ -789,14 +779,14 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondary">
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-[160px]">
                             <DropdownMenuItem asChild>
-                              <Link href={`/products/${product.id}`}>
+                              <Link href={`/products/${product.id}`} className="cursor-pointer">
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
                               </Link>
@@ -807,7 +797,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                                 setProductToDelete(product);
                                 setShowDeleteProductDialog(true);
                               }}
-                              className="text-destructive focus:text-destructive"
+                              className="text-destructive focus:text-destructive cursor-pointer"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
@@ -822,7 +812,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
+                <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50/50">
                   <div className="text-sm text-muted-foreground">
                     Showing {((currentPage - 1) * productsPerPage) + 1} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts.toLocaleString()} products
                   </div>
@@ -832,11 +822,12 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                       size="sm"
                       onClick={() => fetchProducts(currentPage - 1)}
                       disabled={currentPage === 1}
+                      className="bg-white hover:bg-secondary"
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
                     </Button>
-                    <div className="text-sm font-medium px-3 py-1 bg-background border rounded-md">
+                    <div className="text-sm font-medium px-3 py-1 bg-white border rounded-md shadow-sm">
                       {currentPage} / {totalPages}
                     </div>
                     <Button
@@ -844,6 +835,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                       size="sm"
                       onClick={() => fetchProducts(currentPage + 1)}
                       disabled={currentPage === totalPages}
+                      className="bg-white hover:bg-secondary"
                     >
                       Next
                       <ChevronRight className="h-4 w-4 ml-1" />
