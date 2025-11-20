@@ -144,16 +144,41 @@ func (h *Handler) GetBrandProducts(w http.ResponseWriter, r *http.Request) {
 
 	limit, offset := h.parsePagination(r)
 
-	products, err := h.repo.GetProductsByBrandID(r.Context(), id, limit, offset)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to fetch brand products", err.Error())
-		return
+	// Parse filter query params
+	filters := repository.ProductFilters{
+		PriceFilter:  r.URL.Query().Get("price_filter"),
+		StockFilter:  r.URL.Query().Get("stock_filter"),
+		StatusFilter: r.URL.Query().Get("status_filter"),
 	}
 
-	total, err := h.repo.CountProductsByBrandID(r.Context(), id)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to count brand products", err.Error())
-		return
+	// Use filtered functions if any filters are provided
+	hasFilters := filters.PriceFilter != "" || filters.StockFilter != "" || filters.StatusFilter != ""
+
+	var products []*repository.BrandProduct
+	var total int
+
+	if hasFilters {
+		products, err = h.repo.GetProductsByBrandIDWithFilters(r.Context(), id, filters, limit, offset)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to fetch brand products", err.Error())
+			return
+		}
+		total, err = h.repo.CountProductsByBrandIDWithFilters(r.Context(), id, filters)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to count brand products", err.Error())
+			return
+		}
+	} else {
+		products, err = h.repo.GetProductsByBrandID(r.Context(), id, limit, offset)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to fetch brand products", err.Error())
+			return
+		}
+		total, err = h.repo.CountProductsByBrandID(r.Context(), id)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to count brand products", err.Error())
+			return
+		}
 	}
 
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
@@ -168,12 +193,15 @@ func (h *Handler) GetBrandProducts(w http.ResponseWriter, r *http.Request) {
 
 // BulkUpdateBrandProductsRequest represents the request body for bulk updating brand products
 type BulkUpdateBrandProductsRequest struct {
-	IsActive bool `json:"is_active"`
+	IsActive    bool                    `json:"is_active"`
+	PriceFilter  *string                `json:"price_filter,omitempty"`
+	StockFilter  *string                `json:"stock_filter,omitempty"`
+	StatusFilter *string                `json:"status_filter,omitempty"`
 }
 
 // BulkUpdateBrandProducts handles PATCH /api/v1/brands/{id}/products/bulk
 // @Summary Bulk update all products for a brand
-// @Description Activates or deactivates all products belonging to a brand
+// @Description Activates or deactivates all products belonging to a brand (optionally filtered)
 // @Tags Brands
 // @Accept json
 // @Produce json
@@ -197,7 +225,29 @@ func (h *Handler) BulkUpdateBrandProducts(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	updated, err := h.repo.BulkUpdateProductsByBrandID(r.Context(), id, req.IsActive)
+	var updated int
+
+	// Check if filters are provided
+	hasFilters := req.PriceFilter != nil || req.StockFilter != nil || req.StatusFilter != nil
+
+	if hasFilters {
+		// Build filters
+		filters := repository.ProductFilters{}
+		if req.PriceFilter != nil {
+			filters.PriceFilter = *req.PriceFilter
+		}
+		if req.StockFilter != nil {
+			filters.StockFilter = *req.StockFilter
+		}
+		if req.StatusFilter != nil {
+			filters.StatusFilter = *req.StatusFilter
+		}
+
+		updated, err = h.repo.BulkUpdateProductsByBrandIDWithFilters(r.Context(), id, filters, req.IsActive)
+	} else {
+		updated, err = h.repo.BulkUpdateProductsByBrandID(r.Context(), id, req.IsActive)
+	}
+
 	if err != nil {
 		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update products", err.Error())
 		return
@@ -211,6 +261,20 @@ func (h *Handler) BulkUpdateBrandProducts(w http.ResponseWriter, r *http.Request
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
 		"message": fmt.Sprintf("Successfully %s %d products", action, updated),
 		"updated": updated,
+	})
+}
+
+// GetAllBrands handles GET /api/v1/brands/all
+// Returns all brands without pagination (for dropdown filters)
+func (h *Handler) GetAllBrands(w http.ResponseWriter, r *http.Request) {
+	brands, err := h.repo.GetAllBrands(r.Context())
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch all brands", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": brands,
 	})
 }
 
@@ -335,16 +399,41 @@ func (h *Handler) GetCategoryProducts(w http.ResponseWriter, r *http.Request) {
 
 	limit, offset := h.parsePagination(r)
 
-	products, err := h.repo.GetProductsByCategoryID(r.Context(), id, limit, offset)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to fetch category products", err.Error())
-		return
+	// Parse filter query params
+	filters := repository.ProductFilters{
+		PriceFilter:  r.URL.Query().Get("price_filter"),
+		StockFilter:  r.URL.Query().Get("stock_filter"),
+		StatusFilter: r.URL.Query().Get("status_filter"),
 	}
 
-	total, err := h.repo.CountProductsByCategoryID(r.Context(), id)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to count category products", err.Error())
-		return
+	// Use filtered functions if any filters are provided
+	hasFilters := filters.PriceFilter != "" || filters.StockFilter != "" || filters.StatusFilter != ""
+
+	var products []*repository.CategoryProduct
+	var total int
+
+	if hasFilters {
+		products, err = h.repo.GetProductsByCategoryIDWithFilters(r.Context(), id, filters, limit, offset)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to fetch category products", err.Error())
+			return
+		}
+		total, err = h.repo.CountProductsByCategoryIDWithFilters(r.Context(), id, filters)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to count category products", err.Error())
+			return
+		}
+	} else {
+		products, err = h.repo.GetProductsByCategoryID(r.Context(), id, limit, offset)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to fetch category products", err.Error())
+			return
+		}
+		total, err = h.repo.CountProductsByCategoryID(r.Context(), id)
+		if err != nil {
+			h.respondError(w, http.StatusInternalServerError, "Failed to count category products", err.Error())
+			return
+		}
 	}
 
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
@@ -359,7 +448,10 @@ func (h *Handler) GetCategoryProducts(w http.ResponseWriter, r *http.Request) {
 
 // BulkUpdateCategoryProductsRequest represents the request body for bulk updating category products
 type BulkUpdateCategoryProductsRequest struct {
-	IsActive bool `json:"is_active"`
+	IsActive    bool                    `json:"is_active"`
+	PriceFilter  *string                `json:"price_filter,omitempty"`
+	StockFilter  *string                `json:"stock_filter,omitempty"`
+	StatusFilter *string                `json:"status_filter,omitempty"`
 }
 
 // BulkUpdateCategoryProducts handles PATCH /api/v1/categories/{id}/products/bulk
@@ -377,7 +469,29 @@ func (h *Handler) BulkUpdateCategoryProducts(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	updated, err := h.repo.BulkUpdateProductsByCategoryID(r.Context(), id, req.IsActive)
+	var updated int
+
+	// Check if filters are provided
+	hasFilters := req.PriceFilter != nil || req.StockFilter != nil || req.StatusFilter != nil
+
+	if hasFilters {
+		// Build filters
+		filters := repository.ProductFilters{}
+		if req.PriceFilter != nil {
+			filters.PriceFilter = *req.PriceFilter
+		}
+		if req.StockFilter != nil {
+			filters.StockFilter = *req.StockFilter
+		}
+		if req.StatusFilter != nil {
+			filters.StatusFilter = *req.StatusFilter
+		}
+
+		updated, err = h.repo.BulkUpdateProductsByCategoryIDWithFilters(r.Context(), id, filters, req.IsActive)
+	} else {
+		updated, err = h.repo.BulkUpdateProductsByCategoryID(r.Context(), id, req.IsActive)
+	}
+
 	if err != nil {
 		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update products", err.Error())
 		return
@@ -440,6 +554,20 @@ func (h *Handler) GetCategory(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetAllCategories handles GET /api/v1/categories/all
+// Returns all categories without pagination (for dropdown filters)
+func (h *Handler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
+	categories, err := h.repo.GetAllCategories(r.Context())
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch all categories", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": categories,
+	})
+}
+
 // ============================================================================
 // PRODUCT ENDPOINTS
 // ============================================================================
@@ -448,41 +576,59 @@ func (h *Handler) GetCategory(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	limit, offset := h.parsePagination(r)
 
-	filter := &repository.ProductFilter{
-		IsActive: true,
+	filter := &repository.ProductFilter{}
+
+	// Search filter
+	if search := r.URL.Query().Get("search"); search != "" {
+		filter.Search = search
 	}
 
+	// Brand filter
 	if brandIDStr := r.URL.Query().Get("brand_id"); brandIDStr != "" {
 		if id, err := uuid.Parse(brandIDStr); err == nil {
 			filter.BrandID = &id
 		}
 	}
 
+	// Category filter
 	if categoryIDStr := r.URL.Query().Get("category_id"); categoryIDStr != "" {
 		if id, err := uuid.Parse(categoryIDStr); err == nil {
 			filter.CategoryID = &id
 		}
 	}
 
+	// Price filters (new)
+	filter.PriceFilter = r.URL.Query().Get("price_filter") // "all", "with_price", "no_price"
+
+	// Stock filters (new)
+	filter.StockFilter = r.URL.Query().Get("stock_filter") // "all", "in_stock", "out_stock"
+
+	// Status filter (new - for admin CMS)
+	statusFilter := r.URL.Query().Get("status_filter") // "all", "active", "inactive"
+	if statusFilter != "" {
+		filter.StatusFilter = statusFilter
+	} else {
+		// Default: show all products in admin CMS (no status filter)
+		filter.StatusFilter = "all"
+	}
+
+	// Sort filter (new)
+	filter.SortBy = r.URL.Query().Get("sort_by") // "name_asc", "name_desc", "price_high", "price_low", "stock_high", "stock_low"
+
+	// Legacy filters (for backward compatibility)
 	if inStockStr := r.URL.Query().Get("in_stock"); inStockStr == "true" {
 		inStock := true
 		filter.InStock = &inStock
 	}
-
 	if minPriceStr := r.URL.Query().Get("min_price"); minPriceStr != "" {
 		if price, err := strconv.ParseFloat(minPriceStr, 64); err == nil {
 			filter.MinPrice = &price
 		}
 	}
-
 	if maxPriceStr := r.URL.Query().Get("max_price"); maxPriceStr != "" {
 		if price, err := strconv.ParseFloat(maxPriceStr, 64); err == nil {
 			filter.MaxPrice = &price
 		}
-	}
-
-	if search := r.URL.Query().Get("search"); search != "" {
-		filter.Search = search
 	}
 
 	products, err := h.repo.ListProducts(r.Context(), filter, limit, offset)
@@ -1745,8 +1891,19 @@ func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 // BulkUpdateRequest represents a bulk update operation request
 type BulkUpdateRequest struct {
-	IDs      []uuid.UUID `json:"ids"`
-	IsActive *bool       `json:"is_active"`
+	IDs      []uuid.UUID       `json:"ids,omitempty"`
+	Filter   *ProductFilter    `json:"filter,omitempty"`
+	IsActive *bool             `json:"is_active"`
+}
+
+// ProductFilter represents filter criteria for products
+type ProductFilter struct {
+	Search       string `json:"search,omitempty"`
+	BrandID      string `json:"brand_id,omitempty"`
+	CategoryID   string `json:"category_id,omitempty"`
+	PriceFilter  string `json:"price_filter,omitempty"`
+	StockFilter  string `json:"stock_filter,omitempty"`
+	StatusFilter string `json:"status_filter,omitempty"`
 }
 
 // BulkDeleteRequest represents a bulk delete operation request
@@ -1772,17 +1929,53 @@ func (h *Handler) BulkUpdateProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.IDs) == 0 {
-		h.respondError(w, http.StatusBadRequest, "Validation failed", "ids array is required")
+	// Support both ID-based and filter-based updates
+	var updated int
+	var err error
+
+	if req.Filter != nil {
+		// Filter-based update: update all products matching filter criteria
+		if req.IsActive == nil {
+			h.respondError(w, http.StatusBadRequest, "Validation failed", "is_active is required")
+			return
+		}
+
+		// Convert filter to repository filter
+		repoFilter := &repository.ProductFilter{
+			Search:       req.Filter.Search,
+			PriceFilter:  req.Filter.PriceFilter,
+			StockFilter:  req.Filter.StockFilter,
+			StatusFilter: req.Filter.StatusFilter,
+		}
+
+		// Parse brand_id if provided
+		if req.Filter.BrandID != "" {
+			if id, err := uuid.Parse(req.Filter.BrandID); err == nil {
+				repoFilter.BrandID = &id
+			}
+		}
+
+		// Parse category_id if provided
+		if req.Filter.CategoryID != "" {
+			if id, err := uuid.Parse(req.Filter.CategoryID); err == nil {
+				repoFilter.CategoryID = &id
+			}
+		}
+
+		updated, err = h.repo.BulkUpdateProductsByFilter(r.Context(), repoFilter, *req.IsActive)
+	} else if len(req.IDs) > 0 {
+		// ID-based update: update specific products
+		if len(req.IDs) > 100 {
+			h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
+			return
+		}
+
+		updated, err = h.repo.BulkUpdateProducts(r.Context(), req.IDs, req.IsActive)
+	} else {
+		h.respondError(w, http.StatusBadRequest, "Validation failed", "either ids or filter is required")
 		return
 	}
 
-	if len(req.IDs) > 100 {
-		h.respondError(w, http.StatusBadRequest, "Validation failed", "maximum 100 items per bulk operation")
-		return
-	}
-
-	updated, err := h.repo.BulkUpdateProducts(r.Context(), req.IDs, req.IsActive)
 	if err != nil {
 		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update products", err.Error())
 		return

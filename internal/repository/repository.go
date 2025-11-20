@@ -349,6 +349,39 @@ func (r *Repository) CountBrandsWithSearch(ctx context.Context, search string, h
 	return count, err
 }
 
+// GetAllBrands returns all brands without pagination (for dropdown filters)
+func (r *Repository) GetAllBrands(ctx context.Context) ([]*models.Brand, error) {
+	query := `
+		SELECT b.id, b.ultra_id, b.code, b.name, b.slug, b.logo_url, b.is_active,
+			   COALESCE(COUNT(p.id), 0) as product_count, b.created_at, b.updated_at
+		FROM brands b
+		LEFT JOIN products p ON p.brand_id = b.id AND p.is_active = true
+		GROUP BY b.id
+		ORDER BY b.name ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	brands := make([]*models.Brand, 0)
+	for rows.Next() {
+		var brand models.Brand
+		err := rows.Scan(
+			&brand.ID, &brand.UltraID, &brand.Code, &brand.Name, &brand.Slug,
+			&brand.LogoURL, &brand.IsActive, &brand.ProductCount, &brand.CreatedAt, &brand.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		brands = append(brands, &brand)
+	}
+
+	return brands, nil
+}
+
 // BulkUpdateBrandsByFilter updates all brands matching the given filter criteria
 // isActiveFilter is the filter for current status ("true", "false", or "" for all)
 // isActive is the new value to set
@@ -774,6 +807,40 @@ func (r *Repository) CountCategoriesWithSearch(ctx context.Context, search strin
 	return count, err
 }
 
+// GetAllCategories returns all categories without pagination (for dropdown filters)
+func (r *Repository) GetAllCategories(ctx context.Context) ([]*models.Category, error) {
+	query := `
+		SELECT c.id, c.ultra_id, c.code, c.name, c.slug, c.image_url,
+		       c.parent_id, COALESCE(parent.name, '') as parent_name,
+		       c.sort_order, c.is_active, c.created_at, c.updated_at
+		FROM categories c
+		LEFT JOIN categories parent ON parent.id = c.parent_id
+		ORDER BY c.name ASC
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	categories := make([]*models.Category, 0)
+	for rows.Next() {
+		var category models.Category
+		err := rows.Scan(
+			&category.ID, &category.UltraID, &category.Code, &category.Name, &category.Slug,
+			&category.ImageURL, &category.ParentID, &category.ParentName, &category.SortOrder,
+			&category.IsActive, &category.CreatedAt, &category.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, &category)
+	}
+
+	return categories, nil
+}
+
 // BulkUpdateCategoriesByFilter updates all categories matching the given filter criteria
 func (r *Repository) BulkUpdateCategoriesByFilter(ctx context.Context, search string, hasProducts string, isActiveFilter string, isActive bool) (int, error) {
 	// Build WHERE clause for the subquery - start empty for admin view (show all by default)
@@ -888,6 +955,9 @@ type CategoryProduct struct {
 	Code       string    `json:"code"`
 	PriceMin   *float64  `json:"price_min"`
 	PriceMax   *float64  `json:"price_max"`
+	PriceMDL   *float64  `json:"price_mdl"`
+	PriceEUR   *float64  `json:"price_eur"`
+	PriceUSD   *float64  `json:"price_usd"`
 	TotalStock int       `json:"total_stock"`
 	IsActive   bool      `json:"is_active"`
 }
@@ -895,7 +965,7 @@ type CategoryProduct struct {
 // GetProductsByCategoryID returns paginated products for a specific category
 func (r *Repository) GetProductsByCategoryID(ctx context.Context, categoryID uuid.UUID, limit, offset int) ([]*CategoryProduct, error) {
 	query := `
-		SELECT id, name, COALESCE(code, ''), price_min, price_max, total_stock, is_active
+		SELECT id, name, COALESCE(code, ''), price_min, price_max, price_mdl, price_eur, price_usd, total_stock, is_active
 		FROM products
 		WHERE category_id = $1
 		ORDER BY name ASC
@@ -913,7 +983,7 @@ func (r *Repository) GetProductsByCategoryID(ctx context.Context, categoryID uui
 		var product CategoryProduct
 		err := rows.Scan(
 			&product.ID, &product.Name, &product.Code, &product.PriceMin,
-			&product.PriceMax, &product.TotalStock, &product.IsActive,
+			&product.PriceMax, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD, &product.TotalStock, &product.IsActive,
 		)
 		if err != nil {
 			return nil, err
@@ -936,6 +1006,151 @@ func (r *Repository) BulkUpdateProductsByCategoryID(ctx context.Context, categor
 	result, err := r.pool.Exec(ctx, `
 		UPDATE products SET is_active = $1, updated_at = NOW() WHERE category_id = $2
 	`, isActive, categoryID)
+	if err != nil {
+		return 0, err
+	}
+	return int(result.RowsAffected()), nil
+}
+
+// GetProductsByCategoryIDWithFilters returns filtered and paginated products for a specific category
+func (r *Repository) GetProductsByCategoryIDWithFilters(ctx context.Context, categoryID uuid.UUID, filters ProductFilters, limit, offset int) ([]*CategoryProduct, error) {
+	query := `
+		SELECT id, name, COALESCE(code, ''), price_min, price_max, price_mdl, price_eur, price_usd, total_stock, is_active
+		FROM products
+		WHERE category_id = $1
+	`
+
+	args := []interface{}{categoryID}
+	paramIndex := 2
+
+	// Price filters
+	if filters.PriceFilter == "no_price" {
+		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+	} else if filters.PriceFilter == "no_mdl" {
+		query += " AND price_mdl IS NULL"
+	} else if filters.PriceFilter == "no_eur" {
+		query += " AND price_eur IS NULL"
+	} else if filters.PriceFilter == "no_usd" {
+		query += " AND price_usd IS NULL"
+	} else if filters.PriceFilter == "with_price" {
+		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+	}
+
+	// Stock filters
+	if filters.StockFilter == "in_stock" {
+		query += " AND total_stock > 0"
+	} else if filters.StockFilter == "out_of_stock" {
+		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+	} else if filters.StockFilter == "low_stock" {
+		query += " AND total_stock > 0 AND total_stock <= 5"
+	}
+
+	// Status filters
+	if filters.StatusFilter == "active" {
+		query += " AND is_active = true"
+	} else if filters.StatusFilter == "inactive" {
+		query += " AND is_active = false"
+	}
+
+	query += fmt.Sprintf(" ORDER BY name ASC LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	products := make([]*CategoryProduct, 0)
+	for rows.Next() {
+		var product CategoryProduct
+		err := rows.Scan(
+			&product.ID, &product.Name, &product.Code, &product.PriceMin,
+			&product.PriceMax, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD, &product.TotalStock, &product.IsActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, &product)
+	}
+
+	return products, nil
+}
+
+// CountProductsByCategoryIDWithFilters returns the total count of filtered products for a category
+func (r *Repository) CountProductsByCategoryIDWithFilters(ctx context.Context, categoryID uuid.UUID, filters ProductFilters) (int, error) {
+	query := "SELECT COUNT(*) FROM products WHERE category_id = $1"
+	args := []interface{}{categoryID}
+
+	// Price filters
+	if filters.PriceFilter == "no_price" {
+		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+	} else if filters.PriceFilter == "no_mdl" {
+		query += " AND price_mdl IS NULL"
+	} else if filters.PriceFilter == "no_eur" {
+		query += " AND price_eur IS NULL"
+	} else if filters.PriceFilter == "no_usd" {
+		query += " AND price_usd IS NULL"
+	} else if filters.PriceFilter == "with_price" {
+		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+	}
+
+	// Stock filters
+	if filters.StockFilter == "in_stock" {
+		query += " AND total_stock > 0"
+	} else if filters.StockFilter == "out_of_stock" {
+		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+	} else if filters.StockFilter == "low_stock" {
+		query += " AND total_stock > 0 AND total_stock <= 5"
+	}
+
+	// Status filters
+	if filters.StatusFilter == "active" {
+		query += " AND is_active = true"
+	} else if filters.StatusFilter == "inactive" {
+		query += " AND is_active = false"
+	}
+
+	var count int
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&count)
+	return count, err
+}
+
+// BulkUpdateProductsByCategoryIDWithFilters updates products for a category matching filters
+func (r *Repository) BulkUpdateProductsByCategoryIDWithFilters(ctx context.Context, categoryID uuid.UUID, filters ProductFilters, isActive bool) (int, error) {
+	query := "UPDATE products SET is_active = $1, updated_at = NOW() WHERE category_id = $2"
+	args := []interface{}{isActive, categoryID}
+
+	// Price filters
+	if filters.PriceFilter == "no_price" {
+		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+	} else if filters.PriceFilter == "no_mdl" {
+		query += " AND price_mdl IS NULL"
+	} else if filters.PriceFilter == "no_eur" {
+		query += " AND price_eur IS NULL"
+	} else if filters.PriceFilter == "no_usd" {
+		query += " AND price_usd IS NULL"
+	} else if filters.PriceFilter == "with_price" {
+		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+	}
+
+	// Stock filters
+	if filters.StockFilter == "in_stock" {
+		query += " AND total_stock > 0"
+	} else if filters.StockFilter == "out_of_stock" {
+		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+	} else if filters.StockFilter == "low_stock" {
+		query += " AND total_stock > 0 AND total_stock <= 5"
+	}
+
+	// Status filters
+	if filters.StatusFilter == "active" {
+		query += " AND is_active = true"
+	} else if filters.StatusFilter == "inactive" {
+		query += " AND is_active = false"
+	}
+
+	result, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -1178,13 +1393,17 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 
 // ProductFilter holds filter parameters for product queries
 type ProductFilter struct {
-	BrandID    *uuid.UUID
-	CategoryID *uuid.UUID
-	InStock    *bool
-	MinPrice   *float64
-	MaxPrice   *float64
-	Search     string
-	IsActive   bool
+	BrandID      *uuid.UUID
+	CategoryID   *uuid.UUID
+	InStock      *bool
+	MinPrice     *float64
+	MaxPrice     *float64
+	Search       string
+	IsActive     bool
+	PriceFilter  string // "all", "with_price", "no_price"
+	StockFilter  string // "all", "in_stock", "out_stock", "low_stock"
+	StatusFilter string // "all", "active", "inactive"
+	SortBy       string // "name_asc", "name_desc", "price_high", "price_low", "stock_high", "stock_low"
 }
 
 func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, limit, offset int) ([]*models.Product, error) {
@@ -1202,34 +1421,7 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 	argPos := 1
 
 	if filter != nil {
-		if filter.BrandID != nil {
-			query += fmt.Sprintf(" AND brand_id = $%d", argPos)
-			args = append(args, filter.BrandID)
-			argPos++
-		}
-
-		if filter.CategoryID != nil {
-			query += fmt.Sprintf(" AND category_id = $%d", argPos)
-			args = append(args, filter.CategoryID)
-			argPos++
-		}
-
-		if filter.InStock != nil && *filter.InStock {
-			query += " AND is_in_stock = true"
-		}
-
-		if filter.MinPrice != nil {
-			query += fmt.Sprintf(" AND price_min >= $%d", argPos)
-			args = append(args, filter.MinPrice)
-			argPos++
-		}
-
-		if filter.MaxPrice != nil {
-			query += fmt.Sprintf(" AND price_max <= $%d", argPos)
-			args = append(args, filter.MaxPrice)
-			argPos++
-		}
-
+		// Search filter
 		if filter.Search != "" {
 			query += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d OR code ILIKE $%d)", argPos, argPos, argPos)
 			searchPattern := "%" + filter.Search + "%"
@@ -1237,12 +1429,81 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 			argPos++
 		}
 
-		query += fmt.Sprintf(" AND is_active = $%d", argPos)
-		args = append(args, filter.IsActive)
-		argPos++
+		// Brand filter
+		if filter.BrandID != nil {
+			query += fmt.Sprintf(" AND brand_id = $%d", argPos)
+			args = append(args, filter.BrandID)
+			argPos++
+		}
+
+		// Category filter
+		if filter.CategoryID != nil {
+			query += fmt.Sprintf(" AND category_id = $%d", argPos)
+			args = append(args, filter.CategoryID)
+			argPos++
+		}
+
+		// Price filters
+		if filter.PriceFilter == "with_price" {
+			query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+		} else if filter.PriceFilter == "no_price" {
+			query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+		}
+
+		// Legacy price range filters (for backward compatibility)
+		if filter.MinPrice != nil {
+			query += fmt.Sprintf(" AND price_min >= $%d", argPos)
+			args = append(args, filter.MinPrice)
+			argPos++
+		}
+		if filter.MaxPrice != nil {
+			query += fmt.Sprintf(" AND price_max <= $%d", argPos)
+			args = append(args, filter.MaxPrice)
+			argPos++
+		}
+
+		// Stock filters
+		if filter.StockFilter == "in_stock" {
+			query += " AND total_stock > 0"
+		} else if filter.StockFilter == "out_stock" {
+			query += " AND (total_stock = 0 OR total_stock IS NULL)"
+		} else if filter.InStock != nil && *filter.InStock {
+			// Legacy filter (for backward compatibility)
+			query += " AND is_in_stock = true"
+		}
+
+		// Status filters
+		if filter.StatusFilter == "active" {
+			query += " AND is_active = true"
+		} else if filter.StatusFilter == "inactive" {
+			query += " AND is_active = false"
+		} else if filter.StatusFilter == "" || filter.StatusFilter == "all" {
+			// Admin CMS: show all products by default (no filter)
+		} else {
+			// Legacy filter (for backward compatibility)
+			query += fmt.Sprintf(" AND is_active = $%d", argPos)
+			args = append(args, filter.IsActive)
+			argPos++
+		}
 	}
 
-	query += fmt.Sprintf(" ORDER BY name ASC LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	// Sort options
+	sortMap := map[string]string{
+		"name_asc":   "name ASC",
+		"name_desc":  "name DESC",
+		"price_high": "price_mdl DESC NULLS LAST",
+		"price_low":  "price_mdl ASC NULLS LAST",
+		"stock_high": "total_stock DESC NULLS LAST",
+		"stock_low":  "total_stock ASC NULLS LAST",
+	}
+	orderBy := "name ASC" // default
+	if filter != nil && filter.SortBy != "" {
+		if sortSQL, ok := sortMap[filter.SortBy]; ok {
+			orderBy = sortSQL
+		}
+	}
+
+	query += fmt.Sprintf(" ORDER BY %s LIMIT $%d OFFSET $%d", orderBy, argPos, argPos+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -1281,34 +1542,7 @@ func (r *Repository) CountProducts(ctx context.Context, filter *ProductFilter) (
 	argPos := 1
 
 	if filter != nil {
-		if filter.BrandID != nil {
-			query += fmt.Sprintf(" AND brand_id = $%d", argPos)
-			args = append(args, filter.BrandID)
-			argPos++
-		}
-
-		if filter.CategoryID != nil {
-			query += fmt.Sprintf(" AND category_id = $%d", argPos)
-			args = append(args, filter.CategoryID)
-			argPos++
-		}
-
-		if filter.InStock != nil && *filter.InStock {
-			query += " AND is_in_stock = true"
-		}
-
-		if filter.MinPrice != nil {
-			query += fmt.Sprintf(" AND price_min >= $%d", argPos)
-			args = append(args, filter.MinPrice)
-			argPos++
-		}
-
-		if filter.MaxPrice != nil {
-			query += fmt.Sprintf(" AND price_max <= $%d", argPos)
-			args = append(args, filter.MaxPrice)
-			argPos++
-		}
-
+		// Search filter
 		if filter.Search != "" {
 			query += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d OR code ILIKE $%d)", argPos, argPos, argPos)
 			searchPattern := "%" + filter.Search + "%"
@@ -1316,8 +1550,62 @@ func (r *Repository) CountProducts(ctx context.Context, filter *ProductFilter) (
 			argPos++
 		}
 
-		query += fmt.Sprintf(" AND is_active = $%d", argPos)
-		args = append(args, filter.IsActive)
+		// Brand filter
+		if filter.BrandID != nil {
+			query += fmt.Sprintf(" AND brand_id = $%d", argPos)
+			args = append(args, filter.BrandID)
+			argPos++
+		}
+
+		// Category filter
+		if filter.CategoryID != nil {
+			query += fmt.Sprintf(" AND category_id = $%d", argPos)
+			args = append(args, filter.CategoryID)
+			argPos++
+		}
+
+		// Price filters
+		if filter.PriceFilter == "with_price" {
+			query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+		} else if filter.PriceFilter == "no_price" {
+			query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+		}
+
+		// Legacy price range filters (for backward compatibility)
+		if filter.MinPrice != nil {
+			query += fmt.Sprintf(" AND price_min >= $%d", argPos)
+			args = append(args, filter.MinPrice)
+			argPos++
+		}
+		if filter.MaxPrice != nil {
+			query += fmt.Sprintf(" AND price_max <= $%d", argPos)
+			args = append(args, filter.MaxPrice)
+			argPos++
+		}
+
+		// Stock filters
+		if filter.StockFilter == "in_stock" {
+			query += " AND total_stock > 0"
+		} else if filter.StockFilter == "out_stock" {
+			query += " AND (total_stock = 0 OR total_stock IS NULL)"
+		} else if filter.InStock != nil && *filter.InStock {
+			// Legacy filter (for backward compatibility)
+			query += " AND is_in_stock = true"
+		}
+
+		// Status filters
+		if filter.StatusFilter == "active" {
+			query += " AND is_active = true"
+		} else if filter.StatusFilter == "inactive" {
+			query += " AND is_active = false"
+		} else if filter.StatusFilter == "" || filter.StatusFilter == "all" {
+			// Admin CMS: show all products by default (no filter)
+		} else {
+			// Legacy filter (for backward compatibility)
+			query += fmt.Sprintf(" AND is_active = $%d", argPos)
+			args = append(args, filter.IsActive)
+			argPos++
+		}
 	}
 
 	var count int
@@ -1483,6 +1771,9 @@ type BrandProduct struct {
 	Code       string    `json:"code"`
 	PriceMin   *float64  `json:"price_min"`
 	PriceMax   *float64  `json:"price_max"`
+	PriceMDL   *float64  `json:"price_mdl"`
+	PriceEUR   *float64  `json:"price_eur"`
+	PriceUSD   *float64  `json:"price_usd"`
 	TotalStock int       `json:"total_stock"`
 	IsActive   bool      `json:"is_active"`
 }
@@ -1490,7 +1781,7 @@ type BrandProduct struct {
 // GetProductsByBrandID returns paginated products for a specific brand
 func (r *Repository) GetProductsByBrandID(ctx context.Context, brandID uuid.UUID, limit, offset int) ([]*BrandProduct, error) {
 	query := `
-		SELECT id, name, COALESCE(code, ''), price_min, price_max, total_stock, is_active
+		SELECT id, name, COALESCE(code, ''), price_min, price_max, price_mdl, price_eur, price_usd, total_stock, is_active
 		FROM products
 		WHERE brand_id = $1
 		ORDER BY name ASC
@@ -1508,7 +1799,7 @@ func (r *Repository) GetProductsByBrandID(ctx context.Context, brandID uuid.UUID
 		var product BrandProduct
 		err := rows.Scan(
 			&product.ID, &product.Name, &product.Code, &product.PriceMin,
-			&product.PriceMax, &product.TotalStock, &product.IsActive,
+			&product.PriceMax, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD, &product.TotalStock, &product.IsActive,
 		)
 		if err != nil {
 			return nil, err
@@ -1531,6 +1822,158 @@ func (r *Repository) BulkUpdateProductsByBrandID(ctx context.Context, brandID uu
 	result, err := r.pool.Exec(ctx, `
 		UPDATE products SET is_active = $1, updated_at = NOW() WHERE brand_id = $2
 	`, isActive, brandID)
+	if err != nil {
+		return 0, err
+	}
+	return int(result.RowsAffected()), nil
+}
+
+// ProductFilters represents filter options for brand/category products
+type ProductFilters struct {
+	PriceFilter  string // "all", "no_price", "no_mdl", "no_eur", "no_usd", "with_price"
+	StockFilter  string // "all", "in_stock", "out_of_stock", "low_stock"
+	StatusFilter string // "all", "active", "inactive"
+}
+
+// GetProductsByBrandIDWithFilters returns filtered and paginated products for a specific brand
+func (r *Repository) GetProductsByBrandIDWithFilters(ctx context.Context, brandID uuid.UUID, filters ProductFilters, limit, offset int) ([]*BrandProduct, error) {
+	query := `
+		SELECT id, name, COALESCE(code, ''), price_min, price_max, price_mdl, price_eur, price_usd, total_stock, is_active
+		FROM products
+		WHERE brand_id = $1
+	`
+
+	args := []interface{}{brandID}
+	paramIndex := 2
+
+	// Price filters
+	if filters.PriceFilter == "no_price" {
+		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+	} else if filters.PriceFilter == "no_mdl" {
+		query += " AND price_mdl IS NULL"
+	} else if filters.PriceFilter == "no_eur" {
+		query += " AND price_eur IS NULL"
+	} else if filters.PriceFilter == "no_usd" {
+		query += " AND price_usd IS NULL"
+	} else if filters.PriceFilter == "with_price" {
+		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+	}
+
+	// Stock filters
+	if filters.StockFilter == "in_stock" {
+		query += " AND total_stock > 0"
+	} else if filters.StockFilter == "out_of_stock" {
+		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+	} else if filters.StockFilter == "low_stock" {
+		query += " AND total_stock > 0 AND total_stock <= 5"
+	}
+
+	// Status filters
+	if filters.StatusFilter == "active" {
+		query += " AND is_active = true"
+	} else if filters.StatusFilter == "inactive" {
+		query += " AND is_active = false"
+	}
+
+	query += fmt.Sprintf(" ORDER BY name ASC LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	products := make([]*BrandProduct, 0)
+	for rows.Next() {
+		var product BrandProduct
+		err := rows.Scan(
+			&product.ID, &product.Name, &product.Code, &product.PriceMin,
+			&product.PriceMax, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD, &product.TotalStock, &product.IsActive,
+		)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, &product)
+	}
+
+	return products, nil
+}
+
+// CountProductsByBrandIDWithFilters returns the total count of filtered products for a brand
+func (r *Repository) CountProductsByBrandIDWithFilters(ctx context.Context, brandID uuid.UUID, filters ProductFilters) (int, error) {
+	query := "SELECT COUNT(*) FROM products WHERE brand_id = $1"
+	args := []interface{}{brandID}
+
+	// Price filters
+	if filters.PriceFilter == "no_price" {
+		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+	} else if filters.PriceFilter == "no_mdl" {
+		query += " AND price_mdl IS NULL"
+	} else if filters.PriceFilter == "no_eur" {
+		query += " AND price_eur IS NULL"
+	} else if filters.PriceFilter == "no_usd" {
+		query += " AND price_usd IS NULL"
+	} else if filters.PriceFilter == "with_price" {
+		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+	}
+
+	// Stock filters
+	if filters.StockFilter == "in_stock" {
+		query += " AND total_stock > 0"
+	} else if filters.StockFilter == "out_of_stock" {
+		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+	} else if filters.StockFilter == "low_stock" {
+		query += " AND total_stock > 0 AND total_stock <= 5"
+	}
+
+	// Status filters
+	if filters.StatusFilter == "active" {
+		query += " AND is_active = true"
+	} else if filters.StatusFilter == "inactive" {
+		query += " AND is_active = false"
+	}
+
+	var count int
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&count)
+	return count, err
+}
+
+// BulkUpdateProductsByBrandIDWithFilters updates products for a brand matching filters
+func (r *Repository) BulkUpdateProductsByBrandIDWithFilters(ctx context.Context, brandID uuid.UUID, filters ProductFilters, isActive bool) (int, error) {
+	query := "UPDATE products SET is_active = $1, updated_at = NOW() WHERE brand_id = $2"
+	args := []interface{}{isActive, brandID}
+
+	// Price filters
+	if filters.PriceFilter == "no_price" {
+		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+	} else if filters.PriceFilter == "no_mdl" {
+		query += " AND price_mdl IS NULL"
+	} else if filters.PriceFilter == "no_eur" {
+		query += " AND price_eur IS NULL"
+	} else if filters.PriceFilter == "no_usd" {
+		query += " AND price_usd IS NULL"
+	} else if filters.PriceFilter == "with_price" {
+		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+	}
+
+	// Stock filters
+	if filters.StockFilter == "in_stock" {
+		query += " AND total_stock > 0"
+	} else if filters.StockFilter == "out_of_stock" {
+		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+	} else if filters.StockFilter == "low_stock" {
+		query += " AND total_stock > 0 AND total_stock <= 5"
+	}
+
+	// Status filters
+	if filters.StatusFilter == "active" {
+		query += " AND is_active = true"
+	} else if filters.StatusFilter == "inactive" {
+		query += " AND is_active = false"
+	}
+
+	result, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -3096,6 +3539,69 @@ func (r *Repository) BulkDeleteProducts(ctx context.Context, ids []uuid.UUID) (i
 	result, err := r.pool.Exec(ctx, query, args...)
 	if err != nil {
 		return 0, fmt.Errorf("bulk delete products: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
+
+// BulkUpdateProductsByFilter updates all products matching the given filter criteria
+// Note: SortBy is intentionally ignored for bulk updates (ORDER BY doesn't affect UPDATE results)
+func (r *Repository) BulkUpdateProductsByFilter(ctx context.Context, filter *ProductFilter, isActive bool) (int, error) {
+	query := "UPDATE products SET is_active = $1, updated_at = NOW() WHERE 1=1"
+	args := []interface{}{isActive}
+	argPos := 2
+
+	if filter != nil {
+		// Search filter
+		if filter.Search != "" {
+			// Note: Reusing $%d for all three columns (PostgreSQL allows parameter reuse)
+			query += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d OR code ILIKE $%d)", argPos, argPos, argPos)
+			searchPattern := "%" + filter.Search + "%"
+			args = append(args, searchPattern)
+			argPos++
+		}
+
+		// Brand filter
+		if filter.BrandID != nil {
+			query += fmt.Sprintf(" AND brand_id = $%d", argPos)
+			args = append(args, filter.BrandID)
+			argPos++
+		}
+
+		// Category filter
+		if filter.CategoryID != nil {
+			query += fmt.Sprintf(" AND category_id = $%d", argPos)
+			args = append(args, filter.CategoryID)
+			argPos++
+		}
+
+		// Price filters
+		if filter.PriceFilter == "with_price" {
+			query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+		} else if filter.PriceFilter == "no_price" {
+			query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+		}
+
+		// Stock filters
+		if filter.StockFilter == "in_stock" {
+			query += " AND total_stock > 0"
+		} else if filter.StockFilter == "out_of_stock" {
+			query += " AND (total_stock = 0 OR total_stock IS NULL)"
+		} else if filter.StockFilter == "low_stock" {
+			query += " AND total_stock > 0 AND total_stock <= 5"
+		}
+
+		// Status filter (for filtering which products to update)
+		if filter.StatusFilter == "active" {
+			query += " AND is_active = true"
+		} else if filter.StatusFilter == "inactive" {
+			query += " AND is_active = false"
+		}
+	}
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk update products by filter: %w", err)
 	}
 
 	return int(result.RowsAffected()), nil
