@@ -165,50 +165,10 @@ function formatTimestamp(timestamp: string): string {
   });
 }
 
-/**
- * Filter products based on price, stock, and status criteria
- */
-function filterProducts(
-  products: BrandProduct[],
-  priceFilter: string,
-  stockFilter: string,
-  statusFilter: string
-): BrandProduct[] {
-  return products.filter((product) => {
-    // Price filter
-    let priceMatch = true;
-    if (priceFilter === "no_price") {
-      priceMatch = product.price_mdl === null && product.price_eur === null && product.price_usd === null;
-    } else if (priceFilter === "no_mdl") {
-      priceMatch = product.price_mdl === null;
-    } else if (priceFilter === "no_eur") {
-      priceMatch = product.price_eur === null;
-    } else if (priceFilter === "no_usd") {
-      priceMatch = product.price_usd === null;
-    } else if (priceFilter === "with_price") {
-      priceMatch = product.price_mdl !== null || product.price_eur !== null || product.price_usd !== null;
-    }
-
-    // Stock filter
-    let stockMatch = true;
-    if (stockFilter === "in_stock") {
-      stockMatch = product.total_stock > 0;
-    } else if (stockFilter === "out_of_stock") {
-      stockMatch = product.total_stock === 0 || product.total_stock === null;
-    } else if (stockFilter === "low_stock") {
-      stockMatch = product.total_stock > 0 && product.total_stock <= 5;
-    }
-
-    // Status filter
-    let statusMatch = true;
-    if (statusFilter === "active") {
-      statusMatch = product.is_active === true;
-    } else if (statusFilter === "inactive") {
-      statusMatch = product.is_active === false;
-    }
-
-    return priceMatch && stockMatch && statusMatch;
-  });
+// Filter mapping for API calls
+function mapFilterToApi(filter: string): string | undefined {
+  if (!filter || filter === "all") return undefined;
+  return filter;
 }
 
 export default function BrandDetailPage({ params }: BrandDetailPageProps) {
@@ -235,6 +195,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
   // Selection state
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [selectAllMode, setSelectAllMode] = useState<boolean>(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -254,7 +215,11 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
         const [brandData, productsData] = await Promise.all([
           api.getBrandWithStats(id),
-          api.getBrandProducts(id, productsPerPage, 0),
+          api.getBrandProducts(id, productsPerPage, 0, {
+            price_filter: mapFilterToApi(priceFilter),
+            stock_filter: mapFilterToApi(stockFilter),
+            status_filter: mapFilterToApi(statusFilter),
+          }),
         ]);
 
         if (cancelled) return;
@@ -285,38 +250,64 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
     };
   }, [params]);
 
-  // Fetch products when page changes
+  // Fetch products when page changes or filters change
   const fetchProducts = async (page: number) => {
     if (!resolvedId) return;
 
     try {
       const offset = (page - 1) * productsPerPage;
-      const productsData = await api.getBrandProducts(resolvedId, productsPerPage, offset);
+      const productsData = await api.getBrandProducts(resolvedId, productsPerPage, offset, {
+        price_filter: mapFilterToApi(priceFilter),
+        stock_filter: mapFilterToApi(stockFilter),
+        status_filter: mapFilterToApi(statusFilter),
+      });
       setAllProducts(productsData.data);
       setTotalProducts(productsData.total);
       setCurrentPage(page);
-      setSelectedProducts(new Set()); // Clear selection on page change
+      // Clear selection on page change unless in selectAllMode
+      if (!selectAllMode) {
+        setSelectedProducts(new Set());
+      }
     } catch (err) {
       console.error("Failed to fetch products:", err);
       toast.error("Failed to load products");
     }
   };
 
-  // Apply client-side filtering
-  const filteredProducts = useMemo(() => {
-    return filterProducts(allProducts, priceFilter, stockFilter, statusFilter);
-  }, [allProducts, priceFilter, stockFilter, statusFilter]);
+  // Refetch when filters change
+  useEffect(() => {
+    if (resolvedId) {
+      fetchProducts(1); // Reset to first page when filters change
+      setSelectedProducts(new Set());
+      setSelectAllMode(false);
+    }
+  }, [priceFilter, stockFilter, statusFilter]);
+
+  // Products are filtered on backend, so just use allProducts directly
+  const filteredProducts = allProducts;
 
   // Check if all visible products are selected
   const allVisibleSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.has(p.id));
+  const isSomeSelected = selectedProducts.size > 0 || selectAllMode;
 
   // Toggle all visible products selection
   const handleToggleAllSelected = () => {
-    if (allVisibleSelected) {
+    if (allVisibleSelected && !selectAllMode) {
       setSelectedProducts(new Set());
+      setSelectAllMode(false);
     } else {
       setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+      setSelectAllMode(false);
     }
+  };
+
+  const handleSelectAllMatching = () => {
+    setSelectAllMode(true);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedProducts(new Set());
+    setSelectAllMode(false);
   };
 
   // Toggle individual product selection
@@ -324,6 +315,10 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
     const newSelected = new Set(selectedProducts);
     if (newSelected.has(productId)) {
       newSelected.delete(productId);
+      // Exit selectAllMode if user deselects an item
+      if (selectAllMode) {
+        setSelectAllMode(false);
+      }
     } else {
       newSelected.add(productId);
     }
@@ -332,23 +327,36 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
   // Handle bulk activate selected
   const handleActivateSelected = async () => {
-    if (selectedProducts.size === 0) return;
+    if (!brand) return;
+    if (selectedProducts.size === 0 && !selectAllMode) return;
 
     setIsProcessing(true);
     try {
-      const result = await api.bulkUpdateProducts({
-        ids: Array.from(selectedProducts),
-        is_active: true,
-      });
+      let result;
+      if (selectAllMode) {
+        // Use filter-based bulk update
+        result = await api.bulkUpdateBrandProducts(brand.id, {
+          is_active: true,
+          filter: {
+            price_filter: mapFilterToApi(priceFilter),
+            stock_filter: mapFilterToApi(stockFilter),
+            status_filter: mapFilterToApi(statusFilter),
+          },
+        });
+      } else {
+        // Use ID-based bulk update
+        result = await api.bulkUpdateBrandProducts(brand.id, {
+          is_active: true,
+          ids: Array.from(selectedProducts),
+        });
+      }
       toast.success(`Activated ${result.updated} products`);
 
       // Refresh data
-      if (brand) {
-        const updatedBrand = await api.getBrandWithStats(brand.id);
-        setBrand(updatedBrand);
-      }
+      const updatedBrand = await api.getBrandWithStats(brand.id);
+      setBrand(updatedBrand);
       await fetchProducts(currentPage);
-      setSelectedProducts(new Set());
+      handleClearSelection();
     } catch (error) {
       console.error("Failed to activate products:", error);
       toast.error("Failed to activate products");
@@ -360,23 +368,36 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
   // Handle bulk deactivate selected
   const handleDeactivateSelected = async () => {
-    if (selectedProducts.size === 0) return;
+    if (!brand) return;
+    if (selectedProducts.size === 0 && !selectAllMode) return;
 
     setIsProcessing(true);
     try {
-      const result = await api.bulkUpdateProducts({
-        ids: Array.from(selectedProducts),
-        is_active: false,
-      });
+      let result;
+      if (selectAllMode) {
+        // Use filter-based bulk update
+        result = await api.bulkUpdateBrandProducts(brand.id, {
+          is_active: false,
+          filter: {
+            price_filter: mapFilterToApi(priceFilter),
+            stock_filter: mapFilterToApi(stockFilter),
+            status_filter: mapFilterToApi(statusFilter),
+          },
+        });
+      } else {
+        // Use ID-based bulk update
+        result = await api.bulkUpdateBrandProducts(brand.id, {
+          is_active: false,
+          ids: Array.from(selectedProducts),
+        });
+      }
       toast.success(`Deactivated ${result.updated} products`);
 
       // Refresh data
-      if (brand) {
-        const updatedBrand = await api.getBrandWithStats(brand.id);
-        setBrand(updatedBrand);
-      }
+      const updatedBrand = await api.getBrandWithStats(brand.id);
+      setBrand(updatedBrand);
       await fetchProducts(currentPage);
-      setSelectedProducts(new Set());
+      handleClearSelection();
     } catch (error) {
       console.error("Failed to deactivate products:", error);
       toast.error("Failed to deactivate products");
@@ -424,7 +445,10 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
     setIsProcessing(true);
     try {
-      const result = await api.bulkUpdateBrandProducts(brand.id, true);
+      const result = await api.bulkUpdateBrandProducts(brand.id, {
+        is_active: true,
+        // Update ALL products in brand (no filter)
+      });
       toast.success(`Activated ${result.updated} products`);
       const updatedBrand = await api.getBrandWithStats(brand.id);
       setBrand(updatedBrand);
@@ -443,7 +467,10 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
     setIsProcessing(true);
     try {
-      const result = await api.bulkUpdateBrandProducts(brand.id, false);
+      const result = await api.bulkUpdateBrandProducts(brand.id, {
+        is_active: false,
+        // Update ALL products in brand (no filter)
+      });
       toast.success(`Deactivated ${result.updated} products`);
       const updatedBrand = await api.getBrandWithStats(brand.id);
       setBrand(updatedBrand);
@@ -859,11 +886,29 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         </CardHeader>
 
         {/* Bulk Actions Bar */}
-        {selectedProducts.size > 0 && (
-          <div className="flex items-center justify-between px-6 py-3 bg-accent border-b">
-            <div className="flex items-center gap-3">
-              <CheckSquare className="h-5 w-5 text-primary" />
-              <span className="font-medium text-foreground">{selectedProducts.size} products selected</span>
+        {isSomeSelected && (
+          <div className="flex items-center justify-between px-6 py-3 bg-accent border-b border-border">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <CheckSquare className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">
+                  {selectAllMode
+                    ? `All ${totalProducts} matching products selected`
+                    : `${selectedProducts.size} product${selectedProducts.size !== 1 ? "s" : ""} selected`
+                  }
+                </span>
+              </div>
+
+              {allVisibleSelected && !selectAllMode && totalProducts > filteredProducts.length && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-primary"
+                  onClick={handleSelectAllMatching}
+                >
+                  Select all {totalProducts} matching products
+                </Button>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -873,7 +918,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 disabled={isProcessing}
               >
                 <Power className="h-4 w-4 mr-2" />
-                Activate Selected
+                Activate
               </Button>
               <Button
                 size="sm"
@@ -882,14 +927,15 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 disabled={isProcessing}
               >
                 <PowerOff className="h-4 w-4 mr-2" />
-                Deactivate Selected
+                Deactivate
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setSelectedProducts(new Set())}
+                onClick={handleClearSelection}
+                disabled={isProcessing}
               >
-                Clear Selection
+                Clear
               </Button>
             </div>
           </div>
@@ -929,10 +975,15 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.map((product) => (
-                    <TableRow key={product.id} className="hover:bg-muted/50 transition-colors border-b">
+                    <TableRow
+                      key={product.id}
+                      className={`hover:bg-muted/50 transition-colors border-b ${
+                        selectedProducts.has(product.id) || selectAllMode ? "bg-accent" : ""
+                      }`}
+                    >
                       <TableCell>
                         <Checkbox
-                          checked={selectedProducts.has(product.id)}
+                          checked={selectedProducts.has(product.id) || selectAllMode}
                           onCheckedChange={() => handleToggleProductSelected(product.id)}
                         />
                       </TableCell>
@@ -1093,7 +1144,11 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         open={showBulkActivateSelectedDialog}
         onOpenChange={setShowBulkActivateSelectedDialog}
         title="Activate Selected Products"
-        description={`Are you sure you want to activate ${selectedProducts.size} selected products?`}
+        description={
+          selectAllMode
+            ? `Are you sure you want to activate all ${totalProducts} matching products?`
+            : `Are you sure you want to activate ${selectedProducts.size} selected products?`
+        }
         confirmLabel="Activate"
         onConfirm={handleActivateSelected}
         isLoading={isProcessing}
@@ -1104,7 +1159,11 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         open={showBulkDeactivateSelectedDialog}
         onOpenChange={setShowBulkDeactivateSelectedDialog}
         title="Deactivate Selected Products"
-        description={`Are you sure you want to deactivate ${selectedProducts.size} selected products?`}
+        description={
+          selectAllMode
+            ? `Are you sure you want to deactivate all ${totalProducts} matching products?`
+            : `Are you sure you want to deactivate ${selectedProducts.size} selected products?`
+        }
         confirmLabel="Deactivate"
         onConfirm={handleDeactivateSelected}
         variant="destructive"

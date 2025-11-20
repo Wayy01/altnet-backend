@@ -205,12 +205,17 @@ export interface CategoriesResponse {
 
 // Filter types
 export interface ProductFilters {
+  search?: string;
   brand_id?: string;
   category_id?: string;
+  price_filter?: string; // "all", "with_price", "no_price"
+  stock_filter?: string; // "all", "in_stock", "out_stock"
+  status_filter?: string; // "all", "active", "inactive"
+  sort_by?: string; // "name_asc", "name_desc", "price_high", "price_low", "stock_high", "stock_low"
+  // Legacy filters (for backward compatibility)
   in_stock?: boolean;
   min_price?: number;
   max_price?: number;
-  search?: string;
 }
 
 // Dashboard stats
@@ -301,8 +306,16 @@ export interface UpdateCategoryPayload {
 }
 
 export interface BulkUpdatePayload {
-  ids: string[];
-  is_active?: boolean;
+  ids?: string[];
+  filter?: {
+    search?: string;
+    brand_id?: string;
+    category_id?: string;
+    price_filter?: string;
+    stock_filter?: string;
+    status_filter?: string;
+  };
+  is_active: boolean;
 }
 
 export interface BulkDeletePayload {

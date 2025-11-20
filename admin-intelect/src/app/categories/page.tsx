@@ -514,10 +514,10 @@ export default function CategoriesPage() {
 
         {/* Bulk Actions Bar */}
         {isSomeSelected && (
-          <div className="flex items-center gap-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-4 p-3 bg-accent rounded-lg border border-border">
             <div className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              <CheckSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">
                 {selectAllMode
                   ? `All ${total} matching categories selected`
                   : `${selectedIds.size} ${selectedIds.size !== 1 ? "categories" : "category"} selected`
@@ -529,7 +529,7 @@ export default function CategoriesPage() {
               <Button
                 variant="link"
                 size="sm"
-                className="text-blue-600"
+                className="text-primary"
                 onClick={handleSelectAllMatching}
               >
                 Select all {total} matching categories
@@ -542,7 +542,6 @@ export default function CategoriesPage() {
                 size="sm"
                 onClick={handleBulkActivate}
                 disabled={isProcessing || isPending}
-                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
               >
                 <Power className="h-4 w-4 mr-1" />
                 Activate
@@ -552,7 +551,6 @@ export default function CategoriesPage() {
                 size="sm"
                 onClick={handleBulkDeactivate}
                 disabled={isProcessing || isPending}
-                className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
               >
                 <PowerOff className="h-4 w-4 mr-1" />
                 Deactivate
@@ -604,7 +602,7 @@ export default function CategoriesPage() {
                 </TableRow>
               ) : (
                 filteredCategories.map((category) => (
-                  <TableRow key={category.id} className={selectedIds.has(category.id) || selectAllMode ? "bg-blue-50 dark:bg-blue-950/50" : ""}>
+                  <TableRow key={category.id} className={selectedIds.has(category.id) || selectAllMode ? "bg-accent" : ""}>
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.has(category.id) || selectAllMode}

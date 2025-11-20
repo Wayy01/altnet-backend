@@ -71,8 +71,16 @@ class ApiClient {
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
 
+    // New filters
+    if (filters?.search) params.append("search", filters.search);
     if (filters?.brand_id) params.append("brand_id", filters.brand_id);
     if (filters?.category_id) params.append("category_id", filters.category_id);
+    if (filters?.price_filter) params.append("price_filter", filters.price_filter);
+    if (filters?.stock_filter) params.append("stock_filter", filters.stock_filter);
+    if (filters?.status_filter) params.append("status_filter", filters.status_filter);
+    if (filters?.sort_by) params.append("sort_by", filters.sort_by);
+
+    // Legacy filters (for backward compatibility)
     if (filters?.in_stock !== undefined)
       params.append("in_stock", filters.in_stock.toString());
     if (filters?.min_price !== undefined)
@@ -159,6 +167,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getAllBrands(): Promise<Brand[]> {
+    const response = await this.fetch<{ data: Brand[] }>(`/api/v1/brands/all`);
+    return response.data;
+  }
+
   async getBrandWithStats(id: string): Promise<BrandWithStats> {
     const response = await this.fetch<{ data: BrandWithStats }>(`/api/v1/brands/${id}/stats`);
     return response.data;
@@ -167,11 +180,22 @@ class ApiClient {
   async getBrandProducts(
     id: string,
     limit = 10,
-    offset = 0
+    offset = 0,
+    filters?: {
+      search?: string;
+      price_filter?: string;
+      stock_filter?: string;
+      status_filter?: string;
+    }
   ): Promise<{ data: BrandProduct[]; total: number }> {
     const params = new URLSearchParams();
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.price_filter) params.append("price_filter", filters.price_filter);
+    if (filters?.stock_filter) params.append("stock_filter", filters.stock_filter);
+    if (filters?.status_filter) params.append("status_filter", filters.status_filter);
 
     const response = await this.fetch<{ data: BrandProduct[]; meta: { total: number } }>(
       `/api/v1/brands/${id}/products?${params.toString()}`
@@ -179,10 +203,22 @@ class ApiClient {
     return { data: response.data, total: response.meta.total };
   }
 
-  async bulkUpdateBrandProducts(brandId: string, isActive: boolean): Promise<{ updated: number }> {
+  async bulkUpdateBrandProducts(
+    brandId: string,
+    payload: {
+      is_active: boolean;
+      ids?: string[];
+      filter?: {
+        search?: string;
+        price_filter?: string;
+        stock_filter?: string;
+        status_filter?: string;
+      };
+    }
+  ): Promise<{ updated: number }> {
     return this.fetch<{ updated: number }>(`/api/v1/brands/${brandId}/products/bulk`, {
       method: "PATCH",
-      body: JSON.stringify({ is_active: isActive }),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -219,6 +255,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getAllCategories(): Promise<Category[]> {
+    const response = await this.fetch<{ data: Category[] }>(`/api/v1/categories/all`);
+    return response.data;
+  }
+
   async getCategoryWithStats(id: string): Promise<CategoryWithStats> {
     const response = await this.fetch<{ data: CategoryWithStats }>(`/api/v1/categories/${id}/stats`);
     return response.data;
@@ -227,11 +268,22 @@ class ApiClient {
   async getCategoryProducts(
     id: string,
     limit = 10,
-    offset = 0
+    offset = 0,
+    filters?: {
+      search?: string;
+      price_filter?: string;
+      stock_filter?: string;
+      status_filter?: string;
+    }
   ): Promise<{ data: CategoryProduct[]; total: number }> {
     const params = new URLSearchParams();
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.price_filter) params.append("price_filter", filters.price_filter);
+    if (filters?.stock_filter) params.append("stock_filter", filters.stock_filter);
+    if (filters?.status_filter) params.append("status_filter", filters.status_filter);
 
     const response = await this.fetch<{ data: CategoryProduct[]; meta: { total: number } }>(
       `/api/v1/categories/${id}/products?${params.toString()}`
@@ -244,10 +296,22 @@ class ApiClient {
     return response.data;
   }
 
-  async bulkUpdateCategoryProducts(categoryId: string, isActive: boolean): Promise<{ updated: number }> {
+  async bulkUpdateCategoryProducts(
+    categoryId: string,
+    payload: {
+      is_active: boolean;
+      ids?: string[];
+      filter?: {
+        search?: string;
+        price_filter?: string;
+        stock_filter?: string;
+        status_filter?: string;
+      };
+    }
+  ): Promise<{ updated: number }> {
     return this.fetch<{ updated: number }>(`/api/v1/categories/${categoryId}/products/bulk`, {
       method: "PATCH",
-      body: JSON.stringify({ is_active: isActive }),
+      body: JSON.stringify(payload),
     });
   }
 
