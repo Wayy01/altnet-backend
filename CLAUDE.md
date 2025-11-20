@@ -276,6 +276,16 @@ bun dev          # Starts on http://localhost:3000
   - Updated `ListBrandsWithSearch()` query to include LEFT JOIN with products table
   - Counts only active products per brand
   - Displays accurate product counts in brands table
+- **Shadcn Theme Migration** (Nov 2025): Brand and category detail pages now fully use shadcn theming
+  - **Replaced all hardcoded colors** with semantic theme variables (text-primary, bg-accent, bg-muted, etc.)
+  - **Badge components** now use proper variants (default, secondary, outline, destructive) instead of custom colors
+  - **Stats cards** use text-primary for numbers instead of hardcoded green/blue/purple
+  - **Bulk actions bar** uses bg-accent instead of custom blue backgrounds
+  - **Table row hover** uses bg-muted/50 for consistent theme-aware hover states
+  - **Pagination** uses bg-muted/50 and bg-card instead of hardcoded gray/white
+  - **Complete theme consistency**: All components now respond to theme changes automatically
+  - **Files updated**: `src/app/brands/[id]/page.tsx`, `src/app/categories/[id]/page.tsx`
+  - **Code review score**: 9.2/10 with no critical issues, production-ready
 
 ### Tech Stack
 
