@@ -115,7 +115,7 @@ bun dev          # Starts on http://localhost:3000
 | Route | Purpose |
 |-------|---------|
 | `/` | Dashboard with real-time statistics, low stock alerts, recent sync activity |
-| `/products` | Products table with bulk actions, export, status toggles |
+| `/products` | Products management with advanced filtering, sorting, bulk selection, export, and status toggles |
 | `/products/[id]` | Product detail with properties & characteristics |
 | `/brands` | Brands management with advanced filtering, sorting, bulk selection, and status toggles |
 | `/brands/[id]` | Brand detail with statistics, products preview, admin actions |
@@ -128,11 +128,43 @@ bun dev          # Starts on http://localhost:3000
 
 - **Real-time Statistics**: Product/brand/category counts from backend API
 - **Low Stock Alerts**: Products with stock <= 5 displayed on dashboard
-- **Bulk Operations**: Select multiple products to activate/deactivate/delete
-- **CSV Export**: Export filtered product data to CSV
 - **Toast Notifications**: Success/error feedback using Sonner
 - **Confirmation Dialogs**: Destructive action confirmations
 - **Status Toggles**: Enable/disable products, brands, categories inline
+- **Enhanced Products Management Page** (Nov 2025): Comprehensive product management with advanced filtering and bulk actions
+  - **Advanced Filtering**:
+    - Search with debounced input (500ms)
+    - Brand dropdown (loads all brands via `getAllBrands()`)
+    - Category dropdown (loads all categories via `getAllCategories()`)
+    - Price filter: All / With Price / No Price
+    - Stock filter: All / In Stock / Out of Stock
+    - Status filter: All / Active / Inactive
+    - Sort options: Name A-Z, Name Z-A, Highest Price, Lowest Price, Most Stock, Least Stock
+    - Filter state persisted in URL query params
+    - Clear all filters button
+    - Results count when searching
+  - **Bulk Selection**: Select products across all pages
+    - Checkbox in header to select/deselect all on current page
+    - Individual checkboxes for each product row
+    - "Select all X matching products" option for filter-based bulk operations
+    - Selection banner shows count: "X products selected" or "All X matching products selected"
+    - Selection preserved during pagination when selectAllMode is active
+  - **Bulk Actions Toolbar**: Appears when items are selected
+    - Activate Selected button
+    - Deactivate Selected button
+    - Clear Selection button
+    - Supports both ID-based and filter-based bulk updates
+  - **Stats Cards**: Updated based on filters
+    - Total Products shows filtered count with "(filtered)" indicator
+    - With Prices shows count on current page
+    - In Stock shows count on current page
+    - Showing displays current page count of total
+  - **Export Functionality**: Export filtered products to CSV with all filters applied
+  - **Backend Support**: Backend endpoints already support all filters
+    - `GET /api/v1/products?search=...&brand_id=...&category_id=...&price_filter=...&stock_filter=...&status_filter=...&sort_by=...`
+    - `PATCH /api/v1/products/bulk` supports both `{ ids: [...], is_active: true }` and `{ filter: { search, brand_id, category_id, price_filter, stock_filter, status_filter }, is_active: true }`
+    - `GET /api/v1/brands/all` - Returns all brands for dropdown
+    - `GET /api/v1/categories/all` - Returns all categories for dropdown
 - **Enhanced Brands Management Page** (Nov 2025): Comprehensive brand management with filtering, sorting, and bulk actions
   - **Advanced Filtering**:
     - Product count filter: All brands / With products / Without products

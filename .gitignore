@@ -1,5 +1,7 @@
 # Binaries
 bin/
+main
+unified-api
 *.exe
 *.exe~
 *.dll
