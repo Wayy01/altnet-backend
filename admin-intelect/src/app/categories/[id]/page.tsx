@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -28,6 +28,8 @@ import {
   Tag,
   Clock,
   Layers,
+  Filter,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -35,6 +37,14 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -155,6 +165,52 @@ function formatTimestamp(timestamp: string): string {
   });
 }
 
+/**
+ * Filter products based on price, stock, and status criteria
+ */
+function filterProducts(
+  products: CategoryProduct[],
+  priceFilter: string,
+  stockFilter: string,
+  statusFilter: string
+): CategoryProduct[] {
+  return products.filter((product) => {
+    // Price filter
+    let priceMatch = true;
+    if (priceFilter === "no_price") {
+      priceMatch = product.price_mdl === null && product.price_eur === null && product.price_usd === null;
+    } else if (priceFilter === "no_mdl") {
+      priceMatch = product.price_mdl === null;
+    } else if (priceFilter === "no_eur") {
+      priceMatch = product.price_eur === null;
+    } else if (priceFilter === "no_usd") {
+      priceMatch = product.price_usd === null;
+    } else if (priceFilter === "with_price") {
+      priceMatch = product.price_mdl !== null || product.price_eur !== null || product.price_usd !== null;
+    }
+
+    // Stock filter
+    let stockMatch = true;
+    if (stockFilter === "in_stock") {
+      stockMatch = product.total_stock > 0;
+    } else if (stockFilter === "out_of_stock") {
+      stockMatch = product.total_stock === 0 || product.total_stock === null;
+    } else if (stockFilter === "low_stock") {
+      stockMatch = product.total_stock > 0 && product.total_stock <= 5;
+    }
+
+    // Status filter
+    let statusMatch = true;
+    if (statusFilter === "active") {
+      statusMatch = product.is_active === true;
+    } else if (statusFilter === "inactive") {
+      statusMatch = product.is_active === false;
+    }
+
+    return priceMatch && stockMatch && statusMatch;
+  });
+}
+
 export default function CategoryDetailPage({ params }: CategoryDetailPageProps) {
   const [category, setCategory] = useState<CategoryWithStats | null>(null);
   const [products, setProducts] = useState<CategoryProduct[]>([]);
@@ -167,9 +223,19 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
   const [showBulkActivateDialog, setShowBulkActivateDialog] = useState(false);
   const [showBulkDeactivateDialog, setShowBulkDeactivateDialog] = useState(false);
   const [showDeleteProductDialog, setShowDeleteProductDialog] = useState(false);
+  const [showBulkActivateSelectedDialog, setShowBulkActivateSelectedDialog] = useState(false);
+  const [showBulkDeactivateSelectedDialog, setShowBulkDeactivateSelectedDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<CategoryProduct | null>(null);
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
   const { formatPrice } = useCurrency();
+
+  // Filter state
+  const [priceFilter, setPriceFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Selection state
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -231,9 +297,94 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
       setProducts(productsData.data);
       setTotalProducts(productsData.total);
       setCurrentPage(page);
+      setSelectedProducts(new Set()); // Clear selection on page change
     } catch (err) {
       console.error("Failed to fetch products:", err);
       toast.error("Failed to load products");
+    }
+  };
+
+  // Apply client-side filtering
+  const filteredProducts = useMemo(() => {
+    return filterProducts(products, priceFilter, stockFilter, statusFilter);
+  }, [products, priceFilter, stockFilter, statusFilter]);
+
+  // Check if all visible products are selected
+  const allVisibleSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.has(p.id));
+
+  // Toggle all visible products selection
+  const handleToggleAllSelected = () => {
+    if (allVisibleSelected) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  // Toggle individual product selection
+  const handleToggleProductSelected = (productId: string) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+    } else {
+      newSelected.add(productId);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  // Handle bulk activate selected
+  const handleActivateSelected = async () => {
+    if (selectedProducts.size === 0) return;
+
+    setIsProcessing(true);
+    try {
+      const result = await api.bulkUpdateProducts({
+        ids: Array.from(selectedProducts),
+        is_active: true,
+      });
+      toast.success(`Activated ${result.updated} products`);
+
+      // Refresh data
+      if (category) {
+        const updatedCategory = await api.getCategoryWithStats(category.id);
+        setCategory(updatedCategory);
+      }
+      await fetchProducts(currentPage);
+      setSelectedProducts(new Set());
+    } catch (error) {
+      console.error("Failed to activate products:", error);
+      toast.error("Failed to activate products");
+    } finally {
+      setIsProcessing(false);
+      setShowBulkActivateSelectedDialog(false);
+    }
+  };
+
+  // Handle bulk deactivate selected
+  const handleDeactivateSelected = async () => {
+    if (selectedProducts.size === 0) return;
+
+    setIsProcessing(true);
+    try {
+      const result = await api.bulkUpdateProducts({
+        ids: Array.from(selectedProducts),
+        is_active: false,
+      });
+      toast.success(`Deactivated ${result.updated} products`);
+
+      // Refresh data
+      if (category) {
+        const updatedCategory = await api.getCategoryWithStats(category.id);
+        setCategory(updatedCategory);
+      }
+      await fetchProducts(currentPage);
+      setSelectedProducts(new Set());
+    } catch (error) {
+      console.error("Failed to deactivate products:", error);
+      toast.error("Failed to deactivate products");
+    } finally {
+      setIsProcessing(false);
+      setShowBulkDeactivateSelectedDialog(false);
     }
   };
 
@@ -692,30 +843,115 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
       {/* Products Table */}
       <Card className="shadow-sm">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Package className="h-5 w-5 text-primary" />
-                Products
-              </CardTitle>
-              <CardDescription>
-                {totalProducts.toLocaleString()} products in this category
-              </CardDescription>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Package className="h-5 w-5 text-primary" />
+                  Products
+                </CardTitle>
+                <CardDescription>
+                  {totalProducts.toLocaleString()} products in this category
+                  {filteredProducts.length !== products.length && (
+                    <> ({filteredProducts.length} filtered)</>
+                  )}
+                </CardDescription>
+              </div>
             </div>
-            {/* Filter controls placeholder for full-stack-architect */}
-            <div className="flex items-center gap-2">
-              {/* Filters will go here */}
+
+            {/* Filter Controls */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filters:</span>
+              </div>
+              <Select value={priceFilter} onValueChange={setPriceFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Price filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All prices</SelectItem>
+                  <SelectItem value="no_price">No price</SelectItem>
+                  <SelectItem value="no_mdl">No MDL price</SelectItem>
+                  <SelectItem value="no_eur">No EUR price</SelectItem>
+                  <SelectItem value="no_usd">No USD price</SelectItem>
+                  <SelectItem value="with_price">With price</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={stockFilter} onValueChange={setStockFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Stock filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All stock</SelectItem>
+                  <SelectItem value="in_stock">In stock</SelectItem>
+                  <SelectItem value="out_of_stock">Out of stock</SelectItem>
+                  <SelectItem value="low_stock">Low stock (≤5)</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Status filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All status</SelectItem>
+                  <SelectItem value="active">Active only</SelectItem>
+                  <SelectItem value="inactive">Inactive only</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
+
+        {/* Bulk Actions Bar */}
+        {selectedProducts.size > 0 && (
+          <div className="flex items-center justify-between px-6 py-3 bg-blue-50 border-b border-blue-100">
+            <div className="flex items-center gap-3">
+              <CheckSquare className="h-5 w-5 text-primary" />
+              <span className="font-medium text-foreground">{selectedProducts.size} products selected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBulkActivateSelectedDialog(true)}
+                disabled={isProcessing}
+                className="bg-white hover:bg-green-50 border-green-200 text-green-700"
+              >
+                <Power className="h-4 w-4 mr-2" />
+                Activate Selected
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBulkDeactivateSelectedDialog(true)}
+                disabled={isProcessing}
+                className="bg-white hover:bg-orange-50 border-orange-200 text-orange-700"
+              >
+                <PowerOff className="h-4 w-4 mr-2" />
+                Deactivate Selected
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedProducts(new Set())}
+                className="hover:bg-white/80"
+              >
+                Clear Selection
+              </Button>
+            </div>
+          </div>
+        )}
         <CardContent className="p-0">
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-12">
               <Package className="h-12 w-12 text-muted-foreground/50" />
               <div className="text-center">
                 <p className="font-medium">No products found</p>
                 <p className="text-sm text-muted-foreground">
-                  This category doesn't have any products yet
+                  {products.length === 0
+                    ? "This category doesn't have any products yet"
+                    : "Try adjusting your filters"}
                 </p>
               </div>
             </div>
@@ -724,6 +960,12 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        onCheckedChange={handleToggleAllSelected}
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold">Name</TableHead>
                     <TableHead className="font-semibold">Code</TableHead>
                     <TableHead className="text-right font-semibold">Price</TableHead>
@@ -733,8 +975,14 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
+                  {filteredProducts.map((product) => (
                     <TableRow key={product.id} className="hover:bg-blue-50/30 transition-colors border-b">
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedProducts.has(product.id)}
+                          onCheckedChange={() => handleToggleProductSelected(product.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium max-w-[300px]">
                         <Link
                           href={`/products/${product.id}`}
@@ -891,6 +1139,29 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         description={`Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
         confirmLabel="Delete"
         onConfirm={handleDeleteProduct}
+        variant="destructive"
+        isLoading={isProcessing}
+      />
+
+      {/* Bulk Activate Selected Dialog */}
+      <ConfirmDialog
+        open={showBulkActivateSelectedDialog}
+        onOpenChange={setShowBulkActivateSelectedDialog}
+        title="Activate Selected Products"
+        description={`Are you sure you want to activate ${selectedProducts.size} selected products?`}
+        confirmLabel="Activate"
+        onConfirm={handleActivateSelected}
+        isLoading={isProcessing}
+      />
+
+      {/* Bulk Deactivate Selected Dialog */}
+      <ConfirmDialog
+        open={showBulkDeactivateSelectedDialog}
+        onOpenChange={setShowBulkDeactivateSelectedDialog}
+        title="Deactivate Selected Products"
+        description={`Are you sure you want to deactivate ${selectedProducts.size} selected products?`}
+        confirmLabel="Deactivate"
+        onConfirm={handleDeactivateSelected}
         variant="destructive"
         isLoading={isProcessing}
       />
