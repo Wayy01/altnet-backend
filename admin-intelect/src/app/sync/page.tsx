@@ -89,21 +89,21 @@ function getStepStatusBadge(status: string) {
   switch (status) {
     case "completed":
       return (
-        <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20">
+        <Badge className="bg-primary/15 text-primary border-primary/20 hover:bg-primary/20">
           <CheckCircle2 className="h-3 w-3" />
           Completed
         </Badge>
       );
     case "running":
       return (
-        <Badge className="bg-blue-500/15 text-blue-500 border-blue-500/20 hover:bg-blue-500/20">
+        <Badge className="bg-accent text-accent-foreground border-accent hover:bg-accent">
           <Loader2 className="h-3 w-3 animate-spin" />
           Running
         </Badge>
       );
     case "failed":
       return (
-        <Badge variant="destructive" className="bg-red-500/15 text-red-500 border-red-500/20">
+        <Badge variant="destructive" className="bg-destructive/15 text-destructive border-destructive/20">
           <XCircle className="h-3 w-3" />
           Failed
         </Badge>
@@ -250,7 +250,7 @@ export default function SyncPage() {
 
       {/* Last Updated Indicator */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <div className={`h-2 w-2 rounded-full ${autoRefresh ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+        <div className={`h-2 w-2 rounded-full ${autoRefresh ? "bg-primary animate-pulse" : "bg-muted-foreground"}`} />
         <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
         {syncProgress?.isRunning && autoRefresh && (
           <Badge variant="secondary" className="ml-2 text-xs">
@@ -266,9 +266,9 @@ export default function SyncPage() {
           {/* Status Banner */}
           <Card className={`overflow-hidden transition-all duration-300 ${
             syncProgress.isRunning
-              ? "border-blue-500/50 bg-gradient-to-br from-blue-500/5 to-blue-600/10 shadow-lg shadow-blue-500/5"
+              ? "border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg shadow-primary/5"
               : syncProgress.currentStep === 7
-                ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-600/10"
+                ? "border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10"
                 : ""
           }`}>
             <CardHeader className="pb-4">
@@ -276,14 +276,14 @@ export default function SyncPage() {
                 <div className="flex items-center gap-3">
                   {syncProgress.isRunning ? (
                     <div className="relative">
-                      <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
-                      <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 ring-2 ring-blue-500/20">
-                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                      <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                      <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
                       </div>
                     </div>
                   ) : syncProgress.currentStep === 7 ? (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 ring-2 ring-emerald-500/20">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20">
+                      <CheckCircle2 className="h-5 w-5 text-primary" />
                     </div>
                   ) : (
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted ring-2 ring-muted-foreground/10">
@@ -308,7 +308,7 @@ export default function SyncPage() {
                 {syncProgress.isRunning && (
                   <Badge
                     variant="outline"
-                    className="text-blue-500 border-blue-500/30 bg-blue-500/10 font-medium px-3 py-1"
+                    className="text-primary border-primary/30 bg-primary/10 font-medium px-3 py-1"
                   >
                     <Zap className="h-3.5 w-3.5 mr-1.5" />
                     Step {syncProgress.currentStep}/{syncProgress.totalSteps}
@@ -330,10 +330,10 @@ export default function SyncPage() {
                   <div className="relative">
                     <Progress
                       value={(syncProgress.currentStep / syncProgress.totalSteps) * 100}
-                      className="h-2.5 bg-blue-500/10"
+                      className="h-2.5 bg-primary/10"
                     />
                     <div
-                      className="absolute top-0 left-0 h-2.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500 ease-out"
+                      className="absolute top-0 left-0 h-2.5 rounded-full bg-gradient-to-r from-primary to-primary transition-all duration-500 ease-out"
                       style={{ width: `${(syncProgress.currentStep / syncProgress.totalSteps) * 100}%` }}
                     />
                   </div>
@@ -403,11 +403,11 @@ export default function SyncPage() {
                     key={step.number}
                     className={`group rounded-lg border p-4 transition-all duration-200 ${
                       step.status === "running"
-                        ? "border-blue-500/30 bg-blue-500/5 shadow-sm"
+                        ? "border-primary/30 bg-primary/5 shadow-sm"
                         : step.status === "completed"
-                          ? "border-emerald-500/20 bg-emerald-500/5"
+                          ? "border-primary/20 bg-primary/5"
                           : step.status === "failed"
-                            ? "border-red-500/20 bg-red-500/5"
+                            ? "border-destructive/20 bg-destructive/5"
                             : "border-border/50 bg-card/30 hover:bg-card/50"
                     }`}
                   >
@@ -415,11 +415,11 @@ export default function SyncPage() {
                       <div className="flex items-center gap-4">
                         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
                           step.status === "completed"
-                            ? "bg-emerald-500/10 text-emerald-500"
+                            ? "bg-primary/10 text-primary"
                             : step.status === "running"
-                              ? "bg-blue-500/10 text-blue-500"
+                              ? "bg-primary/10 text-primary"
                               : step.status === "failed"
-                                ? "bg-red-500/10 text-red-500"
+                                ? "bg-destructive/10 text-destructive"
                                 : "bg-muted text-muted-foreground"
                         }`}>
                           {step.status === "running" ? (
@@ -459,12 +459,12 @@ export default function SyncPage() {
                           {(step.inserted > 0 || step.updated > 0) && (
                             <span className="flex items-center gap-2">
                               {step.inserted > 0 && (
-                                <span className="text-emerald-500">
+                                <span className="text-primary">
                                   +{formatNumber(step.inserted)} added
                                 </span>
                               )}
                               {step.updated > 0 && (
-                                <span className="text-blue-500">
+                                <span className="text-primary">
                                   {formatNumber(step.updated)} updated
                                 </span>
                               )}
@@ -534,10 +534,10 @@ export default function SyncPage() {
                     {(inserted > 0 || updated > 0) && (
                       <div className="flex gap-2 text-xs mt-1">
                         {inserted > 0 && (
-                          <span className="text-emerald-500">+{formatNumber(inserted)}</span>
+                          <span className="text-primary">+{formatNumber(inserted)}</span>
                         )}
                         {updated > 0 && (
-                          <span className="text-blue-500">{formatNumber(updated)} upd</span>
+                          <span className="text-primary">{formatNumber(updated)} upd</span>
                         )}
                       </div>
                     )}
@@ -624,10 +624,10 @@ export default function SyncPage() {
                           <Badge
                             className={`${
                               log.status === "completed"
-                                ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/20"
+                                ? "bg-primary/15 text-primary border-primary/20"
                                 : log.status === "running"
-                                  ? "bg-blue-500/15 text-blue-500 border-blue-500/20"
-                                  : "bg-red-500/15 text-red-500 border-red-500/20"
+                                  ? "bg-primary/15 text-primary border-primary/20"
+                                  : "bg-destructive/15 text-destructive border-destructive/20"
                             }`}
                           >
                             {log.status === "completed" ? (

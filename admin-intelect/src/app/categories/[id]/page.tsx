@@ -115,7 +115,7 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
       onClick={handleCopy}
     >
       {copied ? (
-        <Check className="h-3 w-3 text-green-500" />
+        <Check className="h-3 w-3 text-primary" />
       ) : (
         <Copy className="h-3 w-3" />
       )}
@@ -720,9 +720,9 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
               <span className="text-sm text-muted-foreground">Status</span>
               <div className="flex items-center gap-3">
                 {category.is_active ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
                 ) : (
-                  <XCircle className="h-4 w-4 text-red-500" />
+                  <XCircle className="h-4 w-4 text-destructive" />
                 )}
                 <Switch
                   checked={category.is_active}

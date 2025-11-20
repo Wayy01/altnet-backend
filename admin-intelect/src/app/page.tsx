@@ -101,56 +101,56 @@ async function DashboardContent() {
       value: (stats.total_products ?? 0).toLocaleString(),
       icon: Package,
       description: "Products in catalog",
-      color: "text-blue-500",
+      color: "text-primary",
     },
     {
       title: "Brands",
       value: (stats.total_brands ?? 0).toLocaleString(),
       icon: Building2,
       description: "Active brands",
-      color: "text-purple-500",
+      color: "text-primary",
     },
     {
       title: "Categories",
       value: (stats.total_categories ?? 0).toLocaleString(),
       icon: FolderTree,
       description: "Product categories",
-      color: "text-green-500",
+      color: "text-primary",
     },
     {
       title: "Properties",
       value: (stats.total_properties ?? 0).toLocaleString(),
       icon: FileText,
       description: "Product specifications",
-      color: "text-orange-500",
+      color: "text-primary",
     },
     {
       title: "Characteristics",
       value: (stats.total_characteristics ?? 0).toLocaleString(),
       icon: Tags,
       description: "Product variants/SKUs",
-      color: "text-pink-500",
+      color: "text-primary",
     },
     {
       title: "Prices",
       value: (stats.total_prices ?? 0).toLocaleString(),
       icon: DollarSign,
       description: "Price entries",
-      color: "text-yellow-500",
+      color: "text-primary",
     },
     {
       title: "Stock Entries",
       value: (stats.total_stock ?? 0).toLocaleString(),
       icon: Warehouse,
       description: "Stock records",
-      color: "text-cyan-500",
+      color: "text-primary",
     },
     {
       title: "In Stock",
       value: (stats.in_stock_products ?? 0).toLocaleString(),
       icon: PackageCheck,
       description: "Products available",
-      color: "text-emerald-500",
+      color: "text-primary",
     },
   ];
 
@@ -200,9 +200,9 @@ async function DashboardContent() {
                   >
                     <div className="flex items-center gap-2">
                       {sync.status === "completed" ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                       )}
                       <div>
                         <p className="text-sm font-medium">{sync.sync_type}</p>
@@ -231,7 +231,7 @@ async function DashboardContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertTriangle className="h-4 w-4 text-primary" />
               Low Stock Alerts
             </CardTitle>
             <Button variant="ghost" size="sm" asChild>

@@ -183,8 +183,8 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
     <Button variant="ghost" size="sm" className="h-6 px-2 gap-1" onClick={handleCopy}>
       {copied ? (
         <>
-          <Check className="h-3 w-3 text-green-500" />
-          {label && <span className="text-xs text-green-500">Copied</span>}
+          <Check className="h-3 w-3 text-primary" />
+          {label && <span className="text-xs text-primary">Copied</span>}
         </>
       ) : (
         <>
@@ -382,7 +382,7 @@ export default function ProductDetailPage({
               <Badge variant="outline">Group</Badge>
             )}
             {product.is_service && (
-              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                 Service
               </Badge>
             )}
@@ -555,7 +555,7 @@ export default function ProductDetailPage({
             </div>
 
             {/* Min Price */}
-            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+            <div className="p-3 bg-primary/10 rounded-lg">
               <div className="text-sm font-medium text-muted-foreground mb-1">Min Price</div>
               <div className="text-lg font-bold">
                 {product.price_min !== null && product.price_min !== undefined
@@ -565,7 +565,7 @@ export default function ProductDetailPage({
             </div>
 
             {/* Max Price */}
-            <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+            <div className="p-3 bg-primary/10 rounded-lg">
               <div className="text-sm font-medium text-muted-foreground mb-1">Max Price</div>
               <div className="text-lg font-bold">
                 {product.price_max !== null && product.price_max !== undefined
@@ -575,7 +575,7 @@ export default function ProductDetailPage({
             </div>
 
             {/* Variants Count - Fixed to use variants.length */}
-            <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+            <div className="p-3 bg-primary/10 rounded-lg">
               <div className="text-sm font-medium text-muted-foreground mb-1">Variants</div>
               <div className="text-lg font-bold">{variants.length}</div>
             </div>
@@ -634,9 +634,9 @@ export default function ProductDetailPage({
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">In Stock:</span>
               {product.is_in_stock ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-4 w-4 text-primary" />
               ) : (
-                <XCircle className="h-4 w-4 text-red-500" />
+                <XCircle className="h-4 w-4 text-destructive" />
               )}
             </div>
             {characteristics.length > 0 && (
@@ -880,9 +880,9 @@ export default function ProductDetailPage({
                     </TableCell>
                     <TableCell>
                       {char.is_active ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
+                        <XCircle className="h-4 w-4 text-destructive" />
                       )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
@@ -959,7 +959,7 @@ export default function ProductDetailPage({
                                 </Badge>
                               )}
                               {prop.is_modification && (
-                                <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
+                                <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                                   <Hash className="h-3 w-3 mr-1" />
                                   Mod
                                 </Badge>
