@@ -585,12 +585,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
           <div className="space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-bold tracking-tight">{category.name}</h1>
-              <Badge
-                variant={category.is_active ? "default" : "secondary"}
-                className={category.is_active
-                  ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100"
-                  : "bg-gray-100 text-gray-700 border-gray-200"}
-              >
+              <Badge variant={category.is_active ? "default" : "secondary"}>
                 {category.is_active ? "Active" : "Inactive"}
               </Badge>
             </div>
@@ -636,7 +631,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
             <CardTitle className="text-sm font-medium text-muted-foreground">Active Products</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{category.active_products.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-primary">{category.active_products.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {category.total_products > 0
                 ? `${((category.active_products / category.total_products) * 100).toFixed(1)}% of total`
@@ -650,7 +645,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
             <CardTitle className="text-sm font-medium text-muted-foreground">In Stock</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{category.in_stock_products.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-primary">{category.in_stock_products.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {category.active_products > 0
                 ? `${((category.in_stock_products / category.active_products) * 100).toFixed(1)}% of active`
@@ -664,7 +659,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
             <CardTitle className="text-sm font-medium text-muted-foreground">With Prices</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{category.with_prices_products.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-primary">{category.with_prices_products.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {category.active_products > 0
                 ? `${((category.with_prices_products / category.active_products) * 100).toFixed(1)}% of active`
@@ -787,7 +782,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                   onClick={() => setShowBulkActivateDialog(true)}
                   disabled={isProcessing || category.total_products === 0}
                 >
-                  <Power className="h-4 w-4 mr-2 text-green-600" />
+                  <Power className="h-4 w-4 mr-2" />
                   Activate All Products
                 </Button>
                 <Button
@@ -796,7 +791,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                   onClick={() => setShowBulkDeactivateDialog(true)}
                   disabled={isProcessing || category.total_products === 0}
                 >
-                  <PowerOff className="h-4 w-4 mr-2 text-orange-600" />
+                  <PowerOff className="h-4 w-4 mr-2" />
                   Deactivate All Products
                 </Button>
               </div>
@@ -827,7 +822,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 <Link key={sub.id} href={`/categories/${sub.id}`}>
                   <Badge
                     variant="outline"
-                    className="cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all px-3 py-1.5 border-border"
+                    className="cursor-pointer hover:bg-accent transition-all px-3 py-1.5"
                   >
                     <FolderTree className="h-3 w-3 mr-1.5" />
                     {sub.name}
@@ -905,7 +900,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
 
         {/* Bulk Actions Bar */}
         {selectedProducts.size > 0 && (
-          <div className="flex items-center justify-between px-6 py-3 bg-blue-50 border-b border-blue-100">
+          <div className="flex items-center justify-between px-6 py-3 bg-accent border-b">
             <div className="flex items-center gap-3">
               <CheckSquare className="h-5 w-5 text-primary" />
               <span className="font-medium text-foreground">{selectedProducts.size} products selected</span>
@@ -916,7 +911,6 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 variant="outline"
                 onClick={() => setShowBulkActivateSelectedDialog(true)}
                 disabled={isProcessing}
-                className="bg-white hover:bg-green-50 border-green-200 text-green-700"
               >
                 <Power className="h-4 w-4 mr-2" />
                 Activate Selected
@@ -926,7 +920,6 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 variant="outline"
                 onClick={() => setShowBulkDeactivateSelectedDialog(true)}
                 disabled={isProcessing}
-                className="bg-white hover:bg-orange-50 border-orange-200 text-orange-700"
               >
                 <PowerOff className="h-4 w-4 mr-2" />
                 Deactivate Selected
@@ -935,7 +928,6 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 size="sm"
                 variant="ghost"
                 onClick={() => setSelectedProducts(new Set())}
-                className="hover:bg-white/80"
               >
                 Clear Selection
               </Button>
@@ -976,7 +968,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 </TableHeader>
                 <TableBody>
                   {filteredProducts.map((product) => (
-                    <TableRow key={product.id} className="hover:bg-blue-50/30 transition-colors border-b">
+                    <TableRow key={product.id} className="hover:bg-muted/50 transition-colors border-b">
                       <TableCell>
                         <Checkbox
                           checked={selectedProducts.has(product.id)}
@@ -1006,13 +998,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge
-                          variant={product.total_stock > 0 ? "outline" : "destructive"}
-                          className={product.total_stock > 0
-                            ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                            : "bg-red-50 text-red-700 border-red-200"
-                          }
-                        >
+                        <Badge variant={product.total_stock > 0 ? "outline" : "destructive"}>
                           <Warehouse className="h-3 w-3 mr-1" />
                           {product.total_stock > 0 ? product.total_stock : "Out"}
                         </Badge>
@@ -1060,7 +1046,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50/50">
+                <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/50">
                   <div className="text-sm text-muted-foreground">
                     Showing {((currentPage - 1) * productsPerPage) + 1} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts.toLocaleString()} products
                   </div>
@@ -1070,12 +1056,11 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                       size="sm"
                       onClick={() => fetchProducts(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="bg-white hover:bg-secondary"
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
                     </Button>
-                    <div className="text-sm font-medium px-3 py-1 bg-white border rounded-md shadow-sm">
+                    <div className="text-sm font-medium px-3 py-1 bg-card border rounded-md shadow-sm">
                       {currentPage} / {totalPages}
                     </div>
                     <Button
@@ -1083,7 +1068,6 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                       size="sm"
                       onClick={() => fetchProducts(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="bg-white hover:bg-secondary"
                     >
                       Next
                       <ChevronRight className="h-4 w-4 ml-1" />
