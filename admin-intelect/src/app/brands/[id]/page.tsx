@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -14,19 +14,21 @@ import {
   Hash,
   ExternalLink,
   Settings,
-  ToggleLeft,
-  ToggleRight,
   Trash2,
   CheckCircle2,
   XCircle,
-  DollarSign,
-  Warehouse,
   Power,
   PowerOff,
   MoreHorizontal,
   Eye,
   ChevronLeft,
   ChevronRight,
+  Home,
+  Warehouse,
+  Tag,
+  Clock,
+  Filter,
+  CheckSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -34,6 +36,15 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -49,6 +60,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { api } from "@/lib/api";
 import { BrandWithStats, BrandProduct } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -60,7 +79,9 @@ interface BrandDetailPageProps {
   }>;
 }
 
-// Copy button component
+/**
+ * Copy button component with visual feedback
+ */
 function CopyButton({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -87,32 +108,42 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
   };
 
   return (
-    <Button variant="ghost" size="sm" className="h-6 px-2 gap-1" onClick={handleCopy}>
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground transition-colors"
+      onClick={handleCopy}
+    >
       {copied ? (
-        <>
-          <Check className="h-3 w-3 text-green-500" />
-          {label && <span className="text-xs text-green-500">Copied</span>}
-        </>
+        <Check className="h-3 w-3 text-green-500" />
       ) : (
-        <>
-          <Copy className="h-3 w-3" />
-          {label && <span className="text-xs">{label}</span>}
-        </>
+        <Copy className="h-3 w-3" />
       )}
+      {label && <span className="sr-only">{label}</span>}
     </Button>
   );
 }
 
-// Copyable field component
-function CopyableField({ label, value, mono = false }: { label: string; value: string | null | undefined; mono?: boolean }) {
+/**
+ * Copyable field component for displaying data with copy functionality
+ */
+function CopyableField({
+  label,
+  value,
+  mono = false
+}: {
+  label: string;
+  value: string | null | undefined;
+  mono?: boolean
+}) {
   if (!value) return null;
 
   return (
-    <div className="flex justify-between items-center py-1">
+    <div className="flex items-center justify-between py-2">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1">
-        <span className={`text-sm ${mono ? "font-mono text-xs" : ""}`}>
-          {value.length > 40 ? `${value.substring(0, 20)}...${value.substring(value.length - 8)}` : value}
+      <div className="flex items-center gap-2">
+        <span className={`text-sm ${mono ? "font-mono text-xs bg-muted px-2 py-0.5 rounded" : ""}`}>
+          {value.length > 36 ? `${value.substring(0, 16)}...${value.substring(value.length - 8)}` : value}
         </span>
         <CopyButton text={value} />
       </div>
@@ -120,7 +151,9 @@ function CopyableField({ label, value, mono = false }: { label: string; value: s
   );
 }
 
-// Format timestamp for display
+/**
+ * Format timestamp for display
+ */
 function formatTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
   return date.toLocaleString('en-US', {
@@ -132,11 +165,55 @@ function formatTimestamp(timestamp: string): string {
   });
 }
 
-export default function BrandDetailPage({
-  params,
-}: BrandDetailPageProps) {
+/**
+ * Filter products based on price, stock, and status criteria
+ */
+function filterProducts(
+  products: BrandProduct[],
+  priceFilter: string,
+  stockFilter: string,
+  statusFilter: string
+): BrandProduct[] {
+  return products.filter((product) => {
+    // Price filter
+    let priceMatch = true;
+    if (priceFilter === "no_price") {
+      priceMatch = product.price_mdl === null && product.price_eur === null && product.price_usd === null;
+    } else if (priceFilter === "no_mdl") {
+      priceMatch = product.price_mdl === null;
+    } else if (priceFilter === "no_eur") {
+      priceMatch = product.price_eur === null;
+    } else if (priceFilter === "no_usd") {
+      priceMatch = product.price_usd === null;
+    } else if (priceFilter === "with_price") {
+      priceMatch = product.price_mdl !== null || product.price_eur !== null || product.price_usd !== null;
+    }
+
+    // Stock filter
+    let stockMatch = true;
+    if (stockFilter === "in_stock") {
+      stockMatch = product.total_stock > 0;
+    } else if (stockFilter === "out_of_stock") {
+      stockMatch = product.total_stock === 0 || product.total_stock === null;
+    } else if (stockFilter === "low_stock") {
+      stockMatch = product.total_stock > 0 && product.total_stock <= 5;
+    }
+
+    // Status filter
+    let statusMatch = true;
+    if (statusFilter === "active") {
+      statusMatch = product.is_active === true;
+    } else if (statusFilter === "inactive") {
+      statusMatch = product.is_active === false;
+    }
+
+    return priceMatch && stockMatch && statusMatch;
+  });
+}
+
+export default function BrandDetailPage({ params }: BrandDetailPageProps) {
   const [brand, setBrand] = useState<BrandWithStats | null>(null);
-  const [products, setProducts] = useState<BrandProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<BrandProduct[]>([]);
   const [totalProducts, setTotalProducts] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,15 +222,26 @@ export default function BrandDetailPage({
   const [showBulkActivateDialog, setShowBulkActivateDialog] = useState(false);
   const [showBulkDeactivateDialog, setShowBulkDeactivateDialog] = useState(false);
   const [showDeleteProductDialog, setShowDeleteProductDialog] = useState(false);
+  const [showBulkActivateSelectedDialog, setShowBulkActivateSelectedDialog] = useState(false);
+  const [showBulkDeactivateSelectedDialog, setShowBulkDeactivateSelectedDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<BrandProduct | null>(null);
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
   const { formatPrice } = useCurrency();
+
+  // Filter state
+  const [priceFilter, setPriceFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Selection state
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [resolvedId, setResolvedId] = useState<string | null>(null);
   const productsPerPage = 10;
 
+  // Fetch all products for the current page
   useEffect(() => {
     let cancelled = false;
 
@@ -177,7 +265,7 @@ export default function BrandDetailPage({
         }
 
         setBrand(brandData);
-        setProducts(productsData.data);
+        setAllProducts(productsData.data);
         setTotalProducts(productsData.total);
       } catch (err) {
         if (cancelled) return;
@@ -204,12 +292,97 @@ export default function BrandDetailPage({
     try {
       const offset = (page - 1) * productsPerPage;
       const productsData = await api.getBrandProducts(resolvedId, productsPerPage, offset);
-      setProducts(productsData.data);
+      setAllProducts(productsData.data);
       setTotalProducts(productsData.total);
       setCurrentPage(page);
+      setSelectedProducts(new Set()); // Clear selection on page change
     } catch (err) {
       console.error("Failed to fetch products:", err);
       toast.error("Failed to load products");
+    }
+  };
+
+  // Apply client-side filtering
+  const filteredProducts = useMemo(() => {
+    return filterProducts(allProducts, priceFilter, stockFilter, statusFilter);
+  }, [allProducts, priceFilter, stockFilter, statusFilter]);
+
+  // Check if all visible products are selected
+  const allVisibleSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.has(p.id));
+
+  // Toggle all visible products selection
+  const handleToggleAllSelected = () => {
+    if (allVisibleSelected) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  // Toggle individual product selection
+  const handleToggleProductSelected = (productId: string) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+    } else {
+      newSelected.add(productId);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  // Handle bulk activate selected
+  const handleActivateSelected = async () => {
+    if (selectedProducts.size === 0) return;
+
+    setIsProcessing(true);
+    try {
+      const result = await api.bulkUpdateProducts({
+        ids: Array.from(selectedProducts),
+        is_active: true,
+      });
+      toast.success(`Activated ${result.updated} products`);
+
+      // Refresh data
+      if (brand) {
+        const updatedBrand = await api.getBrandWithStats(brand.id);
+        setBrand(updatedBrand);
+      }
+      await fetchProducts(currentPage);
+      setSelectedProducts(new Set());
+    } catch (error) {
+      console.error("Failed to activate products:", error);
+      toast.error("Failed to activate products");
+    } finally {
+      setIsProcessing(false);
+      setShowBulkActivateSelectedDialog(false);
+    }
+  };
+
+  // Handle bulk deactivate selected
+  const handleDeactivateSelected = async () => {
+    if (selectedProducts.size === 0) return;
+
+    setIsProcessing(true);
+    try {
+      const result = await api.bulkUpdateProducts({
+        ids: Array.from(selectedProducts),
+        is_active: false,
+      });
+      toast.success(`Deactivated ${result.updated} products`);
+
+      // Refresh data
+      if (brand) {
+        const updatedBrand = await api.getBrandWithStats(brand.id);
+        setBrand(updatedBrand);
+      }
+      await fetchProducts(currentPage);
+      setSelectedProducts(new Set());
+    } catch (error) {
+      console.error("Failed to deactivate products:", error);
+      toast.error("Failed to deactivate products");
+    } finally {
+      setIsProcessing(false);
+      setShowBulkDeactivateSelectedDialog(false);
     }
   };
 
@@ -236,7 +409,6 @@ export default function BrandDetailPage({
     try {
       await api.deleteBrand(brand.id);
       toast.success("Brand deleted successfully");
-      // Redirect to brands list after deletion
       window.location.href = "/brands";
     } catch (error) {
       console.error("Failed to delete brand:", error);
@@ -254,10 +426,8 @@ export default function BrandDetailPage({
     try {
       const result = await api.bulkUpdateBrandProducts(brand.id, true);
       toast.success(`Activated ${result.updated} products`);
-      // Refresh brand stats
       const updatedBrand = await api.getBrandWithStats(brand.id);
       setBrand(updatedBrand);
-      // Refresh products list
       await fetchProducts(currentPage);
     } catch (error) {
       console.error("Failed to activate products:", error);
@@ -275,10 +445,8 @@ export default function BrandDetailPage({
     try {
       const result = await api.bulkUpdateBrandProducts(brand.id, false);
       toast.success(`Deactivated ${result.updated} products`);
-      // Refresh brand stats
       const updatedBrand = await api.getBrandWithStats(brand.id);
       setBrand(updatedBrand);
-      // Refresh products list
       await fetchProducts(currentPage);
     } catch (error) {
       console.error("Failed to deactivate products:", error);
@@ -293,12 +461,10 @@ export default function BrandDetailPage({
     setTogglingProductId(product.id);
     try {
       await api.updateProduct(product.id, { is_active: isActive });
-      // Update local state
-      setProducts(products.map(p =>
+      setAllProducts(allProducts.map(p =>
         p.id === product.id ? { ...p, is_active: isActive } : p
       ));
       toast.success(`Product ${isActive ? "activated" : "deactivated"}`);
-      // Refresh brand stats
       if (brand) {
         const updatedBrand = await api.getBrandWithStats(brand.id);
         setBrand(updatedBrand);
@@ -318,10 +484,8 @@ export default function BrandDetailPage({
     try {
       await api.deleteProduct(productToDelete.id);
       toast.success("Product deleted successfully");
-      // Refresh brand stats
       const updatedBrand = await api.getBrandWithStats(brand.id);
       setBrand(updatedBrand);
-      // Refresh products list
       await fetchProducts(currentPage);
     } catch (error) {
       console.error("Failed to delete product:", error);
@@ -341,70 +505,139 @@ export default function BrandDetailPage({
 
   if (error || !brand) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-muted-foreground">
-          {error || "Brand not found"}
-        </p>
-        <Button variant="outline" asChild className="mt-4">
-          <Link href="/brands">Back to Brands</Link>
-        </Button>
+      <div className="space-y-6">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/">
+                  <Home className="h-4 w-4" />
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/brands">Brands</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Not Found</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Brand Not Found</h2>
+            <p className="text-muted-foreground text-center max-w-md mb-6">
+              {error || "The brand you're looking for doesn't exist or has been removed."}
+            </p>
+            <Button asChild>
+              <Link href="/brands">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Brands
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/brands">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-12 w-12">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/" className="flex items-center">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/brands">Brands</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{brand.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
+          <Button variant="outline" size="icon" asChild className="shrink-0 mt-1">
+            <Link href="/brands">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div className="flex items-start gap-4">
+            <Avatar className="h-16 w-16 border-2 border-border shadow-sm">
               {brand.logo_url ? (
                 <AvatarImage src={brand.logo_url} alt={brand.name} />
               ) : null}
-              <AvatarFallback className="text-lg">
+              <AvatarFallback className="text-xl font-semibold bg-primary/10 text-primary">
                 {brand.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <div className="flex items-center gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-3xl font-bold tracking-tight">{brand.name}</h1>
-                <Badge variant={brand.is_active ? "default" : "secondary"}>
+                <Badge
+                  variant={brand.is_active ? "default" : "secondary"}
+                  className={brand.is_active ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100" : ""}
+                >
                   {brand.is_active ? "Active" : "Inactive"}
                 </Badge>
               </div>
-              <p className="text-muted-foreground text-sm">
-                Slug: {brand.slug}
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" />
+                {brand.slug}
               </p>
             </div>
           </div>
         </div>
+        <div className="flex items-center gap-2 sm:shrink-0">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={isProcessing}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Products</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{brand.total_products.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">All products in this brand</p>
+            <p className="text-xs text-muted-foreground mt-1">All products in this brand</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Products</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Products</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{brand.active_products.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               {brand.total_products > 0
                 ? `${((brand.active_products / brand.total_products) * 100).toFixed(1)}% of total`
                 : "No products"}
@@ -412,13 +645,13 @@ export default function BrandDetailPage({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">In Stock</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">In Stock</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{brand.in_stock_products.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               {brand.active_products > 0
                 ? `${((brand.in_stock_products / brand.active_products) * 100).toFixed(1)}% of active`
                 : "No active products"}
@@ -426,13 +659,13 @@ export default function BrandDetailPage({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">With Prices</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">With Prices</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">{brand.with_prices_products.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-1">
               {brand.active_products > 0
                 ? `${((brand.with_prices_products / brand.active_products) * 100).toFixed(1)}% of active`
                 : "No active products"}
@@ -441,165 +674,282 @@ export default function BrandDetailPage({
         </Card>
       </div>
 
-      {/* Brand Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            Brand Information
-          </CardTitle>
-          <CardDescription>
-            Brand details and identifiers
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Identifiers */}
-            <div className="space-y-1">
-              <div className="text-sm font-medium mb-2">Identifiers</div>
-              <CopyableField label="ID (UUID)" value={brand.id} mono />
-              <CopyableField label="Ultra ID" value={brand.ultra_id} mono />
-              <CopyableField label="Slug" value={brand.slug} />
-              {brand.logo_url && (
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-sm text-muted-foreground">Logo URL</span>
-                  <div className="flex items-center gap-1">
+      {/* Brand Information & Admin Actions Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Brand Information */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Building2 className="h-5 w-5 text-primary" />
+              Brand Information
+            </CardTitle>
+            <CardDescription>
+              Details and identifiers for this brand
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <CopyableField label="ID (UUID)" value={brand.id} mono />
+            <Separator className="my-2" />
+            <CopyableField label="Ultra ID" value={brand.ultra_id} mono />
+            <Separator className="my-2" />
+            <CopyableField label="Slug" value={brand.slug} />
+            {brand.logo_url && (
+              <>
+                <Separator className="my-2" />
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm text-muted-foreground">Logo</span>
+                  <div className="flex items-center gap-2">
                     <a
                       href={brand.logo_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline"
+                      className="text-sm text-primary hover:underline flex items-center gap-1"
                     >
                       View Logo
+                      <ExternalLink className="h-3 w-3" />
                     </a>
                     <CopyButton text={brand.logo_url} />
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* Timestamps */}
-            <div className="space-y-1">
-              <div className="text-sm font-medium mb-2">Timestamps</div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-sm text-muted-foreground">Created</span>
-                <span className="text-xs">{formatTimestamp(brand.created_at)}</span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-sm text-muted-foreground">Updated</span>
-                <span className="text-xs">{formatTimestamp(brand.updated_at)}</span>
-              </div>
-              <div className="flex justify-between items-center py-1">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <div className="flex items-center gap-2">
-                  {brand.is_active ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-red-500" />
-                  )}
-                  <Switch
-                    checked={brand.is_active}
-                    onCheckedChange={handleToggleActive}
-                    disabled={isProcessing}
-                  />
-                </div>
+              </>
+            )}
+            <Separator className="my-2" />
+            <div className="flex items-center justify-between py-2">
+              <span className="text-sm text-muted-foreground">Status</span>
+              <div className="flex items-center gap-3">
+                {brand.is_active ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-red-500" />
+                )}
+                <Switch
+                  checked={brand.is_active}
+                  onCheckedChange={handleToggleActive}
+                  disabled={isProcessing}
+                />
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Admin Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Admin Actions
-          </CardTitle>
-          <CardDescription>
-            Manage brand and its products
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setShowBulkActivateDialog(true)}
-              disabled={isProcessing || brand.total_products === 0}
-            >
-              <Power className="h-4 w-4 mr-2" />
-              Activate All Products
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowBulkDeactivateDialog(true)}
-              disabled={isProcessing || brand.total_products === 0}
-            >
-              <PowerOff className="h-4 w-4 mr-2" />
-              Deactivate All Products
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={isProcessing}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Brand
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Timestamps & Actions */}
+        <div className="space-y-6">
+          {/* Timestamps */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Clock className="h-5 w-5 text-primary" />
+                Timestamps
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Created
+                </span>
+                <span className="text-sm">{formatTimestamp(brand.created_at)}</span>
+              </div>
+              <Separator className="my-2" />
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Updated
+                </span>
+                <span className="text-sm">{formatTimestamp(brand.updated_at)}</span>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Products Table with Pagination */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                Products
+          {/* Admin Actions */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Settings className="h-5 w-5 text-primary" />
+                Admin Actions
               </CardTitle>
               <CardDescription>
-                {totalProducts.toLocaleString()} products in this brand
+                Bulk operations for brand products
               </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-3">
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => setShowBulkActivateDialog(true)}
+                  disabled={isProcessing || brand.total_products === 0}
+                >
+                  <Power className="h-4 w-4 mr-2 text-green-600" />
+                  Activate All Products
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => setShowBulkDeactivateDialog(true)}
+                  disabled={isProcessing || brand.total_products === 0}
+                >
+                  <PowerOff className="h-4 w-4 mr-2 text-orange-600" />
+                  Deactivate All Products
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Products Table */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Package className="h-5 w-5 text-primary" />
+                  Products
+                </CardTitle>
+                <CardDescription>
+                  {totalProducts.toLocaleString()} products in this brand
+                  {filteredProducts.length !== allProducts.length && (
+                    <> ({filteredProducts.length} filtered)</>
+                  )}
+                </CardDescription>
+              </div>
+            </div>
+
+            {/* Filter Controls */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Filters:</span>
+              </div>
+              <Select value={priceFilter} onValueChange={setPriceFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Price filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All prices</SelectItem>
+                  <SelectItem value="no_price">No price</SelectItem>
+                  <SelectItem value="no_mdl">No MDL price</SelectItem>
+                  <SelectItem value="no_eur">No EUR price</SelectItem>
+                  <SelectItem value="no_usd">No USD price</SelectItem>
+                  <SelectItem value="with_price">With price</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={stockFilter} onValueChange={setStockFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Stock filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All stock</SelectItem>
+                  <SelectItem value="in_stock">In stock</SelectItem>
+                  <SelectItem value="out_of_stock">Out of stock</SelectItem>
+                  <SelectItem value="low_stock">Low stock (≤5)</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Status filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All status</SelectItem>
+                  <SelectItem value="active">Active only</SelectItem>
+                  <SelectItem value="inactive">Inactive only</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {products.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-8">
-              <Package className="h-8 w-8 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                No products found for this brand
-              </p>
+
+        {/* Bulk Actions Bar */}
+        {selectedProducts.size > 0 && (
+          <div className="flex items-center justify-between px-6 py-3 bg-primary/10 border-b">
+            <div className="flex items-center gap-3">
+              <CheckSquare className="h-5 w-5 text-primary" />
+              <span className="font-medium">{selectedProducts.size} products selected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBulkActivateSelectedDialog(true)}
+                disabled={isProcessing}
+              >
+                <Power className="h-4 w-4 mr-2" />
+                Activate Selected
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBulkDeactivateSelectedDialog(true)}
+                disabled={isProcessing}
+              >
+                <PowerOff className="h-4 w-4 mr-2" />
+                Deactivate Selected
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSelectedProducts(new Set())}
+              >
+                Clear Selection
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <CardContent className="p-0">
+          {filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 py-12">
+              <Package className="h-12 w-12 text-muted-foreground/50" />
+              <div className="text-center">
+                <p className="font-medium">No products found</p>
+                <p className="text-sm text-muted-foreground">
+                  {allProducts.length === 0
+                    ? "This brand doesn't have any products yet"
+                    : "Try adjusting your filters"}
+                </p>
+              </div>
             </div>
           ) : (
             <>
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead className="text-right">Price (MDL)</TableHead>
-                    <TableHead className="text-center">Stock</TableHead>
-                    <TableHead className="text-center">Active</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        onCheckedChange={handleToggleAllSelected}
+                      />
+                    </TableHead>
+                    <TableHead className="font-semibold">Name</TableHead>
+                    <TableHead className="font-semibold">Code</TableHead>
+                    <TableHead className="text-right font-semibold">Price</TableHead>
+                    <TableHead className="text-center font-semibold">Stock</TableHead>
+                    <TableHead className="text-center font-semibold">Active</TableHead>
+                    <TableHead className="text-right font-semibold w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">
+                  {filteredProducts.map((product) => (
+                    <TableRow key={product.id} className="hover:bg-muted/30 transition-colors">
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedProducts.has(product.id)}
+                          onCheckedChange={() => handleToggleProductSelected(product.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium max-w-[300px]">
                         <Link
                           href={`/products/${product.id}`}
-                          className="hover:underline text-blue-600"
+                          className="hover:underline text-primary truncate block"
                         >
                           {product.name.length > 50
                             ? `${product.name.substring(0, 50)}...`
                             : product.name}
                         </Link>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">
+                      <TableCell className="font-mono text-sm text-muted-foreground">
                         {product.code || "-"}
                       </TableCell>
                       <TableCell className="text-right">
@@ -608,17 +958,19 @@ export default function BrandDetailPage({
                             {formatPrice(product.price_min)}
                           </span>
                         ) : (
-                          <Badge variant="outline" className="text-muted-foreground">
-                            No price
-                          </Badge>
+                          <span className="text-muted-foreground text-sm">No price</span>
                         )}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
-                          variant={product.total_stock > 0 ? "default" : "destructive"}
-                          className={product.total_stock > 0 ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}
+                          variant={product.total_stock > 0 ? "outline" : "destructive"}
+                          className={product.total_stock > 0
+                            ? "bg-green-50 text-green-700 border-green-200"
+                            : ""
+                          }
                         >
-                          {product.total_stock > 0 ? `${product.total_stock} in stock` : "Out of stock"}
+                          <Warehouse className="h-3 w-3 mr-1" />
+                          {product.total_stock > 0 ? product.total_stock : "Out"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
@@ -636,7 +988,7 @@ export default function BrandDetailPage({
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="w-[160px]">
                             <DropdownMenuItem asChild>
                               <Link href={`/products/${product.id}`}>
                                 <Eye className="h-4 w-4 mr-2" />
@@ -649,7 +1001,7 @@ export default function BrandDetailPage({
                                 setProductToDelete(product);
                                 setShowDeleteProductDialog(true);
                               }}
-                              className="text-red-600"
+                              className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
@@ -664,7 +1016,7 @@ export default function BrandDetailPage({
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
                   <div className="text-sm text-muted-foreground">
                     Showing {((currentPage - 1) * productsPerPage) + 1} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts.toLocaleString()} products
                   </div>
@@ -678,8 +1030,8 @@ export default function BrandDetailPage({
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
                     </Button>
-                    <div className="text-sm font-medium px-2">
-                      Page {currentPage} of {totalPages}
+                    <div className="text-sm font-medium px-3 py-1 bg-background border rounded-md">
+                      {currentPage} / {totalPages}
                     </div>
                     <Button
                       variant="outline"
@@ -744,26 +1096,64 @@ export default function BrandDetailPage({
         variant="destructive"
         isLoading={isProcessing}
       />
+
+      {/* Bulk Activate Selected Dialog */}
+      <ConfirmDialog
+        open={showBulkActivateSelectedDialog}
+        onOpenChange={setShowBulkActivateSelectedDialog}
+        title="Activate Selected Products"
+        description={`Are you sure you want to activate ${selectedProducts.size} selected products?`}
+        confirmLabel="Activate"
+        onConfirm={handleActivateSelected}
+        isLoading={isProcessing}
+      />
+
+      {/* Bulk Deactivate Selected Dialog */}
+      <ConfirmDialog
+        open={showBulkDeactivateSelectedDialog}
+        onOpenChange={setShowBulkDeactivateSelectedDialog}
+        title="Deactivate Selected Products"
+        description={`Are you sure you want to deactivate ${selectedProducts.size} selected products?`}
+        confirmLabel="Deactivate"
+        onConfirm={handleDeactivateSelected}
+        variant="destructive"
+        isLoading={isProcessing}
+      />
     </div>
   );
 }
 
+/**
+ * Loading skeleton for brand detail page
+ */
 function BrandDetailSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Skeleton className="h-10 w-10" />
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
-          <div>
+      {/* Breadcrumb skeleton */}
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+
+      {/* Header skeleton */}
+      <div className="flex items-start gap-4">
+        <Skeleton className="h-10 w-10 rounded-md" />
+        <div className="flex items-start gap-4">
+          <Skeleton className="h-16 w-16 rounded-full" />
+          <div className="space-y-2">
             <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-32 mt-1" />
+            <Skeleton className="h-4 w-32" />
           </div>
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
+
+      {/* Stats cards skeleton */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="shadow-sm">
             <CardHeader className="pb-2">
               <Skeleton className="h-4 w-24" />
             </CardHeader>
@@ -774,20 +1164,61 @@ function BrandDetailSkeleton() {
           </Card>
         ))}
       </div>
-      <Card>
+
+      {/* Info cards skeleton */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-4 w-56" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-5 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <Skeleton className="h-5 w-36" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Products table skeleton */}
+      <Card className="shadow-sm">
         <CardHeader>
-          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-4 w-48" />
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-40 w-full" />
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-5 w-48" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64 w-full" />
+        <CardContent className="p-0">
+          <div className="p-6 space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -45,6 +45,10 @@ export interface CategoryProduct {
   code: string;
   price_min: number | null;
   price_max: number | null;
+  price_mdl: number | null;
+  price_eur: number | null;
+  price_usd: number | null;
+  prices: ProductPriceEntry[];
   total_stock: number;
   is_active: boolean;
 }
@@ -455,6 +459,10 @@ export interface BrandProduct {
   code: string;
   price_min: number | null;
   price_max: number | null;
+  price_mdl: number | null;
+  price_eur: number | null;
+  price_usd: number | null;
+  prices: ProductPriceEntry[];
   total_stock: number;
   is_active: boolean;
 }
