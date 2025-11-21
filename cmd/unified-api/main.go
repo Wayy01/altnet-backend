@@ -48,9 +48,10 @@ func main() {
 	ultraClient := ultra.NewClient(cfg.Ultra)
 	fetcher := ultra.NewFetcher(ultraClient)
 
-	// Create repository and handlers
+	// Create repositories and handlers
 	repo := repository.New(db.Pool)
-	handler := handlers.New(repo, fetcher)
+	syncConfigRepo := repository.NewSyncConfigRepository(db.Pool)
+	handler := handlers.New(repo, syncConfigRepo, fetcher)
 
 	// Setup router
 	router := setupRouter(handler)

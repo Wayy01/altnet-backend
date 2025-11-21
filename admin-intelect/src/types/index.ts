@@ -407,6 +407,7 @@ export interface SyncProgress {
   elapsedSeconds: number;
   estimatedRemainingSeconds?: number;
   lastUpdated: string;
+  selectedSteps?: string[];
 
   // Detailed counts
   brandsSynced: number;

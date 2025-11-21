@@ -306,8 +306,8 @@ func (s *SelectiveSync) updateSyncProgress(ctx context.Context, syncLogID uuid.U
 	// Update sync_step_details table
 	query := `
 		INSERT INTO sync_step_details (
-			sync_log_id, step_number, step_name, extracted, inserted, updated, failed, duration_seconds
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			sync_log_id, step_number, step_name, extracted, inserted, updated, failed
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
 	stepNumber := getStepNumber(step)
@@ -319,7 +319,6 @@ func (s *SelectiveSync) updateSyncProgress(ctx context.Context, syncLogID uuid.U
 		stepResult.Inserted,
 		stepResult.Updated,
 		stepResult.Failed,
-		stepResult.Duration.Seconds(),
 	)
 
 	return err
@@ -351,7 +350,7 @@ func (s *SelectiveSync) finalizeSyncLog(ctx context.Context, syncLogID uuid.UUID
 		UPDATE sync_logs
 		SET
 			status = $2,
-			completed_at = $3,
+			finished_at = $3,
 			duration_seconds = $4,
 			brands_synced = $5,
 			brands_inserted = $6,

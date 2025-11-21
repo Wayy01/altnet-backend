@@ -376,6 +376,7 @@ type SyncProgress struct {
 	UpdatedCount    int      `json:"updated_count"`
 	SkippedCount    int      `json:"skipped_count"`
 	FailedCount     int      `json:"failed_count"`
+	SelectedSteps   []string `json:"selected_steps,omitempty"`
 	EstimatedTimeRemaining time.Duration `json:"estimated_time_remaining,omitempty"`
 }
 

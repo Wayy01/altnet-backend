@@ -222,6 +222,7 @@ type SyncLog struct {
 	StockSynced           int        `json:"stock_synced"`
 	ErrorMessage          *string    `json:"error_message"`
 	Details               JSONB      `json:"details"`
+	SelectedSteps         JSONB      `json:"selected_steps,omitempty"`
 
 	// Change deltas
 	BrandsInserted          int `json:"brands_inserted"`

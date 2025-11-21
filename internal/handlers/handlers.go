@@ -14,20 +14,27 @@ import (
 	"github.com/gorilla/mux"
 	"ultra-api-testing/internal/models"
 	"ultra-api-testing/internal/repository"
+	"ultra-api-testing/internal/sync"
 	"ultra-api-testing/internal/ultra"
 )
 
 // Handler contains all HTTP handlers
 type Handler struct {
-	repo    *repository.Repository
-	fetcher *ultra.Fetcher
+	repo           *repository.Repository
+	syncConfigRepo *repository.SyncConfigRepository
+	fetcher        *ultra.Fetcher
+	selectiveSync  *sync.SelectiveSync
 }
 
 // New creates a new Handler instance
-func New(repo *repository.Repository, fetcher *ultra.Fetcher) *Handler {
+func New(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher) *Handler {
+	selectiveSync := sync.NewSelectiveSync(repo, syncConfigRepo, fetcher)
+
 	return &Handler{
-		repo:    repo,
-		fetcher: fetcher,
+		repo:           repo,
+		syncConfigRepo: syncConfigRepo,
+		fetcher:        fetcher,
+		selectiveSync:  selectiveSync,
 	}
 }
 
@@ -1060,6 +1067,7 @@ type SyncProgressResponse struct {
 	ElapsedSeconds            int        `json:"elapsedSeconds"`
 	EstimatedRemainingSeconds *int       `json:"estimatedRemainingSeconds,omitempty"`
 	LastUpdated               string     `json:"lastUpdated"`
+	SelectedSteps             []string   `json:"selectedSteps,omitempty"`
 
 	// Detailed counts
 	BrandsSynced          int `json:"brandsSynced"`
@@ -1244,6 +1252,17 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 	if syncLog != nil {
 		response.SyncLogID = syncLog.ID.String()
 		response.StartedAt = syncLog.StartedAt.Format(time.RFC3339)
+
+		// Parse selected steps from JSONB
+		if syncLog.SelectedSteps != nil {
+			// Convert JSONB to JSON bytes first, then unmarshal
+			if jsonBytes, err := json.Marshal(syncLog.SelectedSteps); err == nil {
+				var selectedSteps []string
+				if err := json.Unmarshal(jsonBytes, &selectedSteps); err == nil {
+					response.SelectedSteps = selectedSteps
+				}
+			}
+		}
 
 		// Estimate categories processed based on properties count
 		if totalCategoriesWithProducts > 0 && propertiesSynced > 0 {
@@ -2589,19 +2608,71 @@ func (h *Handler) ExecuteSelectiveSync(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Phase 2: Configuration management only
-	// Phase 3: Sync execution with async job queue
-	h.respondJSON(w, http.StatusNotImplemented, map[string]interface{}{
-		"error": "Selective sync execution is planned for Phase 3",
-		"phase": "Phase 2 provides configuration management only",
-		"available_operations": []string{
-			"POST /api/v1/sync/configs - Create configurations",
-			"GET /api/v1/sync/configs - List configurations",
-			"POST /api/v1/sync/validate - Validate configurations",
-			"GET /api/v1/sync/schemas - Get field schemas",
+	// Execute selective sync
+	result, err := h.selectiveSync.ExecuteSelectiveSync(r.Context(), &request)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Selective sync execution failed", err.Error())
+		return
+	}
+
+	// Build response
+	response := map[string]interface{}{
+		"sync_log_id": result.SyncLogID,
+		"status":      getStatusFromResult(result),
+		"duration":    result.Duration.Seconds(),
+		"stats": map[string]interface{}{
+			"total_changes": result.TotalChanges,
+			"steps":         len(result.StepResults),
 		},
-		"note": "Sync execution requires async job queue (RabbitMQ/Redis) to avoid HTTP timeouts for long-running syncs (35+ minutes for properties)",
-	})
+		"step_results": buildStepResultsSummary(result.StepResults),
+	}
+
+	if len(result.Errors) > 0 {
+		response["errors"] = result.Errors
+	}
+
+	statusCode := http.StatusOK
+	if len(result.Errors) > 0 {
+		statusCode = http.StatusPartialContent
+	}
+
+	h.respondJSON(w, statusCode, response)
+}
+
+// getStatusFromResult determines the overall status from sync result
+func getStatusFromResult(result *sync.SyncResult) string {
+	if len(result.Errors) == 0 {
+		return "completed"
+	}
+	if len(result.Errors) == len(result.StepResults) {
+		return "failed"
+	}
+	return "partial"
+}
+
+// buildStepResultsSummary builds a summary of step results
+func buildStepResultsSummary(stepResults map[models.SyncStep]*sync.StepResult) []map[string]interface{} {
+	summary := make([]map[string]interface{}, 0, len(stepResults))
+
+	for step, result := range stepResults {
+		stepSummary := map[string]interface{}{
+			"step":      string(step),
+			"extracted": result.Extracted,
+			"inserted":  result.Inserted,
+			"updated":   result.Updated,
+			"skipped":   result.Skipped,
+			"failed":    result.Failed,
+			"duration":  result.Duration.Seconds(),
+		}
+
+		if result.Error != nil {
+			stepSummary["error"] = result.Error.Error()
+		}
+
+		summary = append(summary, stepSummary)
+	}
+
+	return summary
 }
 
 // ValidateSyncConfig handles POST /api/v1/sync/validate

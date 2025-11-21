@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import {
   RefreshCw,
   Clock,
@@ -23,6 +24,7 @@ import {
   CalendarClock,
   Activity,
   Zap,
+  ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -385,99 +387,148 @@ export default function SyncPage() {
             </CardContent>
           </Card>
 
-          {/* Step Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-muted-foreground" />
-                Sync Steps
-              </CardTitle>
-              <CardDescription>
-                Detailed progress for each synchronization step
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {syncProgress.steps.map((step, index) => (
-                  <div
-                    key={step.number}
-                    className={`group rounded-lg border p-4 transition-all duration-200 ${
-                      step.status === "running"
-                        ? "border-primary/30 bg-primary/5 shadow-sm"
-                        : step.status === "completed"
-                          ? "border-primary/20 bg-primary/5"
-                          : step.status === "failed"
-                            ? "border-destructive/20 bg-destructive/5"
-                            : "border-border/50 bg-card/30 hover:bg-card/50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                          step.status === "completed"
-                            ? "bg-primary/10 text-primary"
-                            : step.status === "running"
-                              ? "bg-primary/10 text-primary"
-                              : step.status === "failed"
-                                ? "bg-destructive/10 text-destructive"
-                                : "bg-muted text-muted-foreground"
-                        }`}>
-                          {step.status === "running" ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : step.status === "completed" ? (
-                            <CheckCircle2 className="h-4 w-4" />
-                          ) : (
-                            getStepIcon(step.number)
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">
-                            {step.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {step.description}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 shrink-0">
-                        {step.extracted > 0 && (
-                          <span className="text-sm font-mono text-muted-foreground hidden sm:block">
-                            {formatNumber(step.extracted)} extracted
-                          </span>
-                        )}
-                        {getStepStatusBadge(step.status)}
+          {/* Last Sync Completed - Compact View (when no sync running) */}
+          {!syncProgress.isRunning && syncLogs.length > 0 && (
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20 shrink-0">
+                      <CheckCircle2 className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Last Sync Completed</p>
+                      <p className="text-lg font-semibold">{formatDate(syncLogs[0].started_at)}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {syncLogs[0].sync_type}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDuration(syncLogs[0].duration_seconds)}
+                        </span>
                       </div>
                     </div>
-
-                    {/* Change Deltas */}
-                    {(step.status === "running" || step.status === "completed") && step.extracted > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border/30">
-                        <div className="flex items-center gap-4 text-xs">
-                          <span className="text-muted-foreground">
-                            {formatNumber(step.extracted)} items processed
-                          </span>
-                          {(step.inserted > 0 || step.updated > 0) && (
-                            <span className="flex items-center gap-2">
-                              {step.inserted > 0 && (
-                                <span className="text-primary">
-                                  +{formatNumber(step.inserted)} added
-                                </span>
-                              )}
-                              {step.updated > 0 && (
-                                <span className="text-primary">
-                                  {formatNumber(step.updated)} updated
-                                </span>
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <Button asChild>
+                    <Link href={`/sync/changes?log=${syncLogs[0].id}`} className="shrink-0">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View Details
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step Progress - Only show when sync is running */}
+          {syncProgress.isRunning && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-muted-foreground" />
+                  Sync Steps
+                  {syncProgress.selectedSteps && syncProgress.selectedSteps.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 text-xs">
+                      Selective: {syncProgress.selectedSteps.length} steps
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  Detailed progress for each synchronization step
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {syncProgress.steps
+                    .filter((step) => {
+                      // For full sync or no selectedSteps, show all steps
+                      if (!syncProgress.selectedSteps || syncProgress.selectedSteps.length === 0) {
+                        return true;
+                      }
+                      // For selective sync, only show selected steps
+                      return syncProgress.selectedSteps.includes(step.name.toLowerCase());
+                    })
+                    .map((step, index) => (
+                      <div
+                        key={step.number}
+                        className={`group rounded-lg border p-4 transition-all duration-200 ${
+                          step.status === "running"
+                            ? "border-primary/30 bg-primary/5 shadow-sm"
+                            : step.status === "completed"
+                              ? "border-primary/20 bg-primary/5"
+                              : step.status === "failed"
+                                ? "border-destructive/20 bg-destructive/5"
+                                : "border-border/50 bg-card/30 hover:bg-card/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                              step.status === "completed"
+                                ? "bg-primary/10 text-primary"
+                                : step.status === "running"
+                                  ? "bg-primary/10 text-primary"
+                                  : step.status === "failed"
+                                    ? "bg-destructive/10 text-destructive"
+                                    : "bg-muted text-muted-foreground"
+                            }`}>
+                              {step.status === "running" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : step.status === "completed" ? (
+                                <CheckCircle2 className="h-4 w-4" />
+                              ) : (
+                                getStepIcon(step.number)
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">
+                                {step.name}
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {step.description}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 shrink-0">
+                            {step.extracted > 0 && (
+                              <span className="text-sm font-mono text-muted-foreground hidden sm:block">
+                                {formatNumber(step.extracted)} extracted
+                              </span>
+                            )}
+                            {getStepStatusBadge(step.status)}
+                          </div>
+                        </div>
+
+                        {/* Change Deltas */}
+                        {(step.status === "running" || step.status === "completed") && step.extracted > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/30">
+                            <div className="flex items-center gap-4 text-xs">
+                              <span className="text-muted-foreground">
+                                {formatNumber(step.extracted)} items processed
+                              </span>
+                              {(step.inserted > 0 || step.updated > 0) && (
+                                <span className="flex items-center gap-2">
+                                  {step.inserted > 0 && (
+                                    <span className="text-primary">
+                                      +{formatNumber(step.inserted)} added
+                                    </span>
+                                  )}
+                                  {step.updated > 0 && (
+                                    <span className="text-primary">
+                                      {formatNumber(step.updated)} updated
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Sync Statistics */}
           <Card>

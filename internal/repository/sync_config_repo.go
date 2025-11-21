@@ -310,17 +310,8 @@ func (r *SyncConfigRepository) RecordChanges(ctx context.Context, changes []mode
 		return nil
 	}
 
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	// Only rollback if there's an error (err will be set via named return or deferred function)
-	defer func() {
-		if err != nil {
-			tx.Rollback(ctx)
-		}
-	}()
-
+	// Use batch without transaction to avoid "conn busy" errors
+	// when called during an active sync operation
 	batch := &pgx.Batch{}
 
 	for i := range changes {
@@ -362,19 +353,15 @@ func (r *SyncConfigRepository) RecordChanges(ctx context.Context, changes []mode
 		)
 	}
 
-	br := tx.SendBatch(ctx, batch)
+	// Send batch directly on the pool (no transaction)
+	br := r.pool.SendBatch(ctx, batch)
 	defer br.Close() // CRITICAL: Always close batch results to prevent resource leak
 
 	// CRITICAL: Check each batch result for errors
 	for i := 0; i < batch.Len(); i++ {
 		if _, execErr := br.Exec(); execErr != nil {
-			err = fmt.Errorf("failed to execute batch item %d: %w", i, execErr)
-			return err
+			return fmt.Errorf("failed to execute batch item %d: %w", i, execErr)
 		}
-	}
-
-	if err = tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
