@@ -26,6 +26,8 @@ import {
   BrandFilterOptions,
   BulkUpdateBrandsByFilterPayload,
   BulkUpdateBrandsByIdsPayload,
+  StockSummaryItem,
+  PriceSummary,
 } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
@@ -362,6 +364,22 @@ class ApiClient {
     };
   }
 
+  // Stock summary by category
+  async getStockSummary(): Promise<StockSummaryItem[]> {
+    const response = await this.fetch<{ data: StockSummaryItem[] }>(
+      `/api/v1/dashboard/stock-summary`
+    );
+    return response.data;
+  }
+
+  // Price distribution
+  async getPriceSummary(): Promise<PriceSummary> {
+    const response = await this.fetch<{ data: PriceSummary }>(
+      `/api/v1/dashboard/price-summary`
+    );
+    return response.data;
+  }
+
   // Sync logs
   async getSyncLogs(
     limit = 50,
@@ -395,13 +413,10 @@ class ApiClient {
   }
 
   // Low stock alerts
-  async getLowStockProducts(
-    threshold = 5,
-    limit = 10
-  ): Promise<LowStockAlert[]> {
+  async getLowStockProducts(limit = 10): Promise<LowStockAlert[]> {
     const params = new URLSearchParams();
-    params.append("max_stock", threshold.toString());
-    params.append("in_stock", "true");
+    params.append("stock_filter", "low_stock"); // Use backend's stock_filter parameter
+    params.append("sort_by", "stock_low"); // Sort by lowest stock first
     params.append("limit", limit.toString());
 
     const response = await this.fetch<{ data: Product[]; meta: { total: number } }>(

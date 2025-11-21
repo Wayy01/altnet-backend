@@ -479,3 +479,26 @@ export interface BrandProduct {
   total_stock: number;
   is_active: boolean;
 }
+
+// Stock summary by category
+export interface StockSummaryItem {
+  id: string;
+  name: string;
+  product_count: number;
+  total_stock: number;
+  avg_price: number;
+}
+
+// Price distribution
+export interface PriceSummary {
+  min_price: number | null;
+  max_price: number | null;
+  avg_price: number | null;
+  median_price: number | null;
+  distribution: {
+    under_100: number;
+    "100_to_500": number;
+    "500_to_1000": number;
+    over_1000: number;
+  };
+}
