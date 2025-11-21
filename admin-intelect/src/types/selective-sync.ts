@@ -46,7 +46,7 @@ export interface SyncConfiguration {
 
 export interface SelectiveSyncRequest {
   selected_steps: SyncStep[];
-  field_config?: Record<SyncStep, FieldConfig>;
+  field_config?: Partial<Record<SyncStep, FieldConfig>>;
   save_as_template?: boolean;
   template_name?: string;
   template_description?: string;
@@ -93,7 +93,7 @@ export interface StepSelectorProps {
   selectedSteps: SyncStep[];
   onStepsChange: (steps: SyncStep[]) => void;
   onConfigure: (step: SyncStep) => void;
-  hasConfiguration: Record<SyncStep, boolean>;
+  hasConfiguration: Partial<Record<SyncStep, boolean>>;
   onExecute: () => void;
   isRunning: boolean;
 }

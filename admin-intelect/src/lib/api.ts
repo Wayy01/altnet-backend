@@ -605,20 +605,34 @@ class ApiClient {
     params.append("offset", offset.toString());
 
     const response = await this.fetch<{ data: SyncChange[]; meta: { total: number } }>(
-      `/api/v1/sync/changes/${syncLogId}?${params.toString()}`
+      `/api/v1/sync/${syncLogId}/changes?${params.toString()}`
     );
     return { changes: response.data, total: response.meta.total };
   }
 
   async getSyncChangeSummary(syncLogId: string): Promise<SyncChangeSummary> {
     const response = await this.fetch<{ data: SyncChangeSummary }>(
-      `/api/v1/sync/changes/${syncLogId}/summary`
+      `/api/v1/sync/${syncLogId}/summary`
     );
     return response.data;
   }
 
+  async updateSyncConfiguration(id: string, config: Partial<SyncConfiguration>): Promise<SyncConfiguration> {
+    const response = await this.fetch<{ data: SyncConfiguration }>(`/api/v1/sync/configs/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(config),
+    });
+    return response.data;
+  }
+
+  async deleteSyncConfiguration(id: string): Promise<void> {
+    await this.fetch<void>(`/api/v1/sync/configs/${id}`, {
+      method: "DELETE",
+    });
+  }
+
   getExportChangesUrl(syncLogId: string, format: "json" | "csv" = "csv"): string {
-    return `${this.baseUrl}/api/v1/sync/changes/${syncLogId}/export?format=${format}`;
+    return `${this.baseUrl}/api/v1/sync/${syncLogId}/changes/export?format=${format}`;
   }
 }
 

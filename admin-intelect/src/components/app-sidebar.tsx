@@ -8,6 +8,9 @@ import {
   RefreshCw,
   Settings,
   Coins,
+  Zap,
+  FileText,
+  History,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,7 +26,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -55,10 +66,28 @@ const menuItems = [
     url: "/categories",
     icon: FolderTree,
   },
+];
+
+const syncMenuItems = [
   {
     title: "Sync Status",
     url: "/sync",
     icon: RefreshCw,
+  },
+  {
+    title: "Selective Sync",
+    url: "/sync/selective",
+    icon: Zap,
+  },
+  {
+    title: "Configurations",
+    url: "/sync/configs",
+    icon: FileText,
+  },
+  {
+    title: "Change History",
+    url: "/sync/changes",
+    icon: History,
   },
 ];
 
@@ -94,6 +123,27 @@ export function AppSidebar() {
                       pathname === item.url ||
                       (item.url !== "/" && pathname.startsWith(item.url))
                     }
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Sync Operations</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {syncMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.url}
                   >
                     <Link href={item.url}>
                       <item.icon className="h-4 w-4" />
