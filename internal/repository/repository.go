@@ -1391,6 +1391,55 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 	return &product, nil
 }
 
+// GetProductsByUltraIDs retrieves multiple products by their Ultra IDs in a single batch query
+// This method prevents N+1 query problems by fetching all products at once
+func (r *Repository) GetProductsByUltraIDs(ctx context.Context, ultraIDs []string) ([]models.Product, error) {
+	if len(ultraIDs) == 0 {
+		return []models.Product{}, nil
+	}
+
+	query := `
+		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
+		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
+		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		       is_active, is_service, created_at, updated_at,
+		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+		FROM products
+		WHERE ultra_id = ANY($1)
+	`
+
+	rows, err := r.pool.Query(ctx, query, ultraIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	products := make([]models.Product, 0, len(ultraIDs))
+	for rows.Next() {
+		var product models.Product
+		err := rows.Scan(
+			&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
+			&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
+			&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
+			&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+			&product.VariantGroupID, &product.IsGroup,
+		)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, product)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}
+
 // ProductFilter holds filter parameters for product queries
 type ProductFilter struct {
 	BrandID      *uuid.UUID
