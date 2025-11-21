@@ -10,46 +10,8 @@ import (
 	"ultra-api-testing/internal/models"
 )
 
-// Field whitelists for SQL injection prevention
-var (
-	brandAllowedFields = map[string]bool{
-		"name":       true,
-		"slug":       true,
-		"logo_url":   true,
-		"is_active":  true,
-		"updated_at": true,
-	}
-
-	categoryAllowedFields = map[string]bool{
-		"name":             true,
-		"slug":             true,
-		"parent_ultra_id":  true,
-		"sort_order":       true,
-		"image_url":        true,
-		"is_active":        true,
-		"updated_at":       true,
-	}
-
-	productAllowedFields = map[string]bool{
-		"name":              true,
-		"slug":              true,
-		"code":              true,
-		"article":           true,
-		"description":       true,
-		"brand_ultra_id":    true,
-		"category_ultra_id": true,
-		"parent_ultra_id":   true,
-		"main_image_url":    true,
-		"images":            true,
-		"warranty":          true,
-		"barcodes":          true,
-		"prices":            true,
-		"is_active":         true,
-		"is_service":        true,
-		"is_group":          true,
-		"updated_at":        true,
-	}
-)
+// Field whitelists are now generated from field schemas (single source of truth)
+// This prevents SQL injection and ensures consistency between schemas and updates
 
 // validateFieldName checks if a field name is in the allowed whitelist
 func validateFieldName(fieldName string, allowedFields map[string]bool) error {
@@ -70,6 +32,9 @@ func (r *Repository) UpdateBrandSelective(ctx context.Context, ultraID string, u
 	if err != nil {
 		return nil, fmt.Errorf("failed to get existing brand: %w", err)
 	}
+
+	// Generate whitelist from field schema (single source of truth)
+	brandAllowedFields := models.GetAllowedFieldsForStep(models.SyncStepBrands)
 
 	// Build dynamic UPDATE query
 	setClauses := make([]string, 0)
@@ -172,6 +137,9 @@ func (r *Repository) UpdateCategorySelective(ctx context.Context, ultraID string
 	if err != nil {
 		return nil, fmt.Errorf("failed to get existing category: %w", err)
 	}
+
+	// Generate whitelist from field schema (single source of truth)
+	categoryAllowedFields := models.GetAllowedFieldsForStep(models.SyncStepCategories)
 
 	// Build dynamic UPDATE query
 	setClauses := make([]string, 0)
@@ -279,6 +247,9 @@ func (r *Repository) UpdateProductSelective(ctx context.Context, ultraID string,
 	if err != nil {
 		return nil, fmt.Errorf("failed to get existing product: %w", err)
 	}
+
+	// Generate whitelist from field schema (single source of truth)
+	productAllowedFields := models.GetAllowedFieldsForStep(models.SyncStepProducts)
 
 	// Build dynamic UPDATE query
 	setClauses := make([]string, 0)

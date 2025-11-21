@@ -13,6 +13,7 @@ import (
 	"ultra-api-testing/internal/database"
 	"ultra-api-testing/internal/handlers"
 	"ultra-api-testing/internal/repository"
+	"ultra-api-testing/internal/ultra"
 )
 
 func main() {
@@ -43,9 +44,13 @@ func main() {
 
 	fmt.Println("Database connected successfully")
 
+	// Initialize Ultra client and fetcher
+	ultraClient := ultra.NewClient(cfg.Ultra)
+	fetcher := ultra.NewFetcher(ultraClient)
+
 	// Create repository and handlers
 	repo := repository.New(db.Pool)
-	handler := handlers.New(repo)
+	handler := handlers.New(repo, fetcher)
 
 	// Setup router
 	router := setupRouter(handler)
@@ -157,6 +162,22 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/sync/logs/{id}", handler.GetSyncLog).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sync/status", handler.GetLatestSyncStatus).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sync/progress", handler.GetSyncProgress).Methods("GET", "OPTIONS")
+
+	// Selective sync configuration management (specific routes before parameterized)
+	api.HandleFunc("/sync/configs", handler.CreateSyncConfig).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/configs", handler.ListSyncConfigs).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/configs/{id}", handler.GetSyncConfig).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/configs/{id}", handler.UpdateSyncConfig).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/sync/configs/{id}", handler.DeleteSyncConfig).Methods("DELETE", "OPTIONS")
+
+	// Selective sync execution and validation
+	api.HandleFunc("/sync/selective", handler.ExecuteSelectiveSync).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/validate", handler.ValidateSyncConfig).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/schemas", handler.GetFieldSchemas).Methods("GET", "OPTIONS")
+
+	// Sync change tracking (specific routes before parameterized)
+	api.HandleFunc("/sync/{id}/changes", handler.GetSyncChanges).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/{id}/summary", handler.GetChangeSummary).Methods("GET", "OPTIONS")
 
 	// CRUD operations - Products (bulk routes must come before {id} routes)
 	api.HandleFunc("/products", handler.CreateProduct).Methods("POST", "OPTIONS")

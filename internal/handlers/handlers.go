@@ -14,16 +14,21 @@ import (
 	"github.com/gorilla/mux"
 	"ultra-api-testing/internal/models"
 	"ultra-api-testing/internal/repository"
+	"ultra-api-testing/internal/ultra"
 )
 
 // Handler contains all HTTP handlers
 type Handler struct {
-	repo *repository.Repository
+	repo    *repository.Repository
+	fetcher *ultra.Fetcher
 }
 
 // New creates a new Handler instance
-func New(repo *repository.Repository) *Handler {
-	return &Handler{repo: repo}
+func New(repo *repository.Repository, fetcher *ultra.Fetcher) *Handler {
+	return &Handler{
+		repo:    repo,
+		fetcher: fetcher,
+	}
 }
 
 // Response structures
@@ -2445,6 +2450,259 @@ func (h *Handler) exportCategoriesCSV(w http.ResponseWriter, categories []*model
 		}
 		writer.Write(row)
 	}
+}
+
+// ============================================================================
+// SELECTIVE SYNC ENDPOINTS
+// ============================================================================
+
+// CreateSyncConfig handles POST /api/v1/sync/configs
+func (h *Handler) CreateSyncConfig(w http.ResponseWriter, r *http.Request) {
+	var config models.SyncConfiguration
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Create sync config repository
+	syncConfigRepo := repository.NewSyncConfigRepository(h.repo.Pool())
+
+	if err := syncConfigRepo.SaveConfiguration(r.Context(), &config); err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to create sync configuration", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"data": config,
+	})
+}
+
+// ListSyncConfigs handles GET /api/v1/sync/configs
+func (h *Handler) ListSyncConfigs(w http.ResponseWriter, r *http.Request) {
+	limit, offset := h.parsePagination(r)
+	templatesOnly := r.URL.Query().Get("templates_only") == "true"
+
+	syncConfigRepo := repository.NewSyncConfigRepository(h.repo.Pool())
+
+	configs, total, err := syncConfigRepo.ListConfigurations(r.Context(), templatesOnly, limit, offset)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to list sync configurations", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": configs,
+		"meta": PaginationMeta{
+			Limit:  limit,
+			Offset: offset,
+			Total:  total,
+		},
+	})
+}
+
+// GetSyncConfig handles GET /api/v1/sync/configs/{id}
+func (h *Handler) GetSyncConfig(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid configuration ID", err.Error())
+		return
+	}
+
+	syncConfigRepo := repository.NewSyncConfigRepository(h.repo.Pool())
+
+	config, err := syncConfigRepo.GetConfigurationByID(r.Context(), id)
+	if err != nil {
+		h.respondError(w, http.StatusNotFound, "Configuration not found", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": config,
+	})
+}
+
+// UpdateSyncConfig handles PUT /api/v1/sync/configs/{id}
+func (h *Handler) UpdateSyncConfig(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid configuration ID", err.Error())
+		return
+	}
+
+	var config models.SyncConfiguration
+	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	config.ID = id
+
+	syncConfigRepo := repository.NewSyncConfigRepository(h.repo.Pool())
+
+	if err := syncConfigRepo.SaveConfiguration(r.Context(), &config); err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to update sync configuration", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": config,
+	})
+}
+
+// DeleteSyncConfig handles DELETE /api/v1/sync/configs/{id}
+func (h *Handler) DeleteSyncConfig(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid configuration ID", err.Error())
+		return
+	}
+
+	syncConfigRepo := repository.NewSyncConfigRepository(h.repo.Pool())
+
+	if err := syncConfigRepo.DeleteConfiguration(r.Context(), id); err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to delete sync configuration", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Configuration deleted successfully",
+	})
+}
+
+// GetFieldSchemas handles GET /api/v1/sync/schemas
+func (h *Handler) GetFieldSchemas(w http.ResponseWriter, r *http.Request) {
+	schemas := models.GetAllFieldSchemas()
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": schemas,
+	})
+}
+
+// ExecuteSelectiveSync handles POST /api/v1/sync/selective
+func (h *Handler) ExecuteSelectiveSync(w http.ResponseWriter, r *http.Request) {
+	var request models.SelectiveSyncRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Phase 2: Configuration management only
+	// Phase 3: Sync execution with async job queue
+	h.respondJSON(w, http.StatusNotImplemented, map[string]interface{}{
+		"error": "Selective sync execution is planned for Phase 3",
+		"phase": "Phase 2 provides configuration management only",
+		"available_operations": []string{
+			"POST /api/v1/sync/configs - Create configurations",
+			"GET /api/v1/sync/configs - List configurations",
+			"POST /api/v1/sync/validate - Validate configurations",
+			"GET /api/v1/sync/schemas - Get field schemas",
+		},
+		"note": "Sync execution requires async job queue (RabbitMQ/Redis) to avoid HTTP timeouts for long-running syncs (35+ minutes for properties)",
+	})
+}
+
+// ValidateSyncConfig handles POST /api/v1/sync/validate
+func (h *Handler) ValidateSyncConfig(w http.ResponseWriter, r *http.Request) {
+	var request models.SelectiveSyncRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate the configuration
+	errors := make([]string, 0)
+
+	if len(request.SelectedSteps) == 0 {
+		errors = append(errors, "At least one sync step must be selected")
+	}
+
+	// Validate each step is valid
+	validSteps := make(map[models.SyncStep]bool)
+	for _, step := range models.AllSyncSteps() {
+		validSteps[step] = true
+	}
+
+	for _, step := range request.SelectedSteps {
+		if !validSteps[step] {
+			errors = append(errors, fmt.Sprintf("Invalid sync step: %s", step))
+		}
+	}
+
+	// Validate field config references valid steps
+	if request.FieldConfig != nil {
+		for step := range request.FieldConfig {
+			if !validSteps[step] {
+				errors = append(errors, fmt.Sprintf("Field config references invalid step: %s", step))
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		h.respondJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"valid":  false,
+			"errors": errors,
+		})
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"valid":   true,
+		"message": "Configuration is valid",
+	})
+}
+
+// GetSyncChanges handles GET /api/v1/sync/{id}/changes
+func (h *Handler) GetSyncChanges(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	syncLogID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid sync log ID", err.Error())
+		return
+	}
+
+	limit, offset := h.parsePagination(r)
+
+	syncConfigRepo := repository.NewSyncConfigRepository(h.repo.Pool())
+
+	changes, total, err := syncConfigRepo.GetChangesByLogID(r.Context(), syncLogID, limit, offset)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to get sync changes", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": changes,
+		"meta": PaginationMeta{
+			Limit:  limit,
+			Offset: offset,
+			Total:  total,
+		},
+	})
+}
+
+// GetChangeSummary handles GET /api/v1/sync/{id}/summary
+func (h *Handler) GetChangeSummary(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	syncLogID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid sync log ID", err.Error())
+		return
+	}
+
+	syncConfigRepo := repository.NewSyncConfigRepository(h.repo.Pool())
+
+	summary, err := syncConfigRepo.GetChangeSummary(r.Context(), syncLogID)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to get change summary", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": summary,
+	})
 }
 
 // ============================================================================

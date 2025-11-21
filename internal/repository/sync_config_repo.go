@@ -314,7 +314,12 @@ func (r *SyncConfigRepository) RecordChanges(ctx context.Context, changes []mode
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	// Only rollback if there's an error (err will be set via named return or deferred function)
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		}
+	}()
 
 	batch := &pgx.Batch{}
 
@@ -358,16 +363,17 @@ func (r *SyncConfigRepository) RecordChanges(ctx context.Context, changes []mode
 	}
 
 	br := tx.SendBatch(ctx, batch)
-	defer br.Close()
+	defer br.Close() // CRITICAL: Always close batch results to prevent resource leak
 
-	for i := 0; i < len(changes); i++ {
-		_, err := br.Exec()
-		if err != nil {
-			return fmt.Errorf("failed to execute batch insert: %w", err)
+	// CRITICAL: Check each batch result for errors
+	for i := 0; i < batch.Len(); i++ {
+		if _, execErr := br.Exec(); execErr != nil {
+			err = fmt.Errorf("failed to execute batch item %d: %w", i, execErr)
+			return err
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
