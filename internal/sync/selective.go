@@ -141,8 +141,13 @@ func (s *SelectiveSync) ExecuteSelectiveSync(ctx context.Context, request *model
 	if len(result.Errors) > 0 {
 		status = "failed"
 	}
-	if err := s.finalizeSyncLog(ctx, result.SyncLogID, status, result); err != nil {
-		log.Printf("Warning: failed to finalize sync log: %v", err)
+
+	// CRITICAL: Use retry logic to ensure sync status is updated
+	// This prevents stuck syncs in "running" state
+	if err := s.finalizeSyncLogWithRetry(ctx, result.SyncLogID, status, result); err != nil {
+		log.Printf("ERROR: failed to finalize sync log after retries: %v", err)
+		// Mark this as a fatal error - if we can't update the status, the sync is incomplete
+		return nil, fmt.Errorf("sync completed but failed to update status: %w", err)
 	}
 
 	log.Printf("Selective sync completed in %v with %d total changes", result.Duration, result.TotalChanges)
@@ -322,6 +327,28 @@ func (s *SelectiveSync) updateSyncProgress(ctx context.Context, syncLogID uuid.U
 	)
 
 	return err
+}
+
+// finalizeSyncLogWithRetry wraps finalizeSyncLog with retry logic to handle transient failures
+// This is critical to prevent sync logs from being stuck in "running" state
+func (s *SelectiveSync) finalizeSyncLogWithRetry(ctx context.Context, syncLogID uuid.UUID, status string, result *SyncResult) error {
+	maxRetries := 3
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err := s.finalizeSyncLog(ctx, syncLogID, status, result)
+		if err == nil {
+			return nil
+		}
+
+		log.Printf("Attempt %d/%d to finalize sync log failed: %v", attempt+1, maxRetries, err)
+
+		// Don't sleep on the last attempt
+		if attempt < maxRetries-1 {
+			// Exponential backoff: 1s, 2s
+			time.Sleep(time.Duration(1<<attempt) * time.Second)
+		}
+	}
+
+	return fmt.Errorf("failed to finalize sync log after %d attempts", maxRetries)
 }
 
 // finalizeSyncLog finalizes the sync log with completion status

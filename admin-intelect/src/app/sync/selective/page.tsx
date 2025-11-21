@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,8 @@ export default function SelectiveSyncPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncLogId, setSyncLogId] = useState<string | null>(null);
   const [progress, setProgress] = useState<SyncProgress | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false); // Prevent duplicate sync starts
+  const completedSyncRef = useRef<string | null>(null); // Track completed sync to prevent re-polling
 
   // Template Selection State
   const [templates, setTemplates] = useState<SyncConfiguration[]>([]);
@@ -98,15 +100,23 @@ export default function SelectiveSyncPage() {
       const progressData = await api.getSyncProgress();
       setProgress(progressData);
 
-      // Check if sync completed
-      if (!progressData.isRunning && syncing) {
-        setSyncing(false);
-        toast.success("Sync completed successfully!");
+      // Check if sync completed - only if we have an active syncLogId
+      // This prevents spurious completion detection from other syncs
+      if (!progressData.isRunning && syncing && syncLogId) {
+        // Verify this is OUR sync that completed by checking the sync log ID
+        // AND that we haven't already marked it as completed
+        if (progressData.syncLogId === syncLogId && completedSyncRef.current !== syncLogId) {
+          console.log(`Selective sync ${syncLogId} completed, stopping polling`);
+          completedSyncRef.current = syncLogId; // Mark as completed
+          setSyncing(false);
+          setIsExecuting(false);
+          toast.success("Sync completed successfully!");
+        }
       }
     } catch (error) {
       handleSyncError(error, "Failed to load progress");
     }
-  }, [syncing]);
+  }, [syncing, syncLogId]); // Include syncLogId to verify completion
 
   useEffect(() => {
     loadTemplates();
@@ -119,12 +129,17 @@ export default function SelectiveSyncPage() {
 
   // Auto-refresh progress during sync
   useEffect(() => {
-    if (syncing && syncLogId) {
+    // Only poll if sync is active AND we haven't marked it as completed
+    if (syncing && syncLogId && completedSyncRef.current !== syncLogId) {
+      console.log(`Starting progress polling for sync ${syncLogId}`);
       const interval = setInterval(() => {
         loadProgress();
       }, 1000); // Refresh every second
 
-      return () => clearInterval(interval);
+      return () => {
+        console.log(`Stopping progress polling for sync ${syncLogId}`);
+        clearInterval(interval);
+      };
     }
   }, [syncing, syncLogId, loadProgress]);
 
@@ -159,14 +174,44 @@ export default function SelectiveSyncPage() {
   };
 
   const handleExecute = async () => {
+    // DEBUG: Generate unique call ID and log stack trace
+    const callId = Math.random().toString(36).substring(7);
+    const timestamp = new Date().toISOString();
+    console.log(`========== handleExecute CALLED ==========`);
+    console.log(`Call ID: ${callId}`);
+    console.log(`Timestamp: ${timestamp}`);
+    console.log(`Stack trace:`, new Error().stack);
+    console.log(`State: syncing=${syncing}, isExecuting=${isExecuting}`);
+    console.log(`==========================================`);
+
     if (selectedSteps.length === 0) {
       toast.error("Please select at least one sync step");
       return;
     }
 
-    try {
-      setSyncing(true);
+    // Prevent duplicate sync starts
+    if (isExecuting || syncing) {
+      console.warn(`[${callId}] Sync already running (state check), ignoring duplicate start request`);
+      return;
+    }
 
+    try {
+      setIsExecuting(true);
+
+      // CRITICAL: Check backend state before starting sync to prevent race conditions
+      console.log(`[${callId}] Checking backend for running syncs before starting...`);
+      const progressCheck = await api.getSyncProgress();
+      if (progressCheck.isRunning) {
+        console.error(`[${callId}] Backend reports sync already running, aborting new sync request`);
+        toast.error("A sync is already running. Please wait for it to complete.");
+        setIsExecuting(false);
+        return;
+      }
+
+      setSyncing(true);
+      completedSyncRef.current = null; // Reset completion tracker for new sync
+
+      console.log(`[${callId}] Backend confirmed no running syncs. Starting selective sync with steps:`, selectedSteps);
       const response = await api.executeSelectiveSync({
         selected_steps: selectedSteps,
         field_config: fieldConfigs,
@@ -174,6 +219,7 @@ export default function SelectiveSyncPage() {
       });
 
       setSyncLogId(response.sync_log_id);
+      console.log(`[${callId}] Sync started successfully with log ID:`, response.sync_log_id);
       toast.success("Selective sync started!");
 
       // Start monitoring progress
@@ -181,6 +227,8 @@ export default function SelectiveSyncPage() {
     } catch (error) {
       handleSyncError(error, "Failed to start sync");
       setSyncing(false);
+    } finally {
+      setIsExecuting(false);
     }
   };
 
@@ -345,10 +393,10 @@ export default function SelectiveSyncPage() {
 
                 <Button
                   onClick={handleExecute}
-                  disabled={!selectedTemplateId || loading || syncing || loadingTemplate}
+                  disabled={!selectedTemplateId || loading || syncing || loadingTemplate || isExecuting}
                   className="w-full gap-2"
                 >
-                  {syncing ? (
+                  {syncing || isExecuting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Syncing...

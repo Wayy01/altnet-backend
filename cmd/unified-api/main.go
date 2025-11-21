@@ -102,12 +102,14 @@ func main() {
 	fmt.Println()
 
 	// Create server with timeouts
+	// NOTE: WriteTimeout set to 0 (infinite) to support very long-running sync operations (properties can take 40+ minutes)
+	// ReadTimeout also disabled to allow long request bodies if needed
 	srv := &http.Server{
 		Addr:         port,
 		Handler:      router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  0, // Disabled for long operations
+		WriteTimeout: 0, // Disabled - some syncs take 40+ minutes
+		IdleTimeout:  120 * time.Second,
 	}
 
 	log.Fatal(srv.ListenAndServe())

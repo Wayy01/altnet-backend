@@ -552,6 +552,8 @@ class ApiClient {
 
   // Selective Sync
   async executeSelectiveSync(request: SelectiveSyncRequest): Promise<ExecuteSyncResponse> {
+    // NOTE: No timeout - some syncs (properties) can take 40+ minutes
+    // Backend has infinite WriteTimeout to support this
     const response = await this.fetch<ExecuteSyncResponse>(`/api/v1/sync/selective`, {
       method: "POST",
       body: JSON.stringify(request),

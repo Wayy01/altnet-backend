@@ -5,16 +5,18 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"ultra-api-testing/internal/models"
 	"ultra-api-testing/internal/repository"
-	"ultra-api-testing/internal/sync"
+	internalSync "ultra-api-testing/internal/sync"
 	"ultra-api-testing/internal/ultra"
 )
 
@@ -23,18 +25,20 @@ type Handler struct {
 	repo           *repository.Repository
 	syncConfigRepo *repository.SyncConfigRepository
 	fetcher        *ultra.Fetcher
-	selectiveSync  *sync.SelectiveSync
+	selectiveSync  *internalSync.SelectiveSync
+	syncMutex      sync.Mutex // Global lock to prevent concurrent syncs
 }
 
 // New creates a new Handler instance
 func New(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher) *Handler {
-	selectiveSync := sync.NewSelectiveSync(repo, syncConfigRepo, fetcher)
+	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher)
 
 	return &Handler{
 		repo:           repo,
 		syncConfigRepo: syncConfigRepo,
 		fetcher:        fetcher,
 		selectiveSync:  selectiveSync,
+		syncMutex:      sync.Mutex{},
 	}
 }
 
@@ -2602,18 +2606,43 @@ func (h *Handler) GetFieldSchemas(w http.ResponseWriter, r *http.Request) {
 
 // ExecuteSelectiveSync handles POST /api/v1/sync/selective
 func (h *Handler) ExecuteSelectiveSync(w http.ResponseWriter, r *http.Request) {
+	// DEBUG: Log request details to track duplicate requests
+	requestID := uuid.New().String()[:8]
+	log.Printf("========== SELECTIVE SYNC REQUEST [%s] ==========", requestID)
+	log.Printf("[%s] Referer: %s", requestID, r.Header.Get("Referer"))
+	log.Printf("[%s] User-Agent: %s", requestID, r.Header.Get("User-Agent"))
+	log.Printf("[%s] X-Forwarded-For: %s", requestID, r.Header.Get("X-Forwarded-For"))
+	log.Printf("[%s] Remote Addr: %s", requestID, r.RemoteAddr)
+
+	// CRITICAL: Acquire global sync lock to prevent concurrent syncs
+	// This is a fail-safe against the infinite loop bug
+	if !h.syncMutex.TryLock() {
+		log.Printf("[%s] REJECTED: Another sync is already running (sync lock held)", requestID)
+		h.respondError(w, http.StatusConflict, "A sync operation is already in progress", "Please wait for the current sync to complete before starting a new one")
+		return
+	}
+	defer h.syncMutex.Unlock()
+
+	log.Printf("[%s] Sync lock acquired successfully", requestID)
+	log.Printf("============================================")
+
 	var request models.SelectiveSyncRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 
+	log.Printf("[%s] Executing selective sync with steps: %v", requestID, request.SelectedSteps)
+
 	// Execute selective sync
 	result, err := h.selectiveSync.ExecuteSelectiveSync(r.Context(), &request)
 	if err != nil {
+		log.Printf("[%s] Sync failed with error: %v", requestID, err)
 		h.respondError(w, http.StatusInternalServerError, "Selective sync execution failed", err.Error())
 		return
 	}
+
+	log.Printf("[%s] Sync completed successfully (ID: %s)", requestID, result.SyncLogID)
 
 	// Build response
 	response := map[string]interface{}{
@@ -2640,7 +2669,7 @@ func (h *Handler) ExecuteSelectiveSync(w http.ResponseWriter, r *http.Request) {
 }
 
 // getStatusFromResult determines the overall status from sync result
-func getStatusFromResult(result *sync.SyncResult) string {
+func getStatusFromResult(result *internalSync.SyncResult) string {
 	if len(result.Errors) == 0 {
 		return "completed"
 	}
@@ -2651,7 +2680,7 @@ func getStatusFromResult(result *sync.SyncResult) string {
 }
 
 // buildStepResultsSummary builds a summary of step results
-func buildStepResultsSummary(stepResults map[models.SyncStep]*sync.StepResult) []map[string]interface{} {
+func buildStepResultsSummary(stepResults map[models.SyncStep]*internalSync.StepResult) []map[string]interface{} {
 	summary := make([]map[string]interface{}, 0, len(stepResults))
 
 	for step, result := range stepResults {
