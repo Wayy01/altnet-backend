@@ -29,6 +29,16 @@ import {
   StockSummaryItem,
   PriceSummary,
 } from "@/types";
+import {
+  SelectiveSyncRequest,
+  SyncFieldSchema,
+  SyncConfiguration,
+  SyncChange,
+  SyncChangeSummary,
+  ListConfigurationsResponse,
+  ListChangesResponse,
+  ExecuteSyncResponse,
+} from "@/types/selective-sync";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -538,6 +548,77 @@ class ApiClient {
     await this.fetch<void>(`/api/v1/categories/${id}`, {
       method: "DELETE",
     });
+  }
+
+  // Selective Sync
+  async executeSelectiveSync(request: SelectiveSyncRequest): Promise<ExecuteSyncResponse> {
+    const response = await this.fetch<ExecuteSyncResponse>(`/api/v1/sync/selective`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+    return response;
+  }
+
+  async getFieldSchemas(): Promise<SyncFieldSchema[]> {
+    const response = await this.fetch<{ data: SyncFieldSchema[] }>(`/api/v1/sync/schemas`);
+    return response.data;
+  }
+
+  async saveSyncConfiguration(config: Omit<SyncConfiguration, "id" | "created_at" | "updated_at">): Promise<SyncConfiguration> {
+    const response = await this.fetch<{ data: SyncConfiguration }>(`/api/v1/sync/configs`, {
+      method: "POST",
+      body: JSON.stringify(config),
+    });
+    return response.data;
+  }
+
+  async listSyncConfigurations(
+    templatesOnly = false,
+    limit = 50,
+    offset = 0
+  ): Promise<ListConfigurationsResponse> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (templatesOnly) {
+      params.append("templates_only", "true");
+    }
+
+    const response = await this.fetch<{ data: SyncConfiguration[]; meta: { total: number } }>(
+      `/api/v1/sync/configs?${params.toString()}`
+    );
+    return { configurations: response.data, total: response.meta.total };
+  }
+
+  async getSyncConfiguration(id: string): Promise<SyncConfiguration> {
+    const response = await this.fetch<{ data: SyncConfiguration }>(`/api/v1/sync/configs/${id}`);
+    return response.data;
+  }
+
+  async getSyncChanges(
+    syncLogId: string,
+    limit = 50,
+    offset = 0
+  ): Promise<ListChangesResponse> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<{ data: SyncChange[]; meta: { total: number } }>(
+      `/api/v1/sync/changes/${syncLogId}?${params.toString()}`
+    );
+    return { changes: response.data, total: response.meta.total };
+  }
+
+  async getSyncChangeSummary(syncLogId: string): Promise<SyncChangeSummary> {
+    const response = await this.fetch<{ data: SyncChangeSummary }>(
+      `/api/v1/sync/changes/${syncLogId}/summary`
+    );
+    return response.data;
+  }
+
+  getExportChangesUrl(syncLogId: string, format: "json" | "csv" = "csv"): string {
+    return `${this.baseUrl}/api/v1/sync/changes/${syncLogId}/export?format=${format}`;
   }
 }
 
