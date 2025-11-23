@@ -63,6 +63,11 @@ const menuItems = [
     icon: Database,
   },
   {
+    title: "Characteristics",
+    url: "/characteristics",
+    icon: Zap,
+  },
+  {
     title: "Brands",
     url: "/brands",
     icon: Building2,
