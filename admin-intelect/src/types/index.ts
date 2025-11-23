@@ -636,3 +636,57 @@ export interface PropertyValuesResponse {
   limit: number;
   offset: number;
 }
+
+// ============================================================================
+// CHARACTERISTIC HIERARCHY TYPES
+// ============================================================================
+
+// Characteristic Price Entry (matches Go CharacteristicPrice struct)
+export interface CharacteristicPriceEntry {
+  price: number;
+  currency: string;
+  type?: string;
+  type_uuid?: string;
+}
+
+// Characteristic Name (Level 1)
+export interface CharacteristicName {
+  name: string;
+  characteristic_count: number;
+  products_using: number;
+  total_stock: number;
+  avg_price: number | null;
+  common_currency: string | null;
+}
+
+// Characteristic Value (Level 2)
+export interface CharacteristicValue {
+  id: string;
+  product_id: string;
+  product_name?: string;
+  product_code?: string;
+  ultra_id: string;
+  code: string | null;
+  reference: string | null;
+  name: string;
+  prices: CharacteristicPriceEntry[]; // Use specific type instead of generic PriceEntry
+  stock_warehouse: number;
+  stock_showroom: number;
+  stock_total: number;
+  is_active: boolean;
+}
+
+// Characteristic hierarchy API responses
+export interface CharacteristicNamesResponse {
+  data: CharacteristicName[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface CharacteristicValuesResponse {
+  data: CharacteristicValue[];
+  total: number;
+  limit: number;
+  offset: number;
+}

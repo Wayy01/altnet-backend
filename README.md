@@ -9,6 +9,7 @@ A Go application for fetching and storing the complete Ultra B2B product catalog
 - **Normalized Database**: Products, Properties, and Characteristics in separate tables
 - **Full REST API**: CRUD operations, bulk actions, CSV export, dashboard stats
 - **Property Hierarchy Management**: 3-level drill-down (Groups → Names → Values) for 876k+ properties with deletion impact preview
+- **Characteristic Hierarchy Management**: 2-level drill-down (Names → Values) for 460 product variants/SKUs with stock management
 - **Multi-Currency Support**: MDL (primary), EUR, USD pricing with automatic extraction
 - **Product Variant Grouping**: Auto-links related products (e.g., storage variants)
 - **Complete Audit Trail**: Tracks every sync with detailed metrics

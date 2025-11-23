@@ -187,6 +187,19 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/properties/hierarchy/values/{value_id}", handler.UpdatePropertyValue).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/properties/hierarchy/values/{value_id}", handler.DeletePropertyValue).Methods("DELETE", "OPTIONS")
 
+	// Characteristic Hierarchy (Level 1: Names)
+	api.HandleFunc("/characteristics/hierarchy/names", handler.ListCharacteristicNames).Methods("GET", "OPTIONS")
+	api.HandleFunc("/characteristics/hierarchy/names/{name}", handler.GetCharacteristicName).Methods("GET", "OPTIONS")
+	api.HandleFunc("/characteristics/hierarchy/names/{name}", handler.DeleteCharacteristicName).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/characteristics/hierarchy/names/{name}/impact", handler.GetCharacteristicNameDeletionImpact).Methods("GET", "OPTIONS")
+
+	// Characteristic Hierarchy (Level 2: Values)
+	api.HandleFunc("/characteristics/hierarchy/names/{name}/values", handler.ListCharacteristicValues).Methods("GET", "OPTIONS")
+	api.HandleFunc("/characteristics/hierarchy/values/{id}", handler.UpdateCharacteristicValue).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/characteristics/hierarchy/values/{id}", handler.DeleteCharacteristicValue).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/characteristics/hierarchy/values/bulk-update", handler.BulkUpdateCharacteristicValues).Methods("POST", "OPTIONS")
+	api.HandleFunc("/characteristics/hierarchy/values/bulk-delete", handler.BulkDeleteCharacteristicValues).Methods("POST", "OPTIONS")
+
 	// Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
 
