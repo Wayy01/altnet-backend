@@ -4,6 +4,15 @@
 Go 1.23 Ultra B2B product data management. SOAP API → PostgreSQL → REST API.
 Database: `ultra-data`
 
+## Development Workflow
+**When user says "New task"** (unless specified otherwise), execute this workflow automatically:
+1. Use `@agent-full-stack-architect` for feature implementation
+2. Use `@senior-code-reviewer` for initial code review
+3. If rating < 9.5 → use `@agent-architecture-refactorer` to fix issues
+4. Re-review with `@senior-code-reviewer`
+5. Update docs (CLAUDE.md max 10 lines concise, README.md feature bullet)
+6. Create git commits only if rating ≥ 9.5
+
 ## Commands
 ```bash
 make install        # Complete setup
