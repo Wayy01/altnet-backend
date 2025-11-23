@@ -200,6 +200,18 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/characteristics/hierarchy/values/bulk-update", handler.BulkUpdateCharacteristicValues).Methods("POST", "OPTIONS")
 	api.HandleFunc("/characteristics/hierarchy/values/bulk-delete", handler.BulkDeleteCharacteristicValues).Methods("POST", "OPTIONS")
 
+	// Product Grouping Hierarchy (Level 1: Groups)
+	api.HandleFunc("/products/groupings/hierarchy/groups", handler.ListProductGroups).Methods("GET", "OPTIONS")
+	api.HandleFunc("/products/groupings/hierarchy/groups/{id}", handler.GetProductGroup).Methods("GET", "OPTIONS")
+	api.HandleFunc("/products/groupings/hierarchy/groups/{id}", handler.DeleteProductGroup).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/products/groupings/hierarchy/groups/{id}/deletion-impact", handler.GetProductGroupDeletionImpact).Methods("GET", "OPTIONS")
+
+	// Product Grouping Hierarchy (Level 2: Variants)
+	api.HandleFunc("/products/groupings/hierarchy/groups/{id}/variants", handler.ListProductVariants).Methods("GET", "OPTIONS")
+	api.HandleFunc("/products/groupings/hierarchy/variants/{id}", handler.DeleteProductVariant).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/products/groupings/hierarchy/variants/bulk", handler.BulkUpdateProductVariants).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/products/groupings/hierarchy/variants/bulk", handler.BulkDeleteProductVariants).Methods("DELETE", "OPTIONS")
+
 	// Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
 
