@@ -3,7 +3,7 @@ package constants
 import "time"
 
 // ============================================================================
-// PHASE 4 CONSTANTS
+// ADVANCED SYNC CONSTANTS
 // ============================================================================
 
 // Rollback Configuration
