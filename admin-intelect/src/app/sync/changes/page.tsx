@@ -95,7 +95,7 @@ export default function ChangesPage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Select a sync log..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[400px]">
                   {syncLogs.map((log) => (
                     <SelectItem key={log.id} value={log.id}>
                       <div className="flex items-center gap-2">

@@ -148,6 +148,10 @@ type Product struct {
 	// Variant grouping
 	VariantGroupID *uuid.UUID `json:"variant_group_id"`
 	IsGroup        bool       `json:"is_group"`
+
+	// Denormalized fields for efficient listing (populated via JOIN)
+	BrandName    *string `json:"brand_name,omitempty"`
+	CategoryName *string `json:"category_name,omitempty"`
 }
 
 // ============================================================================
@@ -222,7 +226,7 @@ type SyncLog struct {
 	StockSynced           int        `json:"stock_synced"`
 	ErrorMessage          *string    `json:"error_message"`
 	Details               JSONB      `json:"details"`
-	SelectedSteps         JSONB      `json:"selected_steps,omitempty"`
+	SelectedSteps         []string   `json:"selected_steps,omitempty"`
 
 	// Change deltas
 	BrandsInserted          int `json:"brands_inserted"`

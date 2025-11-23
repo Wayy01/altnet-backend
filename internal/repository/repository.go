@@ -1457,12 +1457,15 @@ type ProductFilter struct {
 
 func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, limit, offset int) ([]*models.Product, error) {
 	query := `
-		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
-		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
-		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
-		       is_active, is_service, created_at, updated_at,
-		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
-		FROM products
+		SELECT p.id, p.ultra_id, p.code, p.article, p.name, p.slug, p.description, p.brand_id, p.category_id,
+		       p.parent_id, p.brand_ultra_id, p.category_ultra_id, p.parent_ultra_id, p.main_image_url,
+		       p.images, p.warranty, p.barcodes, p.price_min, p.price_max, p.total_stock, p.is_in_stock,
+		       p.is_active, p.is_service, p.created_at, p.updated_at,
+		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
+		       b.name as brand_name, c.name as category_name
+		FROM products p
+		LEFT JOIN brands b ON p.brand_id = b.id
+		LEFT JOIN categories c ON p.category_id = c.id
 		WHERE 1=1
 	`
 
@@ -1472,7 +1475,7 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 	if filter != nil {
 		// Search filter
 		if filter.Search != "" {
-			query += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d OR code ILIKE $%d)", argPos, argPos, argPos)
+			query += fmt.Sprintf(" AND (p.name ILIKE $%d OR p.description ILIKE $%d OR p.code ILIKE $%d)", argPos, argPos, argPos)
 			searchPattern := "%" + filter.Search + "%"
 			args = append(args, searchPattern)
 			argPos++
@@ -1480,57 +1483,57 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 
 		// Brand filter
 		if filter.BrandID != nil {
-			query += fmt.Sprintf(" AND brand_id = $%d", argPos)
+			query += fmt.Sprintf(" AND p.brand_id = $%d", argPos)
 			args = append(args, filter.BrandID)
 			argPos++
 		}
 
 		// Category filter
 		if filter.CategoryID != nil {
-			query += fmt.Sprintf(" AND category_id = $%d", argPos)
+			query += fmt.Sprintf(" AND p.category_id = $%d", argPos)
 			args = append(args, filter.CategoryID)
 			argPos++
 		}
 
 		// Price filters
 		if filter.PriceFilter == "with_price" {
-			query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+			query += " AND (p.price_mdl IS NOT NULL OR p.price_eur IS NOT NULL OR p.price_usd IS NOT NULL)"
 		} else if filter.PriceFilter == "no_price" {
-			query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+			query += " AND p.price_mdl IS NULL AND p.price_eur IS NULL AND p.price_usd IS NULL"
 		}
 
 		// Legacy price range filters (for backward compatibility)
 		if filter.MinPrice != nil {
-			query += fmt.Sprintf(" AND price_min >= $%d", argPos)
+			query += fmt.Sprintf(" AND p.price_min >= $%d", argPos)
 			args = append(args, filter.MinPrice)
 			argPos++
 		}
 		if filter.MaxPrice != nil {
-			query += fmt.Sprintf(" AND price_max <= $%d", argPos)
+			query += fmt.Sprintf(" AND p.price_max <= $%d", argPos)
 			args = append(args, filter.MaxPrice)
 			argPos++
 		}
 
 		// Stock filters
 		if filter.StockFilter == "in_stock" {
-			query += " AND total_stock > 0"
+			query += " AND p.total_stock > 0"
 		} else if filter.StockFilter == "out_stock" {
-			query += " AND (total_stock = 0 OR total_stock IS NULL)"
+			query += " AND (p.total_stock = 0 OR p.total_stock IS NULL)"
 		} else if filter.InStock != nil && *filter.InStock {
 			// Legacy filter (for backward compatibility)
-			query += " AND is_in_stock = true"
+			query += " AND p.is_in_stock = true"
 		}
 
 		// Status filters
 		if filter.StatusFilter == "active" {
-			query += " AND is_active = true"
+			query += " AND p.is_active = true"
 		} else if filter.StatusFilter == "inactive" {
-			query += " AND is_active = false"
+			query += " AND p.is_active = false"
 		} else if filter.StatusFilter == "" || filter.StatusFilter == "all" {
 			// Admin CMS: show all products by default (no filter)
 		} else {
 			// Legacy filter (for backward compatibility)
-			query += fmt.Sprintf(" AND is_active = $%d", argPos)
+			query += fmt.Sprintf(" AND p.is_active = $%d", argPos)
 			args = append(args, filter.IsActive)
 			argPos++
 		}
@@ -1538,14 +1541,14 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 
 	// Sort options
 	sortMap := map[string]string{
-		"name_asc":   "name ASC",
-		"name_desc":  "name DESC",
-		"price_high": "price_mdl DESC NULLS LAST",
-		"price_low":  "price_mdl ASC NULLS LAST",
-		"stock_high": "total_stock DESC NULLS LAST",
-		"stock_low":  "total_stock ASC NULLS LAST",
+		"name_asc":   "p.name ASC",
+		"name_desc":  "p.name DESC",
+		"price_high": "p.price_mdl DESC NULLS LAST",
+		"price_low":  "p.price_mdl ASC NULLS LAST",
+		"stock_high": "p.total_stock DESC NULLS LAST",
+		"stock_low":  "p.total_stock ASC NULLS LAST",
 	}
-	orderBy := "name ASC" // default
+	orderBy := "p.name ASC" // default
 	if filter != nil && filter.SortBy != "" {
 		if sortSQL, ok := sortMap[filter.SortBy]; ok {
 			orderBy = sortSQL
@@ -1573,6 +1576,7 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
 			&product.VariantGroupID, &product.IsGroup,
+			&product.BrandName, &product.CategoryName,
 		)
 		if err != nil {
 			return nil, err
@@ -2933,7 +2937,8 @@ func (r *Repository) ListSyncLogs(ctx context.Context, limit, offset int, status
 	query := `
 		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
 		       brands_synced, categories_synced, products_synced, properties_synced,
-		       characteristics_synced, prices_synced, stock_synced, error_message, details
+		       characteristics_synced, prices_synced, stock_synced, error_message, details,
+		       selected_steps
 		FROM sync_logs
 		WHERE 1=1
 	`
@@ -2970,6 +2975,7 @@ func (r *Repository) ListSyncLogs(ctx context.Context, limit, offset int, status
 			&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
 			&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
 			&log.StockSynced, &log.ErrorMessage, &log.Details,
+			&log.SelectedSteps,
 		)
 		if err != nil {
 			return nil, err
@@ -3008,7 +3014,8 @@ func (r *Repository) GetSyncLog(ctx context.Context, id uuid.UUID) (*models.Sync
 	query := `
 		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
 		       brands_synced, categories_synced, products_synced, properties_synced,
-		       characteristics_synced, prices_synced, stock_synced, error_message, details
+		       characteristics_synced, prices_synced, stock_synced, error_message, details,
+		       selected_steps
 		FROM sync_logs
 		WHERE id = $1
 	`
@@ -3019,6 +3026,7 @@ func (r *Repository) GetSyncLog(ctx context.Context, id uuid.UUID) (*models.Sync
 		&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
 		&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
 		&log.StockSynced, &log.ErrorMessage, &log.Details,
+		&log.SelectedSteps,
 	)
 	if err != nil {
 		return nil, err
@@ -3038,7 +3046,8 @@ func (r *Repository) GetLatestSyncLog(ctx context.Context) (*models.SyncLog, err
 		       COALESCE(products_inserted, 0), COALESCE(products_updated, 0),
 		       COALESCE(properties_inserted, 0), COALESCE(properties_updated, 0),
 		       COALESCE(characteristics_inserted, 0), COALESCE(characteristics_updated, 0),
-		       COALESCE(prices_updated, 0), COALESCE(stock_updated, 0)
+		       COALESCE(prices_updated, 0), COALESCE(stock_updated, 0),
+		       selected_steps
 		FROM sync_logs
 		ORDER BY started_at DESC
 		LIMIT 1
@@ -3056,6 +3065,7 @@ func (r *Repository) GetLatestSyncLog(ctx context.Context) (*models.SyncLog, err
 		&log.PropertiesInserted, &log.PropertiesUpdated,
 		&log.CharacteristicsInserted, &log.CharacteristicsUpdated,
 		&log.PricesUpdated, &log.StockUpdated,
+		&log.SelectedSteps,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

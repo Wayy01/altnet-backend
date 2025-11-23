@@ -660,15 +660,10 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get products with brand and category data in single query (avoids N+1)
-	enriched, err := h.repo.GetProductsWithDetails(r.Context(), products)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to enrich products", err.Error())
-		return
-	}
-
+	// Products now include brand_name and category_name from JOIN query
+	// No need for GetProductsWithDetails since we have denormalized fields
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
-		"data": enriched,
+		"data": products,
 		"meta": PaginationMeta{
 			Limit:  limit,
 			Offset: offset,
@@ -1257,15 +1252,9 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 		response.SyncLogID = syncLog.ID.String()
 		response.StartedAt = syncLog.StartedAt.Format(time.RFC3339)
 
-		// Parse selected steps from JSONB
-		if syncLog.SelectedSteps != nil {
-			// Convert JSONB to JSON bytes first, then unmarshal
-			if jsonBytes, err := json.Marshal(syncLog.SelectedSteps); err == nil {
-				var selectedSteps []string
-				if err := json.Unmarshal(jsonBytes, &selectedSteps); err == nil {
-					response.SelectedSteps = selectedSteps
-				}
-			}
+		// Include selected steps if available
+		if len(syncLog.SelectedSteps) > 0 {
+			response.SelectedSteps = syncLog.SelectedSteps
 		}
 
 		// Estimate categories processed based on properties count
