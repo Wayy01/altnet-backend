@@ -690,3 +690,55 @@ export interface CharacteristicValuesResponse {
   limit: number;
   offset: number;
 }
+
+// ============================================================================
+// PRODUCT GROUPING HIERARCHY TYPES
+// ============================================================================
+
+// Product Grouping (Level 1 - Parent product)
+export interface ProductGrouping {
+  id: string;
+  name: string;
+  code: string | null;
+  article: string | null;
+  brand_name: string | null;
+  category_name: string | null;
+  variant_count: number;
+  price_min: number | null;
+  price_max: number | null;
+  total_stock: number;
+  is_in_stock: boolean;
+  is_active: boolean;
+}
+
+// Product Variant (Level 2 - Child product)
+export interface ProductVariant {
+  id: string;
+  parent_id: string;
+  name: string;
+  code: string | null;
+  article: string | null;
+  prices: ProductPriceEntry[]; // Typed price array matching Product interface
+  price_mdl: number | null;
+  price_eur: number | null;
+  price_usd: number | null;
+  total_stock: number;
+  is_in_stock: boolean;
+  is_active: boolean;
+  main_image_url: string | null;
+}
+
+// Product grouping API responses
+export interface ProductGroupsResponse {
+  data: ProductGrouping[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ProductVariantsResponse {
+  data: ProductVariant[];
+  total: number;
+  limit: number;
+  offset: number;
+}

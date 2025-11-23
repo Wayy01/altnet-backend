@@ -45,6 +45,10 @@ import {
   PropertyGroupsResponse,
   PropertyNamesResponse,
   PropertyValuesResponse,
+  ProductGrouping,
+  ProductVariant,
+  ProductGroupsResponse,
+  ProductVariantsResponse,
 } from "@/types";
 import {
   SelectiveSyncRequest,
@@ -1028,6 +1032,92 @@ class ApiClient {
       }
     );
     return response;
+  }
+
+  // Product Grouping Hierarchy - Groups (Level 1)
+  async getProductGroupings(
+    limit = 50,
+    offset = 0,
+    search?: string
+  ): Promise<ProductGroupsResponse> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (search) params.append("search", search);
+
+    return await this.fetch<ProductGroupsResponse>(
+      `/api/v1/products/groupings/hierarchy/groups?${params.toString()}`
+    );
+  }
+
+  async getProductGrouping(id: string): Promise<ProductGrouping> {
+    const response = await this.fetch<{ data: ProductGrouping }>(
+      `/api/v1/products/groupings/hierarchy/groups/${id}`
+    );
+    return response.data;
+  }
+
+  async deleteProductGrouping(id: string): Promise<void> {
+    await this.fetch<void>(
+      `/api/v1/products/groupings/hierarchy/groups/${id}`,
+      { method: "DELETE" }
+    );
+  }
+
+  async getProductGroupingDeletionImpact(id: string): Promise<DeletionImpact> {
+    return await this.fetch<DeletionImpact>(
+      `/api/v1/products/groupings/hierarchy/groups/${id}/deletion-impact`
+    );
+  }
+
+  // Product Grouping Hierarchy - Variants (Level 2)
+  async getProductVariants(
+    parentId: string,
+    limit = 50,
+    offset = 0,
+    search?: string
+  ): Promise<ProductVariantsResponse> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (search) params.append("search", search);
+
+    return await this.fetch<ProductVariantsResponse>(
+      `/api/v1/products/groupings/hierarchy/groups/${parentId}/variants?${params.toString()}`
+    );
+  }
+
+  async deleteProductVariant(id: string): Promise<void> {
+    await this.fetch<void>(
+      `/api/v1/products/groupings/hierarchy/variants/${id}`,
+      { method: "DELETE" }
+    );
+  }
+
+  async bulkUpdateProductVariants(
+    ids: string[],
+    updates: {
+      is_active?: boolean;
+      parent_id?: string | null;
+    }
+  ): Promise<{ count: number }> {
+    return await this.fetch<{ count: number }>(
+      `/api/v1/products/groupings/hierarchy/variants/bulk`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ ids, updates }),
+      }
+    );
+  }
+
+  async bulkDeleteProductVariants(ids: string[]): Promise<{ count: number }> {
+    return await this.fetch<{ count: number }>(
+      `/api/v1/products/groupings/hierarchy/variants/bulk`,
+      {
+        method: "DELETE",
+        body: JSON.stringify({ ids }),
+      }
+    );
   }
 }
 

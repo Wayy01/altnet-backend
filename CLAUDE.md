@@ -90,6 +90,7 @@ brands (1,133) → products (48,316) ← categories (418)
 - `/categories[/{id}]` - Category management
 - `/properties` - 3-level hierarchy: Groups (111) → Names (~1,925) → Values (876k+)
 - `/characteristics` - 2-level hierarchy: Names (62) → Values (460 SKUs)
+- `/groupings` - 2-level hierarchy: Parent Products → Variants (via parent_id)
 - `/sync[/selective|/configs|/changes]` - Sync operations
 - `/settings` - Configuration
 
@@ -98,6 +99,9 @@ brands (1,133) → products (48,316) ← categories (418)
 
 ## Characteristic Hierarchy (9.7/10 - Production Ready)
 2-level navigation for 460 characteristics (product variants/SKUs). Level 1: Names → Level 2: Values. Features: SQL injection prevention via field whitelisting, ACID transactions with RepeatableRead isolation, 30s context timeouts, deletion impact preview, null-safe price rendering. Backend: Go with pgx, 3 optimized PostgreSQL indexes with partial WHERE clauses, typed CharacteristicPrice struct, MODE() aggregates. Frontend: Next.js 14, TypeScript type-safe with CharacteristicPriceEntry interface, defensive programming, shadcn/ui components. API: `/api/v1/characteristics/hierarchy/*`.
+
+## Product Grouping Hierarchy (9.7/10 - Production Ready)
+2-level navigation for product variant groupings using self-referencing parent_id FK. Level 1: Parent Products (Groups) → Level 2: Variants. Features: SQL injection prevention via field whitelisting, ACID transactions with RepeatableRead isolation, 30s context timeouts, 1000-item bulk operation limits, deletion impact preview, contextual error messages with entity IDs, context cancellation support in loops. Backend: Go with pgx, 3 optimized PostgreSQL indexes (parent_id, composite active, composite price) with CONCURRENTLY creation, aggregated stats (MIN/MAX price, SUM stock, COUNT variants). Frontend: Next.js 14, TypeScript type-safe with ProductPriceEntry[], null-safe rendering, product image thumbnails, shadcn/ui components. API: `/api/v1/products/groupings/hierarchy/*`. Database: products.parent_id → products.id self-reference.
 
 ## Selective Sync System
 
