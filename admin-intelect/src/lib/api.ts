@@ -11,6 +11,12 @@ import {
   Product,
   ProductDetail,
   Property,
+  PropertyFilters,
+  PropertyStats,
+  CreatePropertyPayload,
+  UpdatePropertyPayload,
+  BulkUpdatePropertiesPayload,
+  BulkDeletePropertiesPayload,
   Characteristic,
   ProductFilters,
   DashboardStats,
@@ -390,6 +396,112 @@ class ApiClient {
     return response.data;
   }
 
+  // ============================================================================
+  // PROPERTIES
+  // ============================================================================
+
+  // List properties with filtering and pagination
+  async getProperties(
+    filters?: PropertyFilters,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: Property[]; pagination: { total: number; limit: number; offset: number } }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.product_id) params.append("product_id", filters.product_id);
+    if (filters?.property_name) params.append("property_name", filters.property_name);
+    if (filters?.group_name) params.append("group_name", filters.group_name);
+    if (filters?.value_type) params.append("value_type", filters.value_type);
+    if (filters?.is_filter) params.append("is_filter", filters.is_filter);
+    if (filters?.is_modification) params.append("is_modification", filters.is_modification);
+    if (filters?.sort_by) params.append("sort_by", filters.sort_by);
+    if (filters?.created_after) params.append("created_after", filters.created_after);
+    if (filters?.created_before) params.append("created_before", filters.created_before);
+
+    return this.fetch(`/api/v1/properties?${params.toString()}`);
+  }
+
+  // Get single property by ID
+  async getProperty(id: string): Promise<Property> {
+    const response = await this.fetch<{ data: Property }>(
+      `/api/v1/properties/${id}`
+    );
+    return response.data;
+  }
+
+  // Create a new property
+  async createProperty(payload: CreatePropertyPayload): Promise<Property> {
+    const response = await this.fetch<{ data: Property }>(
+      `/api/v1/properties`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+    return response.data;
+  }
+
+  // Update a property
+  async updateProperty(
+    id: string,
+    payload: UpdatePropertyPayload
+  ): Promise<Property> {
+    const response = await this.fetch<{ data: Property }>(
+      `/api/v1/properties/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }
+    );
+    return response.data;
+  }
+
+  // Delete a property
+  async deleteProperty(id: string): Promise<void> {
+    await this.fetch(`/api/v1/properties/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  // Bulk update properties
+  async bulkUpdateProperties(
+    payload: BulkUpdatePropertiesPayload
+  ): Promise<{ message: string; count: number }> {
+    return this.fetch(`/api/v1/properties/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Bulk delete properties
+  async bulkDeleteProperties(
+    payload: BulkDeletePropertiesPayload
+  ): Promise<{ message: string; count: number }> {
+    return this.fetch(`/api/v1/properties/bulk`, {
+      method: "DELETE",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  // Get property statistics
+  async getPropertyStats(): Promise<PropertyStats> {
+    const response = await this.fetch<{ data: PropertyStats }>(
+      `/api/v1/properties/stats`
+    );
+    return response.data;
+  }
+
+  // Get unique property groups
+  async getPropertyGroups(): Promise<string[]> {
+    const response = await this.fetch<{ data: string[] }>(
+      `/api/v1/properties/groups`
+    );
+    return response.data;
+  }
+
   // Sync logs
   async getSyncLogs(
     limit = 50,
@@ -635,6 +747,178 @@ class ApiClient {
 
   getExportChangesUrl(syncLogId: string, format: "json" | "csv" = "csv"): string {
     return `${this.baseUrl}/api/v1/sync/${syncLogId}/changes/export?format=${format}`;
+  }
+
+  // Property Hierarchy - Groups (Level 1)
+  async getPropertyGroups(
+    limit = 50,
+    offset = 0,
+    search?: string
+  ): Promise<PropertyGroupListResponse> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (search) params.append("search", search);
+
+    const response = await this.fetch<{ data: PropertyGroup[]; total: number; limit: number; offset: number }>(
+      `/api/v1/properties/hierarchy/groups?${params.toString()}`
+    );
+    return response;
+  }
+
+  async getPropertyGroup(groupName: string): Promise<PropertyGroup> {
+    const encodedName = encodeURIComponent(groupName);
+    const response = await this.fetch<{ data: PropertyGroup }>(
+      `/api/v1/properties/hierarchy/groups/${encodedName}`
+    );
+    return response.data;
+  }
+
+  async deletePropertyGroup(groupName: string): Promise<void> {
+    const encodedName = encodeURIComponent(groupName);
+    await this.fetch<void>(`/api/v1/properties/hierarchy/groups/${encodedName}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getGroupDeletionImpact(groupName: string): Promise<DeletionImpact> {
+    const encodedName = encodeURIComponent(groupName);
+    const response = await this.fetch<{ data: DeletionImpact }>(
+      `/api/v1/properties/hierarchy/groups/${encodedName}/impact`
+    );
+    return response.data;
+  }
+
+  // Property Hierarchy - Names (Level 2)
+  async getPropertyNames(
+    groupName: string,
+    limit = 50,
+    offset = 0,
+    search?: string
+  ): Promise<PropertyNameListResponse> {
+    const encodedGroup = encodeURIComponent(groupName);
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (search) params.append("search", search);
+
+    const response = await this.fetch<{ data: PropertyName[]; total: number; limit: number; offset: number }>(
+      `/api/v1/properties/hierarchy/groups/${encodedGroup}/properties?${params.toString()}`
+    );
+    return response;
+  }
+
+  async getPropertyName(groupName: string, propertyName: string): Promise<PropertyName> {
+    const encodedGroup = encodeURIComponent(groupName);
+    const encodedProperty = encodeURIComponent(propertyName);
+    const response = await this.fetch<{ data: PropertyName }>(
+      `/api/v1/properties/hierarchy/groups/${encodedGroup}/properties/${encodedProperty}`
+    );
+    return response.data;
+  }
+
+  async deletePropertyName(groupName: string, propertyName: string): Promise<void> {
+    const encodedGroup = encodeURIComponent(groupName);
+    const encodedProperty = encodeURIComponent(propertyName);
+    await this.fetch<void>(
+      `/api/v1/properties/hierarchy/groups/${encodedGroup}/properties/${encodedProperty}`,
+      { method: "DELETE" }
+    );
+  }
+
+  async getPropertyNameDeletionImpact(groupName: string, propertyName: string): Promise<DeletionImpact> {
+    const encodedGroup = encodeURIComponent(groupName);
+    const encodedProperty = encodeURIComponent(propertyName);
+    const response = await this.fetch<{ data: DeletionImpact }>(
+      `/api/v1/properties/hierarchy/groups/${encodedGroup}/properties/${encodedProperty}/impact`
+    );
+    return response.data;
+  }
+
+  // Property Hierarchy - Values (Level 3)
+  async getPropertyValues(
+    groupName: string,
+    propertyName: string,
+    limit = 100,
+    offset = 0,
+    search?: string
+  ): Promise<PropertyValueListResponse> {
+    const encodedGroup = encodeURIComponent(groupName);
+    const encodedProperty = encodeURIComponent(propertyName);
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (search) params.append("search", search);
+
+    const response = await this.fetch<{ data: PropertyValue[]; total: number; limit: number; offset: number }>(
+      `/api/v1/properties/hierarchy/groups/${encodedGroup}/properties/${encodedProperty}/values?${params.toString()}`
+    );
+    return response;
+  }
+
+  async updatePropertyValue(
+    valueId: string,
+    updates: {
+      value?: string;
+      value_type?: string;
+      sort_order?: number;
+      is_filter?: boolean;
+      is_modification?: boolean;
+    }
+  ): Promise<PropertyValue> {
+    const response = await this.fetch<{ data: PropertyValue }>(
+      `/api/v1/properties/hierarchy/values/${valueId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      }
+    );
+    return response.data;
+  }
+
+  async deletePropertyValue(valueId: string): Promise<void> {
+    await this.fetch<void>(`/api/v1/properties/hierarchy/values/${valueId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async bulkUpdatePropertyValues(
+    groupName: string,
+    propertyName: string,
+    ids: string[],
+    updates: {
+      is_filter?: boolean;
+      is_modification?: boolean;
+      value_type?: string;
+    }
+  ): Promise<{ updated: number }> {
+    const encodedGroup = encodeURIComponent(groupName);
+    const encodedProperty = encodeURIComponent(propertyName);
+    const response = await this.fetch<{ data: { updated: number } }>(
+      `/api/v1/properties/hierarchy/groups/${encodedGroup}/properties/${encodedProperty}/values/bulk`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ ids, ...updates }),
+      }
+    );
+    return response.data;
+  }
+
+  async bulkDeletePropertyValues(
+    groupName: string,
+    propertyName: string,
+    ids: string[]
+  ): Promise<{ deleted: number }> {
+    const encodedGroup = encodeURIComponent(groupName);
+    const encodedProperty = encodeURIComponent(propertyName);
+    const response = await this.fetch<{ data: { deleted: number } }>(
+      `/api/v1/properties/hierarchy/groups/${encodedGroup}/properties/${encodedProperty}/values/bulk`,
+      {
+        method: "DELETE",
+        body: JSON.stringify({ ids }),
+      }
+    );
+    return response.data;
   }
 }
 

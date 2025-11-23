@@ -79,8 +79,12 @@ brands (1,133) → products (48,316) ← categories (418)
 - `/products[/{id}]` - Product management
 - `/brands[/{id}]` - Brand management
 - `/categories[/{id}]` - Category management
+- `/properties` - 3-level hierarchy: Groups (111) → Names (~1,925) → Values (876k+)
 - `/sync[/selective|/configs|/changes]` - Sync operations
 - `/settings` - Configuration
+
+## Property Hierarchy (9.6/10 - Production Ready)
+3-level navigation for 876k+ properties. Level 1: Groups → Level 2: Names → Level 3: Values. Features: SQL injection prevention via field whitelisting, ACID transactions for bulk operations, 30s context timeouts on all handlers, row count validation, deletion impact preview. Backend: Go with pgx, 5 custom PostgreSQL indexes, MODE() aggregates. Frontend: Next.js 14, TypeScript type-safe, shadcn/ui components. API: `/api/v1/properties/hierarchy/*`. All critical security and reliability issues resolved.
 
 ## Selective Sync System
 

@@ -2194,6 +2194,614 @@ func (r *Repository) GetProductProperties(ctx context.Context, productID uuid.UU
 	return properties, nil
 }
 
+// PropertyFilter represents filtering options for properties
+type PropertyFilter struct {
+	ProductID       *uuid.UUID
+	PropertyName    string
+	GroupName       string
+	ValueType       string
+	IsFilter        *bool
+	IsModification  *bool
+	Search          string
+	CreatedAfter    *time.Time
+	CreatedBefore   *time.Time
+	SortBy          string // "name_asc", "name_desc", "sort_order_asc", "created_desc", "updated_desc"
+}
+
+// ListProperties returns a paginated list of properties with optional filtering
+func (r *Repository) ListProperties(ctx context.Context, filter *PropertyFilter, limit, offset int) ([]*models.Property, error) {
+	query := `
+		SELECT p.id, p.product_id, p.property_uuid, p.property_name, p.property_code, p.value, p.value_type,
+		       p.group_uuid, p.group_name, p.sort_order, p.is_filter, p.is_modification, p.created_at, p.updated_at,
+		       prod.name as product_name, prod.code as product_code
+		FROM properties p
+		LEFT JOIN products prod ON p.product_id = prod.id
+		WHERE 1=1
+	`
+
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if filter != nil {
+		// Search filter (searches across property_name, property_code, value)
+		if filter.Search != "" {
+			query += fmt.Sprintf(" AND (p.property_name ILIKE $%d OR p.property_code ILIKE $%d OR p.value ILIKE $%d)", argPos, argPos, argPos)
+			searchPattern := "%" + filter.Search + "%"
+			args = append(args, searchPattern)
+			argPos++
+		}
+
+		// Product ID filter
+		if filter.ProductID != nil {
+			query += fmt.Sprintf(" AND p.product_id = $%d", argPos)
+			args = append(args, filter.ProductID)
+			argPos++
+		}
+
+		// Property name filter (exact match)
+		if filter.PropertyName != "" {
+			query += fmt.Sprintf(" AND p.property_name = $%d", argPos)
+			args = append(args, filter.PropertyName)
+			argPos++
+		}
+
+		// Group name filter
+		if filter.GroupName != "" {
+			query += fmt.Sprintf(" AND p.group_name = $%d", argPos)
+			args = append(args, filter.GroupName)
+			argPos++
+		}
+
+		// Value type filter
+		if filter.ValueType != "" {
+			query += fmt.Sprintf(" AND p.value_type = $%d", argPos)
+			args = append(args, filter.ValueType)
+			argPos++
+		}
+
+		// Is filter flag
+		if filter.IsFilter != nil {
+			query += fmt.Sprintf(" AND p.is_filter = $%d", argPos)
+			args = append(args, *filter.IsFilter)
+			argPos++
+		}
+
+		// Is modification flag
+		if filter.IsModification != nil {
+			query += fmt.Sprintf(" AND p.is_modification = $%d", argPos)
+			args = append(args, *filter.IsModification)
+			argPos++
+		}
+
+		// Date range filters
+		if filter.CreatedAfter != nil {
+			query += fmt.Sprintf(" AND p.created_at >= $%d", argPos)
+			args = append(args, filter.CreatedAfter)
+			argPos++
+		}
+
+		if filter.CreatedBefore != nil {
+			query += fmt.Sprintf(" AND p.created_at <= $%d", argPos)
+			args = append(args, filter.CreatedBefore)
+			argPos++
+		}
+
+		// Sorting
+		switch filter.SortBy {
+		case "name_asc":
+			query += " ORDER BY p.property_name ASC"
+		case "name_desc":
+			query += " ORDER BY p.property_name DESC"
+		case "sort_order_asc":
+			query += " ORDER BY p.sort_order ASC"
+		case "created_desc":
+			query += " ORDER BY p.created_at DESC"
+		case "updated_desc":
+			query += " ORDER BY p.updated_at DESC"
+		default:
+			query += " ORDER BY p.created_at DESC"
+		}
+	} else {
+		query += " ORDER BY p.created_at DESC"
+	}
+
+	// Add pagination
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	args = append(args, limit, offset)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query properties: %w", err)
+	}
+	defer rows.Close()
+
+	properties := make([]*models.Property, 0)
+	for rows.Next() {
+		var prop models.Property
+		var productName, productCode *string
+
+		err := rows.Scan(
+			&prop.ID, &prop.ProductID, &prop.PropertyUUID, &prop.PropertyName, &prop.PropertyCode,
+			&prop.Value, &prop.ValueType, &prop.GroupUUID, &prop.GroupName, &prop.SortOrder,
+			&prop.IsFilter, &prop.IsModification, &prop.CreatedAt, &prop.UpdatedAt,
+			&productName, &productCode,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scan property: %w", err)
+		}
+
+		// Note: product_name and product_code are not in the Property model
+		// but we'll add them in a PropertyWithProduct model for the handler
+		properties = append(properties, &prop)
+	}
+
+	return properties, nil
+}
+
+// CountPropertiesFiltered returns the total count of properties matching the filter
+func (r *Repository) CountPropertiesFiltered(ctx context.Context, filter *PropertyFilter) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM properties p
+		WHERE 1=1
+	`
+
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if filter != nil {
+		if filter.Search != "" {
+			query += fmt.Sprintf(" AND (p.property_name ILIKE $%d OR p.property_code ILIKE $%d OR p.value ILIKE $%d)", argPos, argPos, argPos)
+			searchPattern := "%" + filter.Search + "%"
+			args = append(args, searchPattern)
+			argPos++
+		}
+
+		if filter.ProductID != nil {
+			query += fmt.Sprintf(" AND p.product_id = $%d", argPos)
+			args = append(args, filter.ProductID)
+			argPos++
+		}
+
+		if filter.PropertyName != "" {
+			query += fmt.Sprintf(" AND p.property_name = $%d", argPos)
+			args = append(args, filter.PropertyName)
+			argPos++
+		}
+
+		if filter.GroupName != "" {
+			query += fmt.Sprintf(" AND p.group_name = $%d", argPos)
+			args = append(args, filter.GroupName)
+			argPos++
+		}
+
+		if filter.ValueType != "" {
+			query += fmt.Sprintf(" AND p.value_type = $%d", argPos)
+			args = append(args, filter.ValueType)
+			argPos++
+		}
+
+		if filter.IsFilter != nil {
+			query += fmt.Sprintf(" AND p.is_filter = $%d", argPos)
+			args = append(args, *filter.IsFilter)
+			argPos++
+		}
+
+		if filter.IsModification != nil {
+			query += fmt.Sprintf(" AND p.is_modification = $%d", argPos)
+			args = append(args, *filter.IsModification)
+			argPos++
+		}
+
+		if filter.CreatedAfter != nil {
+			query += fmt.Sprintf(" AND p.created_at >= $%d", argPos)
+			args = append(args, filter.CreatedAfter)
+			argPos++
+		}
+
+		if filter.CreatedBefore != nil {
+			query += fmt.Sprintf(" AND p.created_at <= $%d", argPos)
+			args = append(args, filter.CreatedBefore)
+			argPos++
+		}
+	}
+
+	var count int
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count properties: %w", err)
+	}
+
+	return count, nil
+}
+
+// GetProperty retrieves a single property by ID with product details
+func (r *Repository) GetProperty(ctx context.Context, id uuid.UUID) (*models.Property, error) {
+	query := `
+		SELECT p.id, p.product_id, p.property_uuid, p.property_name, p.property_code, p.value, p.value_type,
+		       p.group_uuid, p.group_name, p.sort_order, p.is_filter, p.is_modification, p.created_at, p.updated_at
+		FROM properties p
+		WHERE p.id = $1
+	`
+
+	var prop models.Property
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&prop.ID, &prop.ProductID, &prop.PropertyUUID, &prop.PropertyName, &prop.PropertyCode,
+		&prop.Value, &prop.ValueType, &prop.GroupUUID, &prop.GroupName, &prop.SortOrder,
+		&prop.IsFilter, &prop.IsModification, &prop.CreatedAt, &prop.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("property not found")
+		}
+		return nil, fmt.Errorf("get property: %w", err)
+	}
+
+	return &prop, nil
+}
+
+// CreatePropertyRequest represents the request body for creating a property
+type CreatePropertyRequest struct {
+	ProductID      uuid.UUID `json:"product_id"`
+	PropertyUUID   *string   `json:"property_uuid"`
+	PropertyName   string    `json:"property_name"`
+	PropertyCode   *string   `json:"property_code"`
+	Value          *string   `json:"value"`
+	ValueType      *string   `json:"value_type"`
+	GroupUUID      *string   `json:"group_uuid"`
+	GroupName      *string   `json:"group_name"`
+	SortOrder      int       `json:"sort_order"`
+	IsFilter       bool      `json:"is_filter"`
+	IsModification bool      `json:"is_modification"`
+}
+
+// CreateProperty creates a new property
+func (r *Repository) CreateProperty(ctx context.Context, req *CreatePropertyRequest) (*models.Property, error) {
+	query := `
+		INSERT INTO properties (
+			product_id, property_uuid, property_name, property_code, value, value_type,
+			group_uuid, group_name, sort_order, is_filter, is_modification
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id, product_id, property_uuid, property_name, property_code, value, value_type,
+		          group_uuid, group_name, sort_order, is_filter, is_modification, created_at, updated_at
+	`
+
+	var prop models.Property
+	err := r.pool.QueryRow(ctx, query,
+		req.ProductID, req.PropertyUUID, req.PropertyName, req.PropertyCode, req.Value, req.ValueType,
+		req.GroupUUID, req.GroupName, req.SortOrder, req.IsFilter, req.IsModification,
+	).Scan(
+		&prop.ID, &prop.ProductID, &prop.PropertyUUID, &prop.PropertyName, &prop.PropertyCode,
+		&prop.Value, &prop.ValueType, &prop.GroupUUID, &prop.GroupName, &prop.SortOrder,
+		&prop.IsFilter, &prop.IsModification, &prop.CreatedAt, &prop.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("create property: %w", err)
+	}
+
+	return &prop, nil
+}
+
+// UpdatePropertyRequest represents the request body for updating a property
+type UpdatePropertyRequest struct {
+	PropertyUUID   *string `json:"property_uuid"`
+	PropertyName   *string `json:"property_name"`
+	PropertyCode   *string `json:"property_code"`
+	Value          *string `json:"value"`
+	ValueType      *string `json:"value_type"`
+	GroupUUID      *string `json:"group_uuid"`
+	GroupName      *string `json:"group_name"`
+	SortOrder      *int    `json:"sort_order"`
+	IsFilter       *bool   `json:"is_filter"`
+	IsModification *bool   `json:"is_modification"`
+}
+
+// UpdateProperty updates an existing property
+func (r *Repository) UpdateProperty(ctx context.Context, id uuid.UUID, req *UpdatePropertyRequest) (*models.Property, error) {
+	// Build dynamic update query
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if req.PropertyUUID != nil {
+		updates = append(updates, fmt.Sprintf("property_uuid = $%d", argPos))
+		args = append(args, req.PropertyUUID)
+		argPos++
+	}
+
+	if req.PropertyName != nil {
+		updates = append(updates, fmt.Sprintf("property_name = $%d", argPos))
+		args = append(args, *req.PropertyName)
+		argPos++
+	}
+
+	if req.PropertyCode != nil {
+		updates = append(updates, fmt.Sprintf("property_code = $%d", argPos))
+		args = append(args, req.PropertyCode)
+		argPos++
+	}
+
+	if req.Value != nil {
+		updates = append(updates, fmt.Sprintf("value = $%d", argPos))
+		args = append(args, req.Value)
+		argPos++
+	}
+
+	if req.ValueType != nil {
+		updates = append(updates, fmt.Sprintf("value_type = $%d", argPos))
+		args = append(args, req.ValueType)
+		argPos++
+	}
+
+	if req.GroupUUID != nil {
+		updates = append(updates, fmt.Sprintf("group_uuid = $%d", argPos))
+		args = append(args, req.GroupUUID)
+		argPos++
+	}
+
+	if req.GroupName != nil {
+		updates = append(updates, fmt.Sprintf("group_name = $%d", argPos))
+		args = append(args, req.GroupName)
+		argPos++
+	}
+
+	if req.SortOrder != nil {
+		updates = append(updates, fmt.Sprintf("sort_order = $%d", argPos))
+		args = append(args, *req.SortOrder)
+		argPos++
+	}
+
+	if req.IsFilter != nil {
+		updates = append(updates, fmt.Sprintf("is_filter = $%d", argPos))
+		args = append(args, *req.IsFilter)
+		argPos++
+	}
+
+	if req.IsModification != nil {
+		updates = append(updates, fmt.Sprintf("is_modification = $%d", argPos))
+		args = append(args, *req.IsModification)
+		argPos++
+	}
+
+	if len(updates) == 0 {
+		return nil, fmt.Errorf("no fields to update")
+	}
+
+	updates = append(updates, fmt.Sprintf("updated_at = NOW()"))
+
+	query := fmt.Sprintf(`
+		UPDATE properties
+		SET %s
+		WHERE id = $%d
+		RETURNING id, product_id, property_uuid, property_name, property_code, value, value_type,
+		          group_uuid, group_name, sort_order, is_filter, is_modification, created_at, updated_at
+	`, strings.Join(updates, ", "), argPos)
+
+	args = append(args, id)
+
+	var prop models.Property
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
+		&prop.ID, &prop.ProductID, &prop.PropertyUUID, &prop.PropertyName, &prop.PropertyCode,
+		&prop.Value, &prop.ValueType, &prop.GroupUUID, &prop.GroupName, &prop.SortOrder,
+		&prop.IsFilter, &prop.IsModification, &prop.CreatedAt, &prop.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("property not found")
+		}
+		return nil, fmt.Errorf("update property: %w", err)
+	}
+
+	return &prop, nil
+}
+
+// DeleteProperty deletes a property by ID
+func (r *Repository) DeleteProperty(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM properties WHERE id = $1`
+
+	result, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("delete property: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("property not found")
+	}
+
+	return nil
+}
+
+// BulkUpdatePropertiesRequest represents bulk update request
+type BulkUpdatePropertiesRequest struct {
+	IDs            []uuid.UUID `json:"ids"`
+	IsFilter       *bool       `json:"is_filter"`
+	IsModification *bool       `json:"is_modification"`
+	SortOrder      *int        `json:"sort_order"`
+	GroupName      *string     `json:"group_name"`
+}
+
+// BulkUpdateProperties updates multiple properties at once
+func (r *Repository) BulkUpdateProperties(ctx context.Context, req *BulkUpdatePropertiesRequest) (int, error) {
+	if len(req.IDs) == 0 {
+		return 0, fmt.Errorf("no property IDs provided")
+	}
+
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if req.IsFilter != nil {
+		updates = append(updates, fmt.Sprintf("is_filter = $%d", argPos))
+		args = append(args, *req.IsFilter)
+		argPos++
+	}
+
+	if req.IsModification != nil {
+		updates = append(updates, fmt.Sprintf("is_modification = $%d", argPos))
+		args = append(args, *req.IsModification)
+		argPos++
+	}
+
+	if req.SortOrder != nil {
+		updates = append(updates, fmt.Sprintf("sort_order = $%d", argPos))
+		args = append(args, *req.SortOrder)
+		argPos++
+	}
+
+	if req.GroupName != nil {
+		updates = append(updates, fmt.Sprintf("group_name = $%d", argPos))
+		args = append(args, req.GroupName)
+		argPos++
+	}
+
+	if len(updates) == 0 {
+		return 0, fmt.Errorf("no fields to update")
+	}
+
+	updates = append(updates, "updated_at = NOW()")
+
+	// Build IN clause for IDs
+	idPlaceholders := make([]string, len(req.IDs))
+	for i, id := range req.IDs {
+		idPlaceholders[i] = fmt.Sprintf("$%d", argPos)
+		args = append(args, id)
+		argPos++
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE properties
+		SET %s
+		WHERE id IN (%s)
+	`, strings.Join(updates, ", "), strings.Join(idPlaceholders, ", "))
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk update properties: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
+
+// BulkDeleteProperties deletes multiple properties by IDs
+func (r *Repository) BulkDeleteProperties(ctx context.Context, ids []uuid.UUID) (int, error) {
+	if len(ids) == 0 {
+		return 0, fmt.Errorf("no property IDs provided")
+	}
+
+	// Build IN clause
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`DELETE FROM properties WHERE id IN (%s)`, strings.Join(placeholders, ", "))
+
+	result, err := r.pool.Exec(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("bulk delete properties: %w", err)
+	}
+
+	return int(result.RowsAffected()), nil
+}
+
+// PropertyStats represents property statistics
+type PropertyStats struct {
+	TotalProperties        int                `json:"total_properties"`
+	UniqueGroups           int                `json:"unique_groups"`
+	FilterProperties       int                `json:"filter_properties"`
+	ModificationProperties int                `json:"modification_properties"`
+	ByType                 map[string]int     `json:"by_type"`
+	UniqueProductsCount    int                `json:"unique_products_count"`
+}
+
+// GetPropertyStats returns statistics about properties
+func (r *Repository) GetPropertyStats(ctx context.Context) (*PropertyStats, error) {
+	stats := &PropertyStats{
+		ByType: make(map[string]int),
+	}
+
+	// Total properties
+	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM properties").Scan(&stats.TotalProperties)
+	if err != nil {
+		return nil, fmt.Errorf("count total properties: %w", err)
+	}
+
+	// Unique groups
+	err = r.pool.QueryRow(ctx, "SELECT COUNT(DISTINCT group_name) FROM properties WHERE group_name IS NOT NULL").Scan(&stats.UniqueGroups)
+	if err != nil {
+		return nil, fmt.Errorf("count unique groups: %w", err)
+	}
+
+	// Filter properties
+	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM properties WHERE is_filter = true").Scan(&stats.FilterProperties)
+	if err != nil {
+		return nil, fmt.Errorf("count filter properties: %w", err)
+	}
+
+	// Modification properties
+	err = r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM properties WHERE is_modification = true").Scan(&stats.ModificationProperties)
+	if err != nil {
+		return nil, fmt.Errorf("count modification properties: %w", err)
+	}
+
+	// Unique products with properties
+	err = r.pool.QueryRow(ctx, "SELECT COUNT(DISTINCT product_id) FROM properties").Scan(&stats.UniqueProductsCount)
+	if err != nil {
+		return nil, fmt.Errorf("count unique products: %w", err)
+	}
+
+	// Properties by type
+	rows, err := r.pool.Query(ctx, "SELECT value_type, COUNT(*) FROM properties WHERE value_type IS NOT NULL GROUP BY value_type")
+	if err != nil {
+		return nil, fmt.Errorf("query properties by type: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var valueType string
+		var count int
+		if err := rows.Scan(&valueType, &count); err != nil {
+			return nil, fmt.Errorf("scan type count: %w", err)
+		}
+		stats.ByType[valueType] = count
+	}
+
+	return stats, nil
+}
+
+// GetPropertyGroups returns all unique property group names
+func (r *Repository) GetPropertyGroups(ctx context.Context) ([]string, error) {
+	query := `
+		SELECT DISTINCT group_name
+		FROM properties
+		WHERE group_name IS NOT NULL AND group_name != ''
+		ORDER BY group_name
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("query property groups: %w", err)
+	}
+	defer rows.Close()
+
+	groups := make([]string, 0)
+	for rows.Next() {
+		var groupName string
+		if err := rows.Scan(&groupName); err != nil {
+			return nil, fmt.Errorf("scan group name: %w", err)
+		}
+		groups = append(groups, groupName)
+	}
+
+	return groups, nil
+}
+
 // ============================================================================
 // CHARACTERISTICS
 // ============================================================================

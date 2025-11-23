@@ -157,6 +157,36 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/products/{id}/characteristics", handler.GetProductCharacteristics).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/variants", handler.GetProductVariants).Methods("GET", "OPTIONS")
 
+	// Properties (specific routes before parameterized routes)
+	api.HandleFunc("/properties/bulk", handler.BulkUpdateProperties).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/properties/bulk", handler.BulkDeleteProperties).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/properties/stats", handler.GetPropertyStats).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties/groups", handler.GetPropertyGroups).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties", handler.ListProperties).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties", handler.CreateProperty).Methods("POST", "OPTIONS")
+	api.HandleFunc("/properties/{id}", handler.GetProperty).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties/{id}", handler.UpdateProperty).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/properties/{id}", handler.DeleteProperty).Methods("DELETE", "OPTIONS")
+
+	// Property Hierarchy (Level 1: Groups)
+	api.HandleFunc("/properties/hierarchy/groups", handler.ListPropertyGroups).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}", handler.GetPropertyGroup).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}", handler.DeletePropertyGroup).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}/impact", handler.GetGroupDeletionImpact).Methods("GET", "OPTIONS")
+
+	// Property Hierarchy (Level 2: Property Names)
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties", handler.ListPropertyNames).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}", handler.GetPropertyName).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}", handler.DeletePropertyName).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/impact", handler.GetPropertyNameDeletionImpact).Methods("GET", "OPTIONS")
+
+	// Property Hierarchy (Level 3: Values)
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/values", handler.ListPropertyValues).Methods("GET", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/values/bulk", handler.BulkUpdatePropertyValues).Methods("PATCH", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/values/bulk", handler.BulkDeletePropertyValues).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/values/{value_id}", handler.UpdatePropertyValue).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/properties/hierarchy/values/{value_id}", handler.DeletePropertyValue).Methods("DELETE", "OPTIONS")
+
 	// Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
 

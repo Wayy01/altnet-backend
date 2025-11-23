@@ -127,6 +127,68 @@ export interface Property {
   updated_at: string;
 }
 
+// Property management types
+export interface PropertyFilters {
+  search?: string;
+  product_id?: string;
+  property_name?: string;
+  group_name?: string;
+  value_type?: string;
+  is_filter?: string; // "true" | "false"
+  is_modification?: string; // "true" | "false"
+  sort_by?: string;
+  created_after?: string;
+  created_before?: string;
+}
+
+export interface PropertyStats {
+  total_properties: number;
+  unique_groups: number;
+  filter_properties: number;
+  modification_properties: number;
+  by_type: Record<string, number>;
+  unique_products_count: number;
+}
+
+export interface CreatePropertyPayload {
+  product_id: string;
+  property_uuid?: string | null;
+  property_name: string;
+  property_code?: string | null;
+  value?: string | null;
+  value_type?: string | null;
+  group_uuid?: string | null;
+  group_name?: string | null;
+  sort_order?: number;
+  is_filter?: boolean;
+  is_modification?: boolean;
+}
+
+export interface UpdatePropertyPayload {
+  property_uuid?: string | null;
+  property_name?: string;
+  property_code?: string | null;
+  value?: string | null;
+  value_type?: string | null;
+  group_uuid?: string | null;
+  group_name?: string | null;
+  sort_order?: number;
+  is_filter?: boolean;
+  is_modification?: boolean;
+}
+
+export interface BulkUpdatePropertiesPayload {
+  ids: string[];
+  is_filter?: boolean;
+  is_modification?: boolean;
+  sort_order?: number;
+  group_name?: string;
+}
+
+export interface BulkDeletePropertiesPayload {
+  ids: string[];
+}
+
 // Product-level price entry
 export interface ProductPriceEntry {
   price: number;
@@ -502,4 +564,75 @@ export interface PriceSummary {
     "500_to_1000": number;
     over_1000: number;
   };
+}
+
+// ============================================================================
+// PROPERTY HIERARCHY TYPES
+// ============================================================================
+
+// Property Group (Level 1)
+export interface PropertyGroup {
+  group_name: string;
+  property_count: number;
+  value_count: number;
+  products_using: number;
+  common_is_filter: boolean;
+  common_is_modification: boolean;
+}
+
+// Property Name (Level 2)
+export interface PropertyName {
+  group_name: string;
+  property_name: string;
+  property_code: string | null;
+  value_count: number;
+  unique_value_count: number;
+  products_using: number;
+  common_value_type: string | null;
+  common_is_filter: boolean;
+  common_is_modification: boolean;
+}
+
+// Property Value (Level 3)
+export interface PropertyValue {
+  id: string;
+  product_id: string;
+  product_name?: string;
+  product_code?: string;
+  group_name: string | null;
+  property_name: string;
+  property_code: string | null;
+  value: string | null;
+  value_type: string | null;
+  sort_order: number;
+  is_filter: boolean;
+  is_modification: boolean;
+}
+
+// Deletion Impact
+export interface DeletionImpact {
+  records_to_delete: number;
+  products_affected: number;
+}
+
+// Property hierarchy API responses
+export interface PropertyGroupsResponse {
+  data: PropertyGroup[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PropertyNamesResponse {
+  data: PropertyName[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PropertyValuesResponse {
+  data: PropertyValue[];
+  total: number;
+  limit: number;
+  offset: number;
 }

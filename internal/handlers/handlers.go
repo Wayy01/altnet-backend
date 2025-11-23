@@ -736,6 +736,295 @@ func (h *Handler) GetProductProperties(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// ============================================================================
+// PROPERTY MANAGEMENT HANDLERS
+// ============================================================================
+
+// PropertyWithProduct extends Property with product information for display
+type PropertyWithProduct struct {
+	*models.Property
+	ProductName *string `json:"product_name,omitempty"`
+	ProductCode *string `json:"product_code,omitempty"`
+}
+
+// ListProperties handles GET /api/v1/properties
+func (h *Handler) ListProperties(w http.ResponseWriter, r *http.Request) {
+	limit, offset := h.parsePagination(r)
+
+	filter := &repository.PropertyFilter{}
+
+	// Search filter
+	if search := r.URL.Query().Get("search"); search != "" {
+		filter.Search = search
+	}
+
+	// Product ID filter
+	if productIDStr := r.URL.Query().Get("product_id"); productIDStr != "" {
+		if id, err := uuid.Parse(productIDStr); err == nil {
+			filter.ProductID = &id
+		}
+	}
+
+	// Property name filter
+	if propertyName := r.URL.Query().Get("property_name"); propertyName != "" {
+		filter.PropertyName = propertyName
+	}
+
+	// Group name filter
+	if groupName := r.URL.Query().Get("group_name"); groupName != "" {
+		filter.GroupName = groupName
+	}
+
+	// Value type filter
+	if valueType := r.URL.Query().Get("value_type"); valueType != "" {
+		filter.ValueType = valueType
+	}
+
+	// Is filter flag
+	if isFilterStr := r.URL.Query().Get("is_filter"); isFilterStr != "" {
+		if isFilterStr == "true" {
+			isFilter := true
+			filter.IsFilter = &isFilter
+		} else if isFilterStr == "false" {
+			isFilter := false
+			filter.IsFilter = &isFilter
+		}
+	}
+
+	// Is modification flag
+	if isModificationStr := r.URL.Query().Get("is_modification"); isModificationStr != "" {
+		if isModificationStr == "true" {
+			isModification := true
+			filter.IsModification = &isModification
+		} else if isModificationStr == "false" {
+			isModification := false
+			filter.IsModification = &isModification
+		}
+	}
+
+	// Date range filters
+	if createdAfter := r.URL.Query().Get("created_after"); createdAfter != "" {
+		if t, err := time.Parse(time.RFC3339, createdAfter); err == nil {
+			filter.CreatedAfter = &t
+		}
+	}
+
+	if createdBefore := r.URL.Query().Get("created_before"); createdBefore != "" {
+		if t, err := time.Parse(time.RFC3339, createdBefore); err == nil {
+			filter.CreatedBefore = &t
+		}
+	}
+
+	// Sort filter
+	filter.SortBy = r.URL.Query().Get("sort_by")
+
+	// Get properties
+	properties, err := h.repo.ListProperties(r.Context(), filter, limit, offset)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch properties", err.Error())
+		return
+	}
+
+	// Get total count
+	totalCount, err := h.repo.CountPropertiesFiltered(r.Context(), filter)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to count properties", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": properties,
+		"pagination": map[string]interface{}{
+			"total":  totalCount,
+			"limit":  limit,
+			"offset": offset,
+		},
+	})
+}
+
+// GetProperty handles GET /api/v1/properties/{id}
+func (h *Handler) GetProperty(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid property ID", err.Error())
+		return
+	}
+
+	property, err := h.repo.GetProperty(r.Context(), id)
+	if err != nil {
+		if err.Error() == "property not found" {
+			h.respondError(w, http.StatusNotFound, "Property not found", err.Error())
+		} else {
+			h.respondError(w, http.StatusInternalServerError, "Failed to fetch property", err.Error())
+		}
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": property,
+	})
+}
+
+// CreateProperty handles POST /api/v1/properties
+func (h *Handler) CreateProperty(w http.ResponseWriter, r *http.Request) {
+	var req repository.CreatePropertyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Validate required fields
+	if req.PropertyName == "" {
+		h.respondError(w, http.StatusBadRequest, "Property name is required", "")
+		return
+	}
+
+	if req.ProductID == uuid.Nil {
+		h.respondError(w, http.StatusBadRequest, "Product ID is required", "")
+		return
+	}
+
+	property, err := h.repo.CreateProperty(r.Context(), &req)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to create property", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusCreated, map[string]interface{}{
+		"data":    property,
+		"message": "Property created successfully",
+	})
+}
+
+// UpdateProperty handles PUT /api/v1/properties/{id}
+func (h *Handler) UpdateProperty(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid property ID", err.Error())
+		return
+	}
+
+	var req repository.UpdatePropertyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	property, err := h.repo.UpdateProperty(r.Context(), id, &req)
+	if err != nil {
+		if err.Error() == "property not found" {
+			h.respondError(w, http.StatusNotFound, "Property not found", err.Error())
+		} else if err.Error() == "no fields to update" {
+			h.respondError(w, http.StatusBadRequest, "No fields to update", err.Error())
+		} else {
+			h.respondError(w, http.StatusInternalServerError, "Failed to update property", err.Error())
+		}
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data":    property,
+		"message": "Property updated successfully",
+	})
+}
+
+// DeleteProperty handles DELETE /api/v1/properties/{id}
+func (h *Handler) DeleteProperty(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid property ID", err.Error())
+		return
+	}
+
+	err = h.repo.DeleteProperty(r.Context(), id)
+	if err != nil {
+		if err.Error() == "property not found" {
+			h.respondError(w, http.StatusNotFound, "Property not found", err.Error())
+		} else {
+			h.respondError(w, http.StatusInternalServerError, "Failed to delete property", err.Error())
+		}
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "Property deleted successfully",
+	})
+}
+
+// BulkUpdateProperties handles PATCH /api/v1/properties/bulk
+func (h *Handler) BulkUpdateProperties(w http.ResponseWriter, r *http.Request) {
+	var req repository.BulkUpdatePropertiesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	count, err := h.repo.BulkUpdateProperties(r.Context(), &req)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to bulk update properties", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Successfully updated %d properties", count),
+		"count":   count,
+	})
+}
+
+// BulkDeletePropertiesRequest represents bulk delete request
+type BulkDeletePropertiesRequest struct {
+	IDs []uuid.UUID `json:"ids"`
+}
+
+// BulkDeleteProperties handles DELETE /api/v1/properties/bulk
+func (h *Handler) BulkDeleteProperties(w http.ResponseWriter, r *http.Request) {
+	var req BulkDeletePropertiesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	count, err := h.repo.BulkDeleteProperties(r.Context(), req.IDs)
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to bulk delete properties", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Successfully deleted %d properties", count),
+		"count":   count,
+	})
+}
+
+// GetPropertyStats handles GET /api/v1/properties/stats
+func (h *Handler) GetPropertyStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.repo.GetPropertyStats(r.Context())
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch property stats", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": stats,
+	})
+}
+
+// GetPropertyGroups handles GET /api/v1/properties/groups
+func (h *Handler) GetPropertyGroups(w http.ResponseWriter, r *http.Request) {
+	groups, err := h.repo.GetPropertyGroups(r.Context())
+	if err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Failed to fetch property groups", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": groups,
+	})
+}
+
 // GetProductCharacteristics handles GET /api/v1/products/{id}/characteristics
 func (h *Handler) GetProductCharacteristics(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)

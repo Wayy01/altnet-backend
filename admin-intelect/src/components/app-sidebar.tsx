@@ -11,6 +11,7 @@ import {
   Zap,
   FileText,
   History,
+  Database,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -55,6 +56,11 @@ const menuItems = [
     title: "Products",
     url: "/products",
     icon: Package,
+  },
+  {
+    title: "Properties",
+    url: "/properties",
+    icon: Database,
   },
   {
     title: "Brands",
