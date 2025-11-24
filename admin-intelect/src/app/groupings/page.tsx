@@ -73,11 +73,11 @@ export default function ProductGroupingsPage() {
       setLoading(true);
       const offset = currentPage * limit;
       const response = await api.getProductGroupings(limit, offset, search || undefined);
-      setGroups(response.data);
+      setGroups(response.data || []);
       setTotalCount(response.total);
 
       // Calculate stats from current data
-      if (response.data.length > 0) {
+      if (response.data && response.data.length > 0) {
         const totalVariants = response.data.reduce((sum, g) => sum + g.variant_count, 0);
         const totalStock = response.data.reduce((sum, g) => sum + g.total_stock, 0);
 

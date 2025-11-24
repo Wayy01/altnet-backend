@@ -1119,6 +1119,21 @@ class ApiClient {
       }
     );
   }
+
+  // Product Grouping Post-Processing
+  async triggerProductGrouping(): Promise<{
+    message: string;
+    total_groups: number;
+    total_variants: number;
+  }> {
+    return await this.fetch<{
+      message: string;
+      total_groups: number;
+      total_variants: number;
+    }>(`/api/v1/products/groupings/trigger`, {
+      method: "POST",
+    });
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);

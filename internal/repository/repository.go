@@ -3246,6 +3246,25 @@ func (r *Repository) GroupProductVariants(ctx context.Context) error {
 	return err
 }
 
+// GetGroupingStatistics returns statistics about product variant grouping
+func (r *Repository) GetGroupingStatistics(ctx context.Context) (int, int, error) {
+	query := `
+		SELECT
+			COUNT(DISTINCT variant_group_id) as total_groups,
+			COUNT(*) as total_variants
+		FROM products
+		WHERE variant_group_id IS NOT NULL
+	`
+
+	var totalGroups, totalVariants int
+	err := r.pool.QueryRow(ctx, query).Scan(&totalGroups, &totalVariants)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return totalGroups, totalVariants, nil
+}
+
 // ============================================================================
 // SYNC LOG
 // ============================================================================

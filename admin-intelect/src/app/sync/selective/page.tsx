@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Clock,
   Zap,
+  Network,
 } from "lucide-react";
 import { StepSelector } from "@/components/sync/step-selector";
 import { FieldConfigModal } from "@/components/sync/field-config-modal";
@@ -242,6 +243,65 @@ export default function SelectiveSyncPage() {
     return calculateProgress(completedSteps, totalSteps);
   }, [progress]);
 
+  // Grouping trigger button component
+  const GroupingTriggerButton = () => {
+    const [groupingLoading, setGroupingLoading] = useState(false);
+    const [groupingResult, setGroupingResult] = useState<{
+      total_groups: number;
+      total_variants: number;
+    } | null>(null);
+
+    const handleTriggerGrouping = async () => {
+      try {
+        setGroupingLoading(true);
+        const result = await api.triggerProductGrouping();
+        setGroupingResult({
+          total_groups: result.total_groups,
+          total_variants: result.total_variants,
+        });
+        toast.success(result.message || "Product grouping completed successfully");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to trigger product grouping");
+      } finally {
+        setGroupingLoading(false);
+      }
+    };
+
+    return (
+      <div className="space-y-2">
+        <Button
+          onClick={handleTriggerGrouping}
+          disabled={groupingLoading}
+          className="w-full gap-2"
+        >
+          {groupingLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Grouping Products...
+            </>
+          ) : (
+            <>
+              <Network className="h-4 w-4" />
+              Trigger Product Grouping
+            </>
+          )}
+        </Button>
+        {groupingResult && (
+          <div className="text-sm space-y-1 p-3 bg-muted rounded-md">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Groups Created:</span>
+              <Badge variant="secondary">{groupingResult.total_groups}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Variants Grouped:</span>
+              <Badge variant="secondary">{groupingResult.total_variants}</Badge>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -434,6 +494,27 @@ export default function SelectiveSyncPage() {
             )}
           </TabsContent>
         </Tabs>
+      )}
+
+      {/* Post-Processing Operations */}
+      {!syncing && !loading && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Post-Processing Operations</CardTitle>
+            <CardDescription>
+              Run post-processing operations after sync completion
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Product Variant Grouping</h3>
+              <p className="text-sm text-muted-foreground">
+                Auto-link related products (e.g., storage variants) via parent-child relationships
+              </p>
+              <GroupingTriggerButton />
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Field Config Modal */}

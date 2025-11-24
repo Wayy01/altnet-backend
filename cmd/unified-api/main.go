@@ -212,6 +212,9 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/products/groupings/hierarchy/variants/bulk", handler.BulkUpdateProductVariants).Methods("PATCH", "OPTIONS")
 	api.HandleFunc("/products/groupings/hierarchy/variants/bulk", handler.BulkDeleteProductVariants).Methods("DELETE", "OPTIONS")
 
+	// Product Grouping Post-Processing
+	api.HandleFunc("/products/groupings/trigger", handler.TriggerProductGrouping).Methods("POST", "OPTIONS")
+
 	// Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
 

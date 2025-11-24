@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -307,5 +308,36 @@ func (h *Handler) BulkUpdateProductVariants(w http.ResponseWriter, r *http.Reque
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"message": "Product variants updated successfully",
 		"count":   len(ids),
+	})
+}
+
+// ============================================================================
+// POST-PROCESSING HANDLERS
+// ============================================================================
+
+// TriggerProductGrouping triggers the product variant grouping algorithm
+func (h *Handler) TriggerProductGrouping(w http.ResponseWriter, r *http.Request) {
+	// Create context with a longer timeout for the grouping process
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
+	defer cancel()
+
+	// Run the grouping algorithm
+	err := h.repo.GroupProductVariants(ctx)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to group product variants", err.Error())
+		return
+	}
+
+	// Get grouping statistics
+	totalGroups, totalVariants, err := h.repo.GetGroupingStatistics(ctx)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get grouping statistics", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"message":        "Product variant grouping completed successfully",
+		"total_groups":   totalGroups,
+		"total_variants": totalVariants,
 	})
 }
