@@ -70,11 +70,7 @@ func (r *Repository) ListProductGroups(ctx context.Context, limit, offset int, s
 	countQuery := fmt.Sprintf(`
 		SELECT COUNT(DISTINCT p.id)
 		FROM products p
-		WHERE p.id IN (
-			SELECT DISTINCT parent_id
-			FROM products
-			WHERE parent_id IS NOT NULL
-		)
+		WHERE p.is_group = true
 		%s
 	`, searchCondition)
 
@@ -95,18 +91,14 @@ func (r *Repository) ListProductGroups(ctx context.Context, limit, offset int, s
 			COUNT(v.id) as variant_count,
 			MIN(v.price_mdl) as price_min,
 			MAX(v.price_mdl) as price_max,
-			SUM(v.total_stock) as total_stock,
-			BOOL_OR(v.is_in_stock) as is_in_stock,
+			COALESCE(SUM(v.total_stock), 0) as total_stock,
+			COALESCE(BOOL_OR(v.is_in_stock), false) as is_in_stock,
 			p.is_active
 		FROM products p
 		LEFT JOIN brands b ON p.brand_id = b.id
 		LEFT JOIN categories c ON p.category_id = c.id
-		LEFT JOIN products v ON v.parent_id = p.id
-		WHERE p.id IN (
-			SELECT DISTINCT parent_id
-			FROM products
-			WHERE parent_id IS NOT NULL
-		)
+		LEFT JOIN products v ON v.variant_group_id = p.id
+		WHERE p.is_group = true
 		%s
 		GROUP BY p.id, p.name, p.code, p.article, b.name, c.name, p.is_active
 		ORDER BY p.name
@@ -163,13 +155,13 @@ func (r *Repository) GetProductGroupByID(ctx context.Context, id uuid.UUID) (Pro
 			COUNT(v.id) as variant_count,
 			MIN(v.price_mdl) as price_min,
 			MAX(v.price_mdl) as price_max,
-			SUM(v.total_stock) as total_stock,
-			BOOL_OR(v.is_in_stock) as is_in_stock,
+			COALESCE(SUM(v.total_stock), 0) as total_stock,
+			COALESCE(BOOL_OR(v.is_in_stock), false) as is_in_stock,
 			p.is_active
 		FROM products p
 		LEFT JOIN brands b ON p.brand_id = b.id
 		LEFT JOIN categories c ON p.category_id = c.id
-		LEFT JOIN products v ON v.parent_id = p.id
+		LEFT JOIN products v ON v.variant_group_id = p.id
 		WHERE p.id = $1
 		GROUP BY p.id, p.name, p.code, p.article, b.name, c.name, p.is_active
 	`
@@ -279,7 +271,7 @@ func (r *Repository) ListProductVariants(ctx context.Context, parentID uuid.UUID
 	countQuery := fmt.Sprintf(`
 		SELECT COUNT(*)
 		FROM products p
-		WHERE p.parent_id = $1 %s
+		WHERE p.variant_group_id = $1 %s
 	`, searchCondition)
 
 	err := r.pool.QueryRow(ctx, countQuery, searchArgs...).Scan(&total)
@@ -291,7 +283,7 @@ func (r *Repository) ListProductVariants(ctx context.Context, parentID uuid.UUID
 	query := fmt.Sprintf(`
 		SELECT
 			p.id,
-			p.parent_id,
+			p.variant_group_id,
 			p.name,
 			p.code,
 			p.article,
@@ -304,7 +296,7 @@ func (r *Repository) ListProductVariants(ctx context.Context, parentID uuid.UUID
 			p.is_active,
 			p.main_image_url
 		FROM products p
-		WHERE p.parent_id = $1 %s
+		WHERE p.variant_group_id = $1 %s
 		ORDER BY p.name
 		LIMIT $%d OFFSET $%d
 	`, searchCondition, argIndex, argIndex+1)

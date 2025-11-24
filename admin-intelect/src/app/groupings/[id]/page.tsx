@@ -90,8 +90,8 @@ export default function ProductGroupingDetailPage() {
       setVariantsLoading(true);
       const offset = currentPage * limit;
       const response = await api.getProductVariants(groupId, limit, offset, search || undefined);
-      setVariants(response.data);
-      setTotalCount(response.total);
+      setVariants(response.data || []);
+      setTotalCount(response.total || 0);
 
       // Calculate stats from current data
       if (response.data.length > 0) {
