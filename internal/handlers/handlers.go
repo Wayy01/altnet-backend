@@ -691,16 +691,22 @@ func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
 
 	response := &models.ProductWithDetails{Product: product}
 
-	// Fetch brand
+	// Fetch brand and set brand_name on product
 	if product.BrandID != nil {
 		brand, _ := h.repo.GetBrand(r.Context(), *product.BrandID)
 		response.Brand = brand
+		if brand != nil {
+			product.BrandName = &brand.Name
+		}
 	}
 
-	// Fetch category
+	// Fetch category and set category_name on product
 	if product.CategoryID != nil {
 		category, _ := h.repo.GetCategory(r.Context(), *product.CategoryID)
 		response.Category = category
+		if category != nil {
+			product.CategoryName = &category.Name
+		}
 	}
 
 	// Fetch properties

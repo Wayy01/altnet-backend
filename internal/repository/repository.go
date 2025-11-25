@@ -263,7 +263,7 @@ func (r *Repository) ListBrandsWithSearch(ctx context.Context, search string, ha
 		SELECT b.id, b.ultra_id, b.code, b.name, b.slug, b.logo_url, b.is_active,
 			   COALESCE(COUNT(p.id), 0) as product_count, b.created_at, b.updated_at
 		FROM brands b
-		LEFT JOIN products p ON p.brand_id = b.id AND p.is_active = true
+		LEFT JOIN products p ON p.brand_ultra_id = b.ultra_id AND p.is_active = true
 		WHERE %s
 		GROUP BY b.id
 		%s
@@ -337,7 +337,7 @@ func (r *Repository) CountBrandsWithSearch(ctx context.Context, search string, h
 		SELECT COUNT(*) FROM (
 			SELECT b.id
 			FROM brands b
-			LEFT JOIN products p ON p.brand_id = b.id AND p.is_active = true
+			LEFT JOIN products p ON p.brand_ultra_id = b.ultra_id AND p.is_active = true
 			WHERE %s
 			GROUP BY b.id
 			%s
@@ -355,7 +355,7 @@ func (r *Repository) GetAllBrands(ctx context.Context) ([]*models.Brand, error) 
 		SELECT b.id, b.ultra_id, b.code, b.name, b.slug, b.logo_url, b.is_active,
 			   COALESCE(COUNT(p.id), 0) as product_count, b.created_at, b.updated_at
 		FROM brands b
-		LEFT JOIN products p ON p.brand_id = b.id AND p.is_active = true
+		LEFT JOIN products p ON p.brand_ultra_id = b.ultra_id AND p.is_active = true
 		GROUP BY b.id
 		ORDER BY b.name ASC
 	`
@@ -429,7 +429,7 @@ func (r *Repository) BulkUpdateBrandsByFilter(ctx context.Context, search string
 		WHERE id IN (
 			SELECT b.id
 			FROM brands b
-			LEFT JOIN products p ON p.brand_id = b.id AND p.is_active = true
+			LEFT JOIN products p ON p.brand_ultra_id = b.ultra_id AND p.is_active = true
 			WHERE %s
 			GROUP BY b.id
 			%s
@@ -586,7 +586,7 @@ func (r *Repository) ListCategories(ctx context.Context, parentID *uuid.UUID, li
 			SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 			       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
 			FROM categories c
-			LEFT JOIN products pr ON pr.category_id = c.id
+			LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 			WHERE c.parent_id IS NULL AND c.is_active = true
 			GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 			         c.image_url, c.is_active, c.created_at, c.updated_at
@@ -599,7 +599,7 @@ func (r *Repository) ListCategories(ctx context.Context, parentID *uuid.UUID, li
 			SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 			       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
 			FROM categories c
-			LEFT JOIN products pr ON pr.category_id = c.id
+			LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 			WHERE c.parent_id = $1 AND c.is_active = true
 			GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 			         c.image_url, c.is_active, c.created_at, c.updated_at
@@ -654,7 +654,7 @@ func (r *Repository) CountCategoriesWithProducts(ctx context.Context) (int, erro
 		SELECT COUNT(*) FROM (
 			SELECT c.id
 			FROM categories c
-			LEFT JOIN products pr ON pr.category_id = c.id
+			LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 			WHERE c.is_active = true
 			GROUP BY c.id
 			HAVING COUNT(pr.id) > 0
@@ -721,7 +721,7 @@ func (r *Repository) ListCategoriesWithSearch(ctx context.Context, search string
 		       COALESCE(p.name, '') as parent_name
 		FROM categories c
 		LEFT JOIN categories p ON p.id = c.parent_id
-		LEFT JOIN products pr ON pr.category_id = c.id
+		LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 		WHERE %s
 		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 		         c.image_url, c.is_active, c.created_at, c.updated_at, p.name
@@ -795,7 +795,7 @@ func (r *Repository) CountCategoriesWithSearch(ctx context.Context, search strin
 		SELECT COUNT(*) FROM (
 			SELECT c.id
 			FROM categories c
-			LEFT JOIN products pr ON pr.category_id = c.id
+			LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 			WHERE %s
 			GROUP BY c.id
 			%s
@@ -886,7 +886,7 @@ func (r *Repository) BulkUpdateCategoriesByFilter(ctx context.Context, search st
 		WHERE id IN (
 			SELECT c.id
 			FROM categories c
-			LEFT JOIN products pr ON pr.category_id = c.id
+			LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 			WHERE %s
 			GROUP BY c.id
 			%s
@@ -926,7 +926,7 @@ func (r *Repository) GetCategoryWithStats(ctx context.Context, id uuid.UUID) (*C
 			(SELECT COUNT(*) FROM categories WHERE parent_id = c.id) as child_count
 		FROM categories c
 		LEFT JOIN categories p ON p.id = c.parent_id
-		LEFT JOIN products pr ON pr.category_id = c.id
+		LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 		WHERE c.id = $1
 		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 		         c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at, p.name
@@ -965,10 +965,11 @@ type CategoryProduct struct {
 // GetProductsByCategoryID returns paginated products for a specific category
 func (r *Repository) GetProductsByCategoryID(ctx context.Context, categoryID uuid.UUID, limit, offset int) ([]*CategoryProduct, error) {
 	query := `
-		SELECT id, name, COALESCE(code, ''), price_min, price_max, price_mdl, price_eur, price_usd, total_stock, is_active
-		FROM products
-		WHERE category_id = $1
-		ORDER BY name ASC
+		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active
+		FROM products p
+		JOIN categories c ON p.category_ultra_id = c.ultra_id
+		WHERE c.id = $1
+		ORDER BY p.name ASC
 		LIMIT $2 OFFSET $3
 	`
 
@@ -997,14 +998,19 @@ func (r *Repository) GetProductsByCategoryID(ctx context.Context, categoryID uui
 // CountProductsByCategoryID returns the total count of products for a category
 func (r *Repository) CountProductsByCategoryID(ctx context.Context, categoryID uuid.UUID) (int, error) {
 	var count int
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE category_id = $1", categoryID).Scan(&count)
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM products p
+		JOIN categories c ON p.category_ultra_id = c.ultra_id
+		WHERE c.id = $1
+	`, categoryID).Scan(&count)
 	return count, err
 }
 
 // BulkUpdateProductsByCategoryID updates all products for a category
 func (r *Repository) BulkUpdateProductsByCategoryID(ctx context.Context, categoryID uuid.UUID, isActive bool) (int, error) {
 	result, err := r.pool.Exec(ctx, `
-		UPDATE products SET is_active = $1, updated_at = NOW() WHERE category_id = $2
+		UPDATE products SET is_active = $1, updated_at = NOW()
+		WHERE category_ultra_id = (SELECT ultra_id FROM categories WHERE id = $2)
 	`, isActive, categoryID)
 	if err != nil {
 		return 0, err
@@ -1015,9 +1021,10 @@ func (r *Repository) BulkUpdateProductsByCategoryID(ctx context.Context, categor
 // GetProductsByCategoryIDWithFilters returns filtered and paginated products for a specific category
 func (r *Repository) GetProductsByCategoryIDWithFilters(ctx context.Context, categoryID uuid.UUID, filters ProductFilters, limit, offset int) ([]*CategoryProduct, error) {
 	query := `
-		SELECT id, name, COALESCE(code, ''), price_min, price_max, price_mdl, price_eur, price_usd, total_stock, is_active
-		FROM products
-		WHERE category_id = $1
+		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active
+		FROM products p
+		JOIN categories c ON p.category_ultra_id = c.ultra_id
+		WHERE c.id = $1
 	`
 
 	args := []interface{}{categoryID}
@@ -1025,31 +1032,31 @@ func (r *Repository) GetProductsByCategoryIDWithFilters(ctx context.Context, cat
 
 	// Price filters
 	if filters.PriceFilter == "no_price" {
-		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+		query += " AND p.price_mdl IS NULL AND p.price_eur IS NULL AND p.price_usd IS NULL"
 	} else if filters.PriceFilter == "no_mdl" {
-		query += " AND price_mdl IS NULL"
+		query += " AND p.price_mdl IS NULL"
 	} else if filters.PriceFilter == "no_eur" {
-		query += " AND price_eur IS NULL"
+		query += " AND p.price_eur IS NULL"
 	} else if filters.PriceFilter == "no_usd" {
-		query += " AND price_usd IS NULL"
+		query += " AND p.price_usd IS NULL"
 	} else if filters.PriceFilter == "with_price" {
-		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+		query += " AND (p.price_mdl IS NOT NULL OR p.price_eur IS NOT NULL OR p.price_usd IS NOT NULL)"
 	}
 
 	// Stock filters
 	if filters.StockFilter == "in_stock" {
-		query += " AND total_stock > 0"
+		query += " AND p.total_stock > 0"
 	} else if filters.StockFilter == "out_of_stock" {
-		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+		query += " AND (p.total_stock = 0 OR p.total_stock IS NULL)"
 	} else if filters.StockFilter == "low_stock" {
-		query += " AND total_stock > 0 AND total_stock <= 5"
+		query += " AND p.total_stock > 0 AND p.total_stock <= 5"
 	}
 
 	// Status filters
 	if filters.StatusFilter == "active" {
-		query += " AND is_active = true"
+		query += " AND p.is_active = true"
 	} else if filters.StatusFilter == "inactive" {
-		query += " AND is_active = false"
+		query += " AND p.is_active = false"
 	}
 
 	query += fmt.Sprintf(" ORDER BY name ASC LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
@@ -1079,36 +1086,36 @@ func (r *Repository) GetProductsByCategoryIDWithFilters(ctx context.Context, cat
 
 // CountProductsByCategoryIDWithFilters returns the total count of filtered products for a category
 func (r *Repository) CountProductsByCategoryIDWithFilters(ctx context.Context, categoryID uuid.UUID, filters ProductFilters) (int, error) {
-	query := "SELECT COUNT(*) FROM products WHERE category_id = $1"
+	query := `SELECT COUNT(*) FROM products p JOIN categories c ON p.category_ultra_id = c.ultra_id WHERE c.id = $1`
 	args := []interface{}{categoryID}
 
 	// Price filters
 	if filters.PriceFilter == "no_price" {
-		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+		query += " AND p.price_mdl IS NULL AND p.price_eur IS NULL AND p.price_usd IS NULL"
 	} else if filters.PriceFilter == "no_mdl" {
-		query += " AND price_mdl IS NULL"
+		query += " AND p.price_mdl IS NULL"
 	} else if filters.PriceFilter == "no_eur" {
-		query += " AND price_eur IS NULL"
+		query += " AND p.price_eur IS NULL"
 	} else if filters.PriceFilter == "no_usd" {
-		query += " AND price_usd IS NULL"
+		query += " AND p.price_usd IS NULL"
 	} else if filters.PriceFilter == "with_price" {
-		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+		query += " AND (p.price_mdl IS NOT NULL OR p.price_eur IS NOT NULL OR p.price_usd IS NOT NULL)"
 	}
 
 	// Stock filters
 	if filters.StockFilter == "in_stock" {
-		query += " AND total_stock > 0"
+		query += " AND p.total_stock > 0"
 	} else if filters.StockFilter == "out_of_stock" {
-		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+		query += " AND (p.total_stock = 0 OR p.total_stock IS NULL)"
 	} else if filters.StockFilter == "low_stock" {
-		query += " AND total_stock > 0 AND total_stock <= 5"
+		query += " AND p.total_stock > 0 AND p.total_stock <= 5"
 	}
 
 	// Status filters
 	if filters.StatusFilter == "active" {
-		query += " AND is_active = true"
+		query += " AND p.is_active = true"
 	} else if filters.StatusFilter == "inactive" {
-		query += " AND is_active = false"
+		query += " AND p.is_active = false"
 	}
 
 	var count int
@@ -1118,7 +1125,7 @@ func (r *Repository) CountProductsByCategoryIDWithFilters(ctx context.Context, c
 
 // BulkUpdateProductsByCategoryIDWithFilters updates products for a category matching filters
 func (r *Repository) BulkUpdateProductsByCategoryIDWithFilters(ctx context.Context, categoryID uuid.UUID, filters ProductFilters, isActive bool) (int, error) {
-	query := "UPDATE products SET is_active = $1, updated_at = NOW() WHERE category_id = $2"
+	query := "UPDATE products SET is_active = $1, updated_at = NOW() WHERE category_ultra_id = (SELECT ultra_id FROM categories WHERE id = $2)"
 	args := []interface{}{isActive, categoryID}
 
 	// Price filters
@@ -1335,13 +1342,16 @@ func (r *Repository) ResolveProductReferences(ctx context.Context) error {
 
 func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Product, error) {
 	query := `
-		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
-		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
-		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
-		       is_active, is_service, created_at, updated_at,
-		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
-		FROM products
-		WHERE id = $1
+		SELECT p.id, p.ultra_id, p.code, p.article, p.name, p.slug, p.description, p.brand_id, p.category_id,
+		       p.parent_id, p.brand_ultra_id, p.category_ultra_id, p.parent_ultra_id, p.main_image_url,
+		       p.images, p.warranty, p.barcodes, p.price_min, p.price_max, p.total_stock, p.is_in_stock,
+		       p.is_active, p.is_service, p.created_at, p.updated_at,
+		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
+		       b.name AS brand_name, c.name AS category_name
+		FROM products p
+		LEFT JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		LEFT JOIN categories c ON p.category_ultra_id = c.ultra_id
+		WHERE p.id = $1
 	`
 
 	var product models.Product
@@ -1354,6 +1364,7 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
 		&product.VariantGroupID, &product.IsGroup,
+		&product.BrandName, &product.CategoryName,
 	)
 	if err != nil {
 		return nil, err
@@ -1464,8 +1475,8 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
 		       b.name as brand_name, c.name as category_name
 		FROM products p
-		LEFT JOIN brands b ON p.brand_id = b.id
-		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		LEFT JOIN categories c ON p.category_ultra_id = c.ultra_id
 		WHERE 1=1
 	`
 
@@ -1799,7 +1810,7 @@ func (r *Repository) GetBrandWithStats(ctx context.Context, id uuid.UUID) (*Bran
 			COUNT(CASE WHEN p.is_active = true AND p.total_stock > 0 THEN 1 END) as in_stock_products,
 			COUNT(CASE WHEN p.is_active = true AND jsonb_array_length(p.prices) > 0 THEN 1 END) as with_prices_products
 		FROM brands b
-		LEFT JOIN products p ON p.brand_id = b.id
+		LEFT JOIN products p ON p.brand_ultra_id = b.ultra_id
 		WHERE b.id = $1
 		GROUP BY b.id, b.ultra_id, b.code, b.name, b.slug, b.logo_url, b.is_active, b.created_at, b.updated_at
 	`
@@ -1834,10 +1845,11 @@ type BrandProduct struct {
 // GetProductsByBrandID returns paginated products for a specific brand
 func (r *Repository) GetProductsByBrandID(ctx context.Context, brandID uuid.UUID, limit, offset int) ([]*BrandProduct, error) {
 	query := `
-		SELECT id, name, COALESCE(code, ''), price_min, price_max, price_mdl, price_eur, price_usd, total_stock, is_active
-		FROM products
-		WHERE brand_id = $1
-		ORDER BY name ASC
+		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active
+		FROM products p
+		JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		WHERE b.id = $1
+		ORDER BY p.name ASC
 		LIMIT $2 OFFSET $3
 	`
 
@@ -1866,14 +1878,19 @@ func (r *Repository) GetProductsByBrandID(ctx context.Context, brandID uuid.UUID
 // CountProductsByBrandID returns the total count of products for a brand
 func (r *Repository) CountProductsByBrandID(ctx context.Context, brandID uuid.UUID) (int, error) {
 	var count int
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE brand_id = $1", brandID).Scan(&count)
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM products p
+		JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		WHERE b.id = $1
+	`, brandID).Scan(&count)
 	return count, err
 }
 
 // BulkUpdateProductsByBrandID updates all products for a brand
 func (r *Repository) BulkUpdateProductsByBrandID(ctx context.Context, brandID uuid.UUID, isActive bool) (int, error) {
 	result, err := r.pool.Exec(ctx, `
-		UPDATE products SET is_active = $1, updated_at = NOW() WHERE brand_id = $2
+		UPDATE products SET is_active = $1, updated_at = NOW()
+		WHERE brand_ultra_id = (SELECT ultra_id FROM brands WHERE id = $2)
 	`, isActive, brandID)
 	if err != nil {
 		return 0, err
@@ -1891,9 +1908,10 @@ type ProductFilters struct {
 // GetProductsByBrandIDWithFilters returns filtered and paginated products for a specific brand
 func (r *Repository) GetProductsByBrandIDWithFilters(ctx context.Context, brandID uuid.UUID, filters ProductFilters, limit, offset int) ([]*BrandProduct, error) {
 	query := `
-		SELECT id, name, COALESCE(code, ''), price_min, price_max, price_mdl, price_eur, price_usd, total_stock, is_active
-		FROM products
-		WHERE brand_id = $1
+		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active
+		FROM products p
+		JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		WHERE b.id = $1
 	`
 
 	args := []interface{}{brandID}
@@ -1901,34 +1919,34 @@ func (r *Repository) GetProductsByBrandIDWithFilters(ctx context.Context, brandI
 
 	// Price filters
 	if filters.PriceFilter == "no_price" {
-		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+		query += " AND p.price_mdl IS NULL AND p.price_eur IS NULL AND p.price_usd IS NULL"
 	} else if filters.PriceFilter == "no_mdl" {
-		query += " AND price_mdl IS NULL"
+		query += " AND p.price_mdl IS NULL"
 	} else if filters.PriceFilter == "no_eur" {
-		query += " AND price_eur IS NULL"
+		query += " AND p.price_eur IS NULL"
 	} else if filters.PriceFilter == "no_usd" {
-		query += " AND price_usd IS NULL"
+		query += " AND p.price_usd IS NULL"
 	} else if filters.PriceFilter == "with_price" {
-		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+		query += " AND (p.price_mdl IS NOT NULL OR p.price_eur IS NOT NULL OR p.price_usd IS NOT NULL)"
 	}
 
 	// Stock filters
 	if filters.StockFilter == "in_stock" {
-		query += " AND total_stock > 0"
+		query += " AND p.total_stock > 0"
 	} else if filters.StockFilter == "out_of_stock" {
-		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+		query += " AND (p.total_stock = 0 OR p.total_stock IS NULL)"
 	} else if filters.StockFilter == "low_stock" {
-		query += " AND total_stock > 0 AND total_stock <= 5"
+		query += " AND p.total_stock > 0 AND p.total_stock <= 5"
 	}
 
 	// Status filters
 	if filters.StatusFilter == "active" {
-		query += " AND is_active = true"
+		query += " AND p.is_active = true"
 	} else if filters.StatusFilter == "inactive" {
-		query += " AND is_active = false"
+		query += " AND p.is_active = false"
 	}
 
-	query += fmt.Sprintf(" ORDER BY name ASC LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
+	query += fmt.Sprintf(" ORDER BY p.name ASC LIMIT $%d OFFSET $%d", paramIndex, paramIndex+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -1955,36 +1973,36 @@ func (r *Repository) GetProductsByBrandIDWithFilters(ctx context.Context, brandI
 
 // CountProductsByBrandIDWithFilters returns the total count of filtered products for a brand
 func (r *Repository) CountProductsByBrandIDWithFilters(ctx context.Context, brandID uuid.UUID, filters ProductFilters) (int, error) {
-	query := "SELECT COUNT(*) FROM products WHERE brand_id = $1"
+	query := `SELECT COUNT(*) FROM products p JOIN brands b ON p.brand_ultra_id = b.ultra_id WHERE b.id = $1`
 	args := []interface{}{brandID}
 
 	// Price filters
 	if filters.PriceFilter == "no_price" {
-		query += " AND price_mdl IS NULL AND price_eur IS NULL AND price_usd IS NULL"
+		query += " AND p.price_mdl IS NULL AND p.price_eur IS NULL AND p.price_usd IS NULL"
 	} else if filters.PriceFilter == "no_mdl" {
-		query += " AND price_mdl IS NULL"
+		query += " AND p.price_mdl IS NULL"
 	} else if filters.PriceFilter == "no_eur" {
-		query += " AND price_eur IS NULL"
+		query += " AND p.price_eur IS NULL"
 	} else if filters.PriceFilter == "no_usd" {
-		query += " AND price_usd IS NULL"
+		query += " AND p.price_usd IS NULL"
 	} else if filters.PriceFilter == "with_price" {
-		query += " AND (price_mdl IS NOT NULL OR price_eur IS NOT NULL OR price_usd IS NOT NULL)"
+		query += " AND (p.price_mdl IS NOT NULL OR p.price_eur IS NOT NULL OR p.price_usd IS NOT NULL)"
 	}
 
 	// Stock filters
 	if filters.StockFilter == "in_stock" {
-		query += " AND total_stock > 0"
+		query += " AND p.total_stock > 0"
 	} else if filters.StockFilter == "out_of_stock" {
-		query += " AND (total_stock = 0 OR total_stock IS NULL)"
+		query += " AND (p.total_stock = 0 OR p.total_stock IS NULL)"
 	} else if filters.StockFilter == "low_stock" {
-		query += " AND total_stock > 0 AND total_stock <= 5"
+		query += " AND p.total_stock > 0 AND p.total_stock <= 5"
 	}
 
 	// Status filters
 	if filters.StatusFilter == "active" {
-		query += " AND is_active = true"
+		query += " AND p.is_active = true"
 	} else if filters.StatusFilter == "inactive" {
-		query += " AND is_active = false"
+		query += " AND p.is_active = false"
 	}
 
 	var count int
@@ -1994,7 +2012,7 @@ func (r *Repository) CountProductsByBrandIDWithFilters(ctx context.Context, bran
 
 // BulkUpdateProductsByBrandIDWithFilters updates products for a brand matching filters
 func (r *Repository) BulkUpdateProductsByBrandIDWithFilters(ctx context.Context, brandID uuid.UUID, filters ProductFilters, isActive bool) (int, error) {
-	query := "UPDATE products SET is_active = $1, updated_at = NOW() WHERE brand_id = $2"
+	query := "UPDATE products SET is_active = $1, updated_at = NOW() WHERE brand_ultra_id = (SELECT ultra_id FROM brands WHERE id = $2)"
 	args := []interface{}{isActive, brandID}
 
 	// Price filters
@@ -3476,7 +3494,7 @@ func (r *Repository) GetStockSummaryByCategory(ctx context.Context) ([]map[strin
 			COALESCE(SUM(p.total_stock), 0) as total_stock,
 			COALESCE(AVG(p.price_min), 0) as avg_price
 		FROM categories c
-		LEFT JOIN products p ON p.category_id = c.id AND p.is_active = true
+		LEFT JOIN products p ON p.category_ultra_id = c.ultra_id AND p.is_active = true
 		WHERE c.is_active = true
 		GROUP BY c.id, c.name
 		ORDER BY total_stock DESC
@@ -4389,7 +4407,7 @@ func (r *Repository) ListAllCategories(ctx context.Context) ([]*models.Category,
 		SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 		       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
 		FROM categories c
-		LEFT JOIN products pr ON pr.category_id = c.id
+		LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 		WHERE c.is_active = true
 		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 		         c.image_url, c.is_active, c.created_at, c.updated_at
