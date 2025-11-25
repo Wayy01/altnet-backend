@@ -632,7 +632,28 @@ func (r *RealtimeSyncRepository) GetRealtimeProgress(ctx context.Context, syncLo
 		// pending/failed steps contribute 0
 	}
 
-	progress.OverallProgressPercentage = totalProgress / float64(totalSteps)
+	// Calculate progress - handle case when sync was cancelled/failed with no steps
+	if len(steps) == 0 {
+		// No steps executed - sync was cancelled/failed early
+		if progress.Status == "completed" {
+			progress.OverallProgressPercentage = 100.0
+		} else {
+			progress.OverallProgressPercentage = 0.0
+		}
+	} else {
+		progress.OverallProgressPercentage = totalProgress / float64(totalSteps)
+	}
+
+	// Set current step info for syncs with no steps
+	if len(steps) == 0 && progress.CurrentStep == 0 {
+		if len(selectedSteps) > 0 {
+			progress.CurrentStep = 1
+			progress.CurrentStepName = string(selectedSteps[0])
+		} else {
+			progress.CurrentStep = 1
+			progress.CurrentStepName = "brands"
+		}
+	}
 
 	// Estimate remaining time
 	if completedSteps > 0 && completedSteps < totalSteps {

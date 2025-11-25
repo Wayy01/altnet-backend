@@ -74,12 +74,12 @@ export function StepSelector({
   const someSelected = selectedSteps.length > 0 && !allSelected;
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="transition-all duration-300 hover:shadow-md">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Select Sync Steps</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-lg">Select Sync Steps</CardTitle>
+            <CardDescription className="text-sm mt-0.5">
               Choose which data to synchronize and configure field-level settings
             </CardDescription>
           </div>
@@ -88,21 +88,22 @@ export function StepSelector({
               variant="outline"
               size="sm"
               onClick={allSelected ? handleDeselectAll : handleSelectAll}
+              className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             >
               {allSelected ? "Deselect All" : "Select All"}
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5">
         {/* Data Sync Group */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs font-medium text-muted-foreground">DATA SYNC</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-border transition-all duration-300" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data Sync</span>
+            <div className="h-px flex-1 bg-border transition-all duration-300" />
           </div>
-          <div className="grid gap-3">
+          <div className="grid gap-2.5">
             {STEP_GROUPS.data.map((step) => (
               <StepRow
                 key={step}
@@ -120,11 +121,11 @@ export function StepSelector({
         {/* Updates Group */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs font-medium text-muted-foreground">UPDATES</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="h-px flex-1 bg-border transition-all duration-300" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Updates</span>
+            <div className="h-px flex-1 bg-border transition-all duration-300" />
           </div>
-          <div className="grid gap-3">
+          <div className="grid gap-2.5">
             {STEP_GROUPS.updates.map((step) => (
               <StepRow
                 key={step}
@@ -140,8 +141,8 @@ export function StepSelector({
         </div>
 
         {/* Execute Button */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between pt-4 border-t border-border/50">
+          <div className="text-sm text-muted-foreground font-medium">
             {selectedSteps.length === 0 ? (
               "No steps selected"
             ) : (
@@ -153,7 +154,7 @@ export function StepSelector({
           <Button
             onClick={onExecute}
             disabled={selectedSteps.length === 0 || isRunning}
-            className="gap-2"
+            className="gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             {isRunning ? (
               <>
@@ -205,8 +206,10 @@ function StepRow({ step, isSelected, hasConfig, onToggle, onConfigure, isRunning
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-        isSelected ? "bg-accent/50 border-primary/50" : "bg-card hover:bg-accent/20"
+      className={`group flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 ${
+        isSelected
+          ? "bg-accent/50 border-primary/50 shadow-sm hover:shadow-md hover:scale-[1.01]"
+          : "bg-card hover:bg-accent/20 hover:border-border hover:shadow-sm"
       }`}
       role="row"
       tabIndex={isRunning ? -1 : 0}
@@ -219,9 +222,10 @@ function StepRow({ step, isSelected, hasConfig, onToggle, onConfigure, isRunning
         onCheckedChange={() => onToggle(step)}
         disabled={isRunning}
         aria-label={`Select ${SYNC_STEP_LABELS[step]}`}
+        className="transition-all duration-200"
       />
-      <div className="flex items-center gap-2 flex-1">
-        <div className={`${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+      <div className="flex items-center gap-2.5 flex-1">
+        <div className={`transition-all duration-200 ${isSelected ? "text-primary scale-110" : "text-muted-foreground group-hover:scale-105"}`}>
           {STEP_ICONS[step]}
         </div>
         <div className="flex-1">
@@ -230,7 +234,7 @@ function StepRow({ step, isSelected, hasConfig, onToggle, onConfigure, isRunning
               <TooltipTrigger asChild>
                 <label
                   htmlFor={`step-${step}`}
-                  className={`text-sm font-medium cursor-pointer ${
+                  className={`text-sm font-semibold cursor-pointer transition-colors duration-200 ${
                     isRunning ? "cursor-not-allowed" : ""
                   }`}
                 >
@@ -244,7 +248,7 @@ function StepRow({ step, isSelected, hasConfig, onToggle, onConfigure, isRunning
           </TooltipProvider>
         </div>
         {hasConfig && (
-          <Badge variant="outline" className="text-xs gap-1">
+          <Badge variant="outline" className="text-xs gap-1 animate-in fade-in slide-in-from-left-2 duration-300">
             <CheckCircle2 className="h-3 w-3 text-primary" />
             Configured
           </Badge>
@@ -256,7 +260,7 @@ function StepRow({ step, isSelected, hasConfig, onToggle, onConfigure, isRunning
         onClick={() => onConfigure(step)}
         onKeyDown={handleConfigureKeyDown}
         disabled={!isSelected || isRunning}
-        className="gap-2"
+        className="gap-2 transition-all duration-200 hover:scale-105 active:scale-95"
         aria-label={`Configure ${SYNC_STEP_LABELS[step]} fields`}
       >
         <Settings className="h-3 w-3" />

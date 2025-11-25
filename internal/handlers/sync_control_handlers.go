@@ -312,17 +312,28 @@ func (h *SyncControlHandlers) getSyncLog(ctx context.Context, syncLogID uuid.UUI
 
 // updateSyncLogStatus updates a sync log's status and error message
 func (h *SyncControlHandlers) updateSyncLogStatus(ctx context.Context, syncLogID uuid.UUID, status string, errorMessage *string) error {
+	// First get the started_at time to calculate duration
+	var startedAt time.Time
+	err := h.repo.Pool().QueryRow(ctx, "SELECT started_at FROM sync_logs WHERE id = $1", syncLogID).Scan(&startedAt)
+	if err != nil {
+		return fmt.Errorf("failed to get sync start time: %w", err)
+	}
+
+	// Calculate duration
+	finishedAt := time.Now()
+	durationSeconds := int(finishedAt.Sub(startedAt).Seconds())
+
 	query := `
 		UPDATE sync_logs
 		SET
 			status = $2,
 			finished_at = $3,
-			error_message = $4
+			duration_seconds = $4,
+			error_message = $5
 		WHERE id = $1
 	`
 
-	finishedAt := time.Now()
-	_, err := h.repo.Pool().Exec(ctx, query, syncLogID, status, finishedAt, errorMessage)
+	_, err = h.repo.Pool().Exec(ctx, query, syncLogID, status, finishedAt, durationSeconds, errorMessage)
 	return err
 }
 

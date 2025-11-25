@@ -179,10 +179,10 @@ export function FieldConfigModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh]">
+      <DialogContent className="max-w-3xl max-h-[85vh] animate-in fade-in zoom-in-95 duration-300">
         <DialogHeader>
-          <DialogTitle>Configure Fields: {SYNC_STEP_LABELS[step]}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl">Configure Fields: {SYNC_STEP_LABELS[step]}</DialogTitle>
+          <DialogDescription className="text-sm mt-1">
             Select which fields to synchronize for this step. Fields marked as required will always
             be included.
           </DialogDescription>
@@ -190,9 +190,9 @@ export function FieldConfigModal({
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-3">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-              <p className="text-sm text-muted-foreground">Loading field configuration...</p>
+              <p className="text-sm text-muted-foreground font-medium">Loading field configuration...</p>
             </div>
           </div>
         ) : (
@@ -200,20 +200,20 @@ export function FieldConfigModal({
             {/* Mode Toggle */}
             <Tabs value={mode} onValueChange={(v) => setMode(v as "include" | "exclude")}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="include">Include Fields</TabsTrigger>
-                <TabsTrigger value="exclude">Exclude Fields</TabsTrigger>
+                <TabsTrigger value="include" className="transition-all duration-200">Include Fields</TabsTrigger>
+                <TabsTrigger value="exclude" className="transition-all duration-200">Exclude Fields</TabsTrigger>
               </TabsList>
-              <TabsContent value="include" className="mt-4">
-                <div className="rounded-lg bg-accent/50 p-3 text-sm">
-                  <p className="font-medium">Include Mode</p>
+              <TabsContent value="include" className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="rounded-lg bg-accent/50 p-3 text-sm border border-border/50">
+                  <p className="font-semibold">Include Mode</p>
                   <p className="text-muted-foreground mt-1">
                     Only the selected fields will be synchronized. All other fields will be skipped.
                   </p>
                 </div>
               </TabsContent>
-              <TabsContent value="exclude" className="mt-4">
-                <div className="rounded-lg bg-accent/50 p-3 text-sm">
-                  <p className="font-medium">Exclude Mode</p>
+              <TabsContent value="exclude" className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="rounded-lg bg-accent/50 p-3 text-sm border border-border/50">
+                  <p className="font-semibold">Exclude Mode</p>
                   <p className="text-muted-foreground mt-1">
                     All fields except the selected ones will be synchronized.
                   </p>
@@ -224,36 +224,36 @@ export function FieldConfigModal({
             {/* Search and Actions */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-all duration-200" />
                 <Input
                   placeholder="Search fields..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 transition-all duration-200 focus:ring-2"
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={handleSelectDefaults}>
+              <Button variant="outline" size="sm" onClick={handleSelectDefaults} className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
                 Defaults
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSelectAll}>
+              <Button variant="outline" size="sm" onClick={handleSelectAll} className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
                 All
               </Button>
-              <Button variant="outline" size="sm" onClick={handleDeselectAll}>
+              <Button variant="outline" size="sm" onClick={handleDeselectAll} className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
                 None
               </Button>
             </div>
 
             {/* Field Selection */}
-            <ScrollArea className="h-[400px] rounded-md border">
-              <div className="p-4 space-y-6">
+            <ScrollArea className="h-[400px] rounded-md border shadow-inner">
+              <div className="p-4 space-y-5">
                 {Object.entries(filteredFields).map(([group, fields]) => (
                   <div key={group} className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-px flex-1 bg-border" />
-                      <span className="text-xs font-medium text-muted-foreground uppercase">
+                      <div className="h-px flex-1 bg-border transition-all duration-300" />
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                         {group}
                       </span>
-                      <div className="h-px flex-1 bg-border" />
+                      <div className="h-px flex-1 bg-border transition-all duration-300" />
                     </div>
                     <div className="space-y-2">
                       {fields.map((field) => (
@@ -271,12 +271,12 @@ export function FieldConfigModal({
             </ScrollArea>
 
             {/* Null Values Option */}
-            <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="flex items-center justify-between rounded-lg border border-border/50 p-4 transition-all duration-200 hover:border-border hover:shadow-sm">
               <div className="space-y-0.5">
-                <Label htmlFor="update-null" className="text-sm font-medium">
+                <Label htmlFor="update-null" className="text-sm font-semibold cursor-pointer">
                   Update Null Values
                 </Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground font-medium">
                   Overwrite existing non-null values with null from API
                 </p>
               </div>
@@ -284,12 +284,13 @@ export function FieldConfigModal({
                 id="update-null"
                 checked={updateNullValues}
                 onCheckedChange={setUpdateNullValues}
+                className="transition-all duration-200"
               />
             </div>
 
             {/* Summary */}
             <div className="flex items-center justify-between text-sm">
-              <div className="text-muted-foreground">
+              <div className="text-muted-foreground font-medium">
                 {mode === "include" ? (
                   <>
                     {selectedCount} of {totalCount} fields will be synced
@@ -300,19 +301,19 @@ export function FieldConfigModal({
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Info className="h-4 w-4" />
-                <span className="text-xs">Required fields are always included</span>
+                <span className="text-xs font-medium">Required fields are always included</span>
               </div>
             </div>
           </div>
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
+          <Button onClick={handleSave} disabled={loading} className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
             Save Configuration
           </Button>
         </DialogFooter>
@@ -332,8 +333,10 @@ function FieldRow({ field, isSelected, onToggle }: FieldRowProps) {
 
   return (
     <div
-      className={`flex items-start gap-3 p-2 rounded-md transition-colors ${
-        isSelected || isDisabled ? "bg-accent/30" : "hover:bg-accent/20"
+      className={`group flex items-start gap-3 p-2.5 rounded-md transition-all duration-200 ${
+        isSelected || isDisabled
+          ? "bg-accent/30 shadow-sm"
+          : "hover:bg-accent/20 hover:shadow-sm"
       }`}
     >
       <Checkbox
@@ -341,21 +344,23 @@ function FieldRow({ field, isSelected, onToggle }: FieldRowProps) {
         checked={isSelected || isDisabled}
         onCheckedChange={() => !isDisabled && onToggle(field.name)}
         disabled={isDisabled}
-        className="mt-0.5"
+        className="mt-0.5 transition-all duration-200"
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <label
             htmlFor={`field-${field.name}`}
-            className={`text-sm font-medium ${isDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}
+            className={`text-sm font-semibold transition-colors duration-200 ${
+              isDisabled ? "cursor-not-allowed" : "cursor-pointer"
+            }`}
           >
             {field.display_name}
           </label>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs transition-all duration-200">
             {field.type}
           </Badge>
           {field.required && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs animate-in fade-in slide-in-from-left-2 duration-300">
               Required
             </Badge>
           )}
@@ -366,12 +371,12 @@ function FieldRow({ field, isSelected, onToggle }: FieldRowProps) {
           )}
         </div>
         {field.description && (
-          <p className="text-xs text-muted-foreground mt-1">{field.description}</p>
+          <p className="text-xs text-muted-foreground mt-1 font-medium">{field.description}</p>
         )}
         {field.dependencies && field.dependencies.length > 0 && (
-          <div className="flex items-center gap-1 mt-1">
+          <div className="flex items-center gap-1.5 mt-1.5">
             <AlertCircle className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground font-medium">
               Requires: {field.dependencies.join(", ")}
             </span>
           </div>

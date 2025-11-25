@@ -352,20 +352,21 @@ export default function SyncPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Sync Status</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-0.5 text-sm">
             Real-time synchronization progress and history
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             asChild
+            className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Link href="/sync/monitor">
               <Activity className="h-4 w-4 mr-2" />
@@ -376,7 +377,7 @@ export default function SyncPage() {
             variant="outline"
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className="transition-all duration-200 hover:bg-accent"
+            className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
             {autoRefresh ? (
               <>
@@ -393,9 +394,9 @@ export default function SyncPage() {
           <Button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="transition-all duration-200"
+            className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`mr-2 h-4 w-4 transition-transform duration-500 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
@@ -403,10 +404,10 @@ export default function SyncPage() {
 
       {/* Last Updated Indicator */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <div className={`h-2 w-2 rounded-full ${autoRefresh ? "bg-primary animate-pulse" : "bg-muted-foreground"}`} />
-        <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+        <div className={`h-2 w-2 rounded-full transition-all duration-300 ${autoRefresh ? "bg-primary animate-pulse shadow-lg shadow-primary/50" : "bg-muted-foreground"}`} />
+        <span className="font-medium">Last updated: {lastUpdated.toLocaleTimeString()}</span>
         {syncProgress?.isRunning && autoRefresh && (
-          <Badge variant="secondary" className="ml-2 text-xs">
+          <Badge variant="secondary" className="ml-2 text-xs animate-in fade-in slide-in-from-left-2 duration-300">
             <Activity className="h-3 w-3 mr-1" />
             Live
           </Badge>
@@ -421,25 +422,25 @@ export default function SyncPage() {
         return (
           <>
             {/* Status Banner */}
-            <Card className={`overflow-hidden transition-all duration-300 ${
+            <Card className={`overflow-hidden transition-all duration-500 ${
               syncProgress.isRunning
-                ? "border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg shadow-primary/5"
+                ? "border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg shadow-primary/10 animate-in fade-in slide-in-from-top-2"
                 : syncProgress.currentStep === 7
                   ? "border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10"
                   : ""
             }`}>
-              <CardHeader className="pb-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <CardHeader className="pb-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
                     {syncProgress.isRunning ? (
                       <div className="relative">
                         <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                        <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20">
+                        <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-lg shadow-primary/20">
                           <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
                       </div>
                     ) : syncProgress.currentStep === 7 ? (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-md shadow-primary/10 transition-all duration-300">
                         <CheckCircle2 className="h-5 w-5 text-primary" />
                       </div>
                     ) : (
@@ -456,7 +457,7 @@ export default function SyncPage() {
                             : "No Active Sync"}
                       </CardTitle>
                       {syncProgress.isRunning && (
-                        <CardDescription className="mt-0.5">
+                        <CardDescription className="mt-0.5 text-sm">
                           Processing step {currentRelative} of {totalRelative}
                         </CardDescription>
                       )}
@@ -465,7 +466,7 @@ export default function SyncPage() {
                   {syncProgress.isRunning && (
                     <Badge
                       variant="outline"
-                      className="text-primary border-primary/30 bg-primary/10 font-medium px-3 py-1"
+                      className="text-primary border-primary/30 bg-primary/10 font-medium px-3 py-1 shadow-sm animate-in fade-in slide-in-from-right-2 duration-300"
                     >
                       <Zap className="h-3.5 w-3.5 mr-1.5" />
                       Step {currentRelative}/{totalRelative}
@@ -474,51 +475,47 @@ export default function SyncPage() {
                 </div>
               </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-5">
               {/* Progress Bar for Running State */}
               {syncProgress.isRunning && (
-                <div className="space-y-2">
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Overall Progress</span>
-                    <span className="font-medium">
+                    <span className="text-muted-foreground font-medium">Overall Progress</span>
+                    <span className="font-semibold tabular-nums">
                       {progressPercentage}%
                     </span>
                   </div>
                   <div className="relative">
                     <Progress
                       value={progressPercentage}
-                      className="h-2.5 bg-primary/10"
-                    />
-                    <div
-                      className="absolute top-0 left-0 h-2.5 rounded-full bg-gradient-to-r from-primary to-primary transition-all duration-500 ease-out"
-                      style={{ width: `${progressPercentage}%` }}
+                      className="h-2 bg-primary/10 shadow-inner"
                     />
                   </div>
                 </div>
               )}
 
               {/* Time Statistics Grid */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-card/50 border border-border/50">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="group flex items-center gap-3 p-3.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
                     <Timer className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Elapsed</p>
-                    <p className="text-lg font-semibold tabular-nums">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Elapsed</p>
+                    <p className="text-lg font-semibold tabular-nums truncate">
                       {formatDuration(syncProgress.elapsedSeconds)}
                     </p>
                   </div>
                 </div>
 
                 {syncProgress.estimatedRemainingSeconds && syncProgress.estimatedRemainingSeconds > 0 && (
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-card/50 border border-border/50">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+                  <div className="group flex items-center gap-3 p-3.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01] animate-in fade-in slide-in-from-left-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
                       <Clock className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Remaining</p>
-                      <p className="text-lg font-semibold tabular-nums">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Remaining</p>
+                      <p className="text-lg font-semibold tabular-nums truncate">
                         {formatDuration(syncProgress.estimatedRemainingSeconds)}
                       </p>
                     </div>
@@ -526,13 +523,13 @@ export default function SyncPage() {
                 )}
 
                 {syncProgress.startedAt && (
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-card/50 border border-border/50">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+                  <div className="group flex items-center gap-3 p-3.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
                       <CalendarClock className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Started</p>
-                      <p className="text-sm font-medium">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Started</p>
+                      <p className="text-sm font-medium truncate">
                         {formatDate(syncProgress.startedAt)}
                       </p>
                     </div>
@@ -544,28 +541,28 @@ export default function SyncPage() {
 
           {/* Last Sync Completed - Compact View (when no sync running) */}
           {!syncProgress.isRunning && syncLogs.length > 0 && (
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
-              <CardContent className="pt-6">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 transition-all duration-300 hover:shadow-md">
+              <CardContent className="pt-5 pb-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20 shrink-0">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20 shadow-md shadow-primary/10 shrink-0 transition-all duration-300 hover:scale-105">
                       <CheckCircle2 className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Last Sync Completed</p>
                       <p className="text-lg font-semibold">{formatDate(syncLogs[0].started_at)}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1.5">
                         <Badge variant="outline" className="text-xs">
                           {syncLogs[0].sync_type}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground font-medium">
                           {formatDuration(syncLogs[0].duration_seconds)}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <Button asChild>
-                    <Link href={`/sync/changes?log=${syncLogs[0].id}`} className="shrink-0">
+                  <Button asChild className="shrink-0 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
+                    <Link href={`/sync/changes?log=${syncLogs[0].id}`}>
                       <ExternalLink className="h-4 w-4 mr-2" />
                       View Details
                     </Link>
@@ -577,23 +574,23 @@ export default function SyncPage() {
 
           {/* Step Progress - Only show when sync is running */}
           {syncProgress.isRunning && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Activity className="h-5 w-5 text-muted-foreground" />
                   Sync Steps
                   {syncProgress.selectedSteps && syncProgress.selectedSteps.length > 0 && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
+                    <Badge variant="secondary" className="ml-2 text-xs animate-in fade-in slide-in-from-left-2">
                       Selective: {syncProgress.selectedSteps.length} steps
                     </Badge>
                   )}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Detailed progress for each synchronization step
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {syncProgress.steps
                     .filter((step) => {
                       // For selective sync, only show selected steps
@@ -611,25 +608,25 @@ export default function SyncPage() {
                       return (
                         <div
                           key={step.number}
-                          className={`group rounded-lg border p-4 transition-all duration-200 ${
+                          className={`group rounded-lg border p-3.5 transition-all duration-300 ${
                             step.status === "running"
-                              ? "border-primary/30 bg-primary/5 shadow-sm"
+                              ? "border-primary/30 bg-primary/5 shadow-md hover:shadow-lg animate-in fade-in slide-in-from-left-2"
                               : step.status === "completed"
                                 ? "border-primary/20 bg-primary/5"
                                 : step.status === "failed"
                                   ? "border-destructive/20 bg-destructive/5"
-                                  : "border-border/50 bg-card/30 hover:bg-card/50"
+                                  : "border-border/50 bg-card/30 hover:bg-card/50 hover:border-border"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                            <div className="flex items-center gap-3.5">
+                              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-200 shadow-sm ${
                                 step.status === "completed"
-                                  ? "bg-primary/10 text-primary"
+                                  ? "bg-primary/10 text-primary shadow-primary/20"
                                   : step.status === "running"
-                                    ? "bg-primary/10 text-primary"
+                                    ? "bg-primary/10 text-primary shadow-primary/20"
                                     : step.status === "failed"
-                                      ? "bg-destructive/10 text-destructive"
+                                      ? "bg-destructive/10 text-destructive shadow-destructive/20"
                                       : "bg-muted text-muted-foreground"
                               }`}>
                                 {step.status === "running" ? (
@@ -641,17 +638,17 @@ export default function SyncPage() {
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="font-medium truncate">
+                                <p className="font-semibold truncate text-sm">
                                   {step.name}
                                 </p>
-                                <p className="text-sm text-muted-foreground truncate">
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">
                                   {step.description}
                                 </p>
                                 {/* Real-time status for running steps */}
                                 {isRunning && step.total > 0 && (
-                                  <div className="mt-1.5">
-                                    <div className="flex items-center gap-2 text-xs text-primary">
-                                      <span className="font-medium">
+                                  <div className="mt-2">
+                                    <div className="flex items-center gap-2 text-xs text-primary font-medium">
+                                      <span>
                                         {formatNumber(step.count)} / {formatNumber(step.total)} items
                                       </span>
                                       <span className="text-muted-foreground">
@@ -660,13 +657,13 @@ export default function SyncPage() {
                                     </div>
                                     <Progress
                                       value={stepProgress}
-                                      className="h-1.5 mt-1.5 bg-primary/10"
+                                      className="h-1.5 mt-1.5 bg-primary/10 shadow-inner"
                                     />
                                   </div>
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-4 shrink-0">
+                            <div className="flex items-center gap-3 shrink-0">
                               {step.extracted > 0 && !isRunning && (
                                 <span className="text-sm font-mono text-muted-foreground hidden sm:block">
                                   {formatNumber(step.extracted)} extracted
@@ -730,12 +727,12 @@ export default function SyncPage() {
 
           {/* Sync Statistics */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <BarChart3 className="h-5 w-5 text-muted-foreground" />
                 Sync Statistics
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Items synchronized with change breakdown
               </CardDescription>
             </CardHeader>
@@ -773,15 +770,15 @@ export default function SyncPage() {
                 ].map(({ icon: Icon, value, label, inserted, updated }) => (
                   <div
                     key={label}
-                    className="flex flex-col p-4 rounded-lg bg-muted/30 border border-border/30 transition-colors hover:bg-muted/50"
+                    className="group flex flex-col p-3.5 rounded-lg bg-muted/30 border border-border/30 transition-all duration-200 hover:bg-muted/50 hover:shadow-md hover:scale-[1.02]"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <Icon className="h-4 w-4 text-muted-foreground transition-transform group-hover:scale-110" />
                       <p className="text-xl font-bold tabular-nums">{formatNumber(value)}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                    <p className="text-xs text-muted-foreground mb-1 font-medium">{label}</p>
                     {(inserted > 0 || updated > 0) && (
-                      <div className="flex gap-2 text-xs mt-1">
+                      <div className="flex gap-2 text-xs mt-1 font-medium">
                         {inserted > 0 && (
                           <span className="text-primary">+{formatNumber(inserted)}</span>
                         )}
@@ -795,9 +792,9 @@ export default function SyncPage() {
               </div>
 
               {/* Database Totals */}
-              <div className="mt-6 pt-6 border-t border-border/50">
-                <h4 className="text-sm font-medium text-muted-foreground mb-4">Database Totals</h4>
-                <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="mt-5 pt-5 border-t border-border/50">
+                <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Database Totals</h4>
+                <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
                   {[
                     { label: "Brands", value: syncProgress.dbTotals.brands },
                     { label: "Categories", value: syncProgress.dbTotals.categories },
@@ -807,10 +804,10 @@ export default function SyncPage() {
                   ].map(({ label, value }) => (
                     <div
                       key={label}
-                      className="flex items-center justify-between p-3 rounded-md bg-muted/20 border border-border/20"
+                      className="group flex items-center justify-between p-2.5 rounded-md bg-muted/20 border border-border/20 transition-all duration-200 hover:bg-muted/30 hover:shadow-sm"
                     >
-                      <span className="text-sm text-muted-foreground">{label}</span>
-                      <span className="font-mono font-medium">{formatNumber(value)}</span>
+                      <span className="text-xs text-muted-foreground font-medium">{label}</span>
+                      <span className="font-mono font-semibold text-sm">{formatNumber(value)}</span>
                     </div>
                   ))}
                 </div>
@@ -823,12 +820,12 @@ export default function SyncPage() {
 
       {/* Sync History */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Clock className="h-5 w-5 text-muted-foreground" />
             Sync History
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Previous synchronization runs and their results
           </CardDescription>
         </CardHeader>
@@ -868,17 +865,17 @@ export default function SyncPage() {
                     {syncLogs.map((log, index) => (
                       <TableRow
                         key={log.id}
-                        className="transition-colors hover:bg-muted/20"
+                        className="transition-all duration-200 hover:bg-muted/20 hover:shadow-sm"
                       >
-                        <TableCell className="font-medium">{log.sync_type}</TableCell>
+                        <TableCell className="font-semibold text-sm">{log.sync_type}</TableCell>
                         <TableCell>
                           <Badge
-                            className={`${
+                            className={`transition-all duration-200 ${
                               log.status === "completed"
-                                ? "bg-primary/15 text-primary border-primary/20"
+                                ? "bg-primary/15 text-primary border-primary/20 hover:bg-primary/20"
                                 : log.status === "running"
-                                  ? "bg-primary/15 text-primary border-primary/20"
-                                  : "bg-destructive/15 text-destructive border-destructive/20"
+                                  ? "bg-primary/15 text-primary border-primary/20 hover:bg-primary/20"
+                                  : "bg-destructive/15 text-destructive border-destructive/20 hover:bg-destructive/20"
                             }`}
                           >
                             {log.status === "completed" ? (
@@ -915,21 +912,21 @@ export default function SyncPage() {
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110 active:scale-95">
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuItem
                                 onClick={() => handleStatusChange(log, "failed")}
-                                className="text-destructive focus:text-destructive"
+                                className="text-destructive focus:text-destructive cursor-pointer"
                               >
                                 <XCircle className="h-4 w-4 mr-2" />
                                 Mark as Failed
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleStatusChange(log, "cancelled")}
-                                className="text-muted-foreground"
+                                className="text-muted-foreground cursor-pointer"
                               >
                                 <AlertTriangle className="h-4 w-4 mr-2" />
                                 Mark as Cancelled
@@ -945,8 +942,8 @@ export default function SyncPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-border/50">
-                  <p className="text-sm text-muted-foreground">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4 pt-4 border-t border-border/50">
+                  <p className="text-sm text-muted-foreground font-medium">
                     Showing {offset + 1} to {Math.min(offset + limit, total)} of {total} logs
                   </p>
                   <div className="flex items-center gap-2">
@@ -955,12 +952,12 @@ export default function SyncPage() {
                       size="sm"
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="transition-all duration-200"
+                      className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <ChevronLeft className="h-4 w-4" />
                       <span className="hidden sm:inline ml-1">Previous</span>
                     </Button>
-                    <span className="text-sm px-2">
+                    <span className="text-sm px-2 font-medium tabular-nums">
                       {currentPage} / {totalPages}
                     </span>
                     <Button
@@ -968,7 +965,7 @@ export default function SyncPage() {
                       size="sm"
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="transition-all duration-200"
+                      className="transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <span className="hidden sm:inline mr-1">Next</span>
                       <ChevronRight className="h-4 w-4" />
@@ -983,16 +980,16 @@ export default function SyncPage() {
 
       {/* Commands Info */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
             <Database className="h-5 w-5 text-muted-foreground" />
             Sync Commands
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Terminal commands to manage synchronization
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {[
             {
               command: "go run cmd/sync/main.go",
@@ -1007,11 +1004,11 @@ export default function SyncPage() {
               description: "View database statistics",
             },
           ].map(({ command, description }) => (
-            <div key={command} className="space-y-1.5">
-              <code className="block rounded-lg bg-muted/50 border border-border/50 px-4 py-3 text-sm font-mono">
+            <div key={command} className="space-y-1.5 group">
+              <code className="block rounded-lg bg-muted/50 border border-border/50 px-4 py-2.5 text-sm font-mono transition-all duration-200 hover:bg-muted/70 hover:border-border hover:shadow-sm">
                 {command}
               </code>
-              <p className="text-xs text-muted-foreground pl-1">
+              <p className="text-xs text-muted-foreground pl-1 font-medium">
                 {description}
               </p>
             </div>
