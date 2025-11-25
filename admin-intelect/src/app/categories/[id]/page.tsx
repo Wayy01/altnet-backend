@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -23,6 +23,8 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Home,
   Warehouse,
   Tag,
@@ -30,6 +32,9 @@ import {
   Layers,
   Filter,
   CheckSquare,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -38,6 +43,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -80,7 +86,7 @@ interface CategoryDetailPageProps {
 }
 
 /**
- * Copy button component with visual feedback
+ * Enhanced copy button component with premium animation feedback
  */
 function CopyButton({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -94,7 +100,7 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
     };
   }, []);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -105,27 +111,39 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
     } catch (err) {
       console.error("Failed to copy to clipboard:", err);
     }
-  };
+  }, [text]);
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground transition-colors"
+      className={`
+        h-6 px-2 gap-1 transition-all duration-200
+        ${copied
+          ? "bg-primary/10 text-primary scale-105"
+          : "hover:bg-primary/10 hover:text-primary hover:scale-105"
+        }
+      `}
       onClick={handleCopy}
     >
-      {copied ? (
-        <Check className="h-3 w-3 text-primary" />
-      ) : (
-        <Copy className="h-3 w-3" />
+      <span className={`transition-transform duration-200 ${copied ? "scale-110" : ""}`}>
+        {copied ? (
+          <Check className="h-3 w-3 text-primary" />
+        ) : (
+          <Copy className="h-3 w-3" />
+        )}
+      </span>
+      {label && (
+        <span className={`text-xs transition-colors duration-200 ${copied ? "text-primary" : ""}`}>
+          {copied ? "Copied" : label}
+        </span>
       )}
-      {label && <span className="sr-only">{label}</span>}
     </Button>
   );
 }
 
 /**
- * Copyable field component for displaying data with copy functionality
+ * Premium copyable field component with hover effects
  */
 function CopyableField({
   label,
@@ -139,10 +157,13 @@ function CopyableField({
   if (!value) return null;
 
   return (
-    <div className="flex items-center justify-between py-2">
-      <span className="text-sm text-muted-foreground">{label}</span>
+    <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
+      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{label}</span>
       <div className="flex items-center gap-2">
-        <span className={`text-sm ${mono ? "font-mono text-xs bg-muted px-2 py-0.5 rounded" : ""}`}>
+        <span className={`
+          text-sm transition-colors duration-200 group-hover:text-foreground
+          ${mono ? "font-mono text-xs bg-muted px-2 py-0.5 rounded" : ""}
+        `}>
           {value.length > 36 ? `${value.substring(0, 16)}...${value.substring(value.length - 8)}` : value}
         </span>
         <CopyButton text={value} />
@@ -165,10 +186,198 @@ function formatTimestamp(timestamp: string): string {
   });
 }
 
-// Filter mapping for API calls
+/**
+ * Filter mapping for API calls
+ */
 function mapFilterToApi(filter: string): string | undefined {
   if (!filter || filter === "all") return undefined;
   return filter;
+}
+
+/**
+ * Sort direction type
+ */
+type SortDirection = "asc" | "desc" | null;
+
+/**
+ * Sort config interface
+ */
+interface SortConfig {
+  key: string;
+  direction: SortDirection;
+}
+
+/**
+ * Premium skeleton loader for category detail page with staggered animations
+ */
+function CategoryDetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb skeleton */}
+      <div className="flex items-center gap-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton
+            key={i}
+            className={`h-4 ${i % 2 === 0 ? "w-4" : i === 1 ? "w-4" : "w-20"}`}
+            style={{ animationDelay: `${i * 30}ms` }}
+          />
+        ))}
+      </div>
+
+      {/* Header skeleton */}
+      <div className="flex items-start gap-4">
+        <Skeleton className="h-10 w-10 rounded-md" style={{ animationDelay: "50ms" }} />
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-48" style={{ animationDelay: "100ms" }} />
+            <Skeleton className="h-6 w-16 rounded-full" style={{ animationDelay: "150ms" }} />
+          </div>
+          <Skeleton className="h-4 w-32" style={{ animationDelay: "200ms" }} />
+          <Skeleton className="h-4 w-24" style={{ animationDelay: "250ms" }} />
+        </div>
+        <div className="ml-auto">
+          <Skeleton className="h-9 w-24 rounded-md" style={{ animationDelay: "300ms" }} />
+        </div>
+      </div>
+
+      {/* Stats cards skeleton with staggered animation */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border bg-card shadow-sm p-6"
+            style={{ animationDelay: `${350 + i * 75}ms` }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-7 w-7 rounded-lg" />
+            </div>
+            <Skeleton className="h-8 w-20 mb-2" />
+            <Skeleton className="h-3 w-36" style={{ opacity: 1 - (i * 0.1) }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Info cards skeleton */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden" style={{ animationDelay: "650ms" }}>
+          <div className="p-6 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-7 w-7 rounded-lg" />
+              <div>
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-56 mt-1" />
+              </div>
+            </div>
+          </div>
+          <div className="p-6 space-y-3">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="h-11 w-full rounded-lg"
+                style={{ opacity: 1 - (i * 0.08) }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden" style={{ animationDelay: "725ms" }}>
+            <div className="p-6 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-7 w-7 rounded-lg" />
+                <Skeleton className="h-5 w-32" />
+              </div>
+            </div>
+            <div className="p-6 space-y-3">
+              <Skeleton className="h-11 w-full rounded-lg" />
+              <Skeleton className="h-11 w-full rounded-lg" style={{ opacity: 0.9 }} />
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden" style={{ animationDelay: "800ms" }}>
+            <div className="p-6 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-7 w-7 rounded-lg" />
+                <div>
+                  <Skeleton className="h-5 w-36" />
+                  <Skeleton className="h-4 w-48 mt-1" />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 space-y-3">
+              <Skeleton className="h-10 w-full rounded-lg" />
+              <Skeleton className="h-10 w-full rounded-lg" style={{ opacity: 0.9 }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Subcategories skeleton */}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden" style={{ animationDelay: "875ms" }}>
+        <div className="p-6 border-b bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-7 rounded-lg" />
+            <div>
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-48 mt-1" />
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="h-8 w-28 rounded-full"
+                style={{ opacity: 1 - (i * 0.1) }}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Products table skeleton */}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden" style={{ animationDelay: "950ms" }}>
+        <div className="p-6 border-b bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-7 rounded-lg" />
+            <div>
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-4 w-48 mt-1" />
+            </div>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="flex gap-3 mb-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="h-10 w-[180px] rounded-lg"
+                style={{ animationDelay: `${1000 + i * 50}ms` }}
+              />
+            ))}
+          </div>
+          {/* Table rows with staggered opacity */}
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-4 py-4 border-b last:border-b-0"
+              style={{ opacity: 1 - (i * 0.12) }}
+            >
+              <Skeleton className="h-5 w-5 rounded" />
+              <Skeleton className="h-4 w-[300px]" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-20 ml-auto" />
+              <Skeleton className="h-6 w-16 rounded-full" />
+              <Skeleton className="h-5 w-10 rounded-full" />
+              <Skeleton className="h-8 w-8 rounded-lg" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function CategoryDetailPage({ params }: CategoryDetailPageProps) {
@@ -189,6 +398,10 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
   const { formatPrice } = useCurrency();
 
+  // Animation states
+  const [contentVisible, setContentVisible] = useState(false);
+  const [rowsVisible, setRowsVisible] = useState(false);
+
   // Filter state
   const [priceFilter, setPriceFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
@@ -198,10 +411,70 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [selectAllMode, setSelectAllMode] = useState<boolean>(false);
 
+  // Sort state
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: "", direction: null });
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [resolvedId, setResolvedId] = useState<string | null>(null);
-  const productsPerPage = 10;
+  const [pageSize, setPageSize] = useState(10);
+  const [jumpToPage, setJumpToPage] = useState("");
+
+  // Memoized sorted products
+  const sortedProducts = useMemo(() => {
+    if (!sortConfig.key || !sortConfig.direction) return products;
+
+    return [...products].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortConfig.key) {
+        case "name":
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case "code":
+          aValue = (a.code || "").toLowerCase();
+          bValue = (b.code || "").toLowerCase();
+          break;
+        case "price":
+          aValue = a.price_min ?? 0;
+          bValue = b.price_min ?? 0;
+          break;
+        case "stock":
+          aValue = a.total_stock ?? 0;
+          bValue = b.total_stock ?? 0;
+          break;
+        case "active":
+          aValue = a.is_active ? 1 : 0;
+          bValue = b.is_active ? 1 : 0;
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [products, sortConfig]);
+
+  const handleSort = useCallback((key: string) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" };
+        if (prev.direction === "desc") return { key: "", direction: null };
+      }
+      return { key, direction: "asc" };
+    });
+  }, []);
+
+  const getSortIcon = useCallback((key: string) => {
+    if (sortConfig.key !== key) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    if (sortConfig.direction === "asc") return <ArrowUp className="h-4 w-4 ml-1 text-primary" />;
+    if (sortConfig.direction === "desc") return <ArrowDown className="h-4 w-4 ml-1 text-primary" />;
+    return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+  }, [sortConfig]);
 
   useEffect(() => {
     let cancelled = false;
@@ -215,7 +488,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
 
         const [categoryData, productsData, subcategoriesData] = await Promise.all([
           api.getCategoryWithStats(id),
-          api.getCategoryProducts(id, productsPerPage, 0, {
+          api.getCategoryProducts(id, pageSize, 0, {
             price_filter: mapFilterToApi(priceFilter),
             stock_filter: mapFilterToApi(stockFilter),
             status_filter: mapFilterToApi(statusFilter),
@@ -234,6 +507,10 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         setProducts(productsData.data);
         setTotalProducts(productsData.total);
         setSubcategories(subcategoriesData);
+
+        // Trigger animations after data loads
+        setTimeout(() => setContentVisible(true), 50);
+        setTimeout(() => setRowsVisible(true), 150);
       } catch (err) {
         if (cancelled) return;
         console.error("Failed to fetch category:", err);
@@ -253,12 +530,12 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
   }, [params]);
 
   // Fetch products when page changes or filters change
-  const fetchProducts = async (page: number) => {
+  const fetchProducts = useCallback(async (page: number, size: number = pageSize) => {
     if (!resolvedId) return;
 
     try {
-      const offset = (page - 1) * productsPerPage;
-      const productsData = await api.getCategoryProducts(resolvedId, productsPerPage, offset, {
+      const offset = (page - 1) * size;
+      const productsData = await api.getCategoryProducts(resolvedId, size, offset, {
         price_filter: mapFilterToApi(priceFilter),
         stock_filter: mapFilterToApi(stockFilter),
         status_filter: mapFilterToApi(statusFilter),
@@ -270,11 +547,14 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
       if (!selectAllMode) {
         setSelectedProducts(new Set());
       }
+      // Trigger row animations
+      setRowsVisible(false);
+      setTimeout(() => setRowsVisible(true), 50);
     } catch (err) {
       console.error("Failed to fetch products:", err);
       toast.error("Failed to load products");
     }
-  };
+  }, [resolvedId, pageSize, priceFilter, stockFilter, statusFilter, selectAllMode]);
 
   // Refetch when filters change
   useEffect(() => {
@@ -285,15 +565,15 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
     }
   }, [priceFilter, stockFilter, statusFilter]);
 
-  // Products are filtered on backend, so just use products directly
-  const filteredProducts = products;
+  // Products are filtered on backend, so just use sortedProducts directly
+  const filteredProducts = sortedProducts;
 
   // Check if all visible products are selected
   const allVisibleSelected = filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.has(p.id));
   const isSomeSelected = selectedProducts.size > 0 || selectAllMode;
 
   // Toggle all visible products selection
-  const handleToggleAllSelected = () => {
+  const handleToggleAllSelected = useCallback(() => {
     if (allVisibleSelected && !selectAllMode) {
       setSelectedProducts(new Set());
       setSelectAllMode(false);
@@ -301,31 +581,33 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
       setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
       setSelectAllMode(false);
     }
-  };
+  }, [allVisibleSelected, selectAllMode, filteredProducts]);
 
-  const handleSelectAllMatching = () => {
+  const handleSelectAllMatching = useCallback(() => {
     setSelectAllMode(true);
-  };
+  }, []);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedProducts(new Set());
     setSelectAllMode(false);
-  };
+  }, []);
 
   // Toggle individual product selection
-  const handleToggleProductSelected = (productId: string) => {
-    const newSelected = new Set(selectedProducts);
-    if (newSelected.has(productId)) {
-      newSelected.delete(productId);
-      // Exit selectAllMode if user deselects an item
-      if (selectAllMode) {
-        setSelectAllMode(false);
+  const handleToggleProductSelected = useCallback((productId: string) => {
+    setSelectedProducts((prev) => {
+      const newSelected = new Set(prev);
+      if (newSelected.has(productId)) {
+        newSelected.delete(productId);
+        // Exit selectAllMode if user deselects an item
+        if (selectAllMode) {
+          setSelectAllMode(false);
+        }
+      } else {
+        newSelected.add(productId);
       }
-    } else {
-      newSelected.add(productId);
-    }
-    setSelectedProducts(newSelected);
-  };
+      return newSelected;
+    });
+  }, [selectAllMode]);
 
   // Handle bulk activate selected
   const handleActivateSelected = async () => {
@@ -526,7 +808,26 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
     }
   };
 
-  const totalPages = Math.ceil(totalProducts / productsPerPage);
+  const handlePageSizeChange = useCallback((value: string) => {
+    const newSize = parseInt(value, 10);
+    setPageSize(newSize);
+    fetchProducts(1, newSize);
+  }, [fetchProducts]);
+
+  const handleJumpToPage = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const page = parseInt(jumpToPage, 10);
+      const maxPage = Math.ceil(totalProducts / pageSize);
+      if (page >= 1 && page <= maxPage) {
+        fetchProducts(page);
+        setJumpToPage("");
+      } else {
+        toast.error(`Please enter a page between 1 and ${maxPage}`);
+      }
+    }
+  }, [jumpToPage, totalProducts, pageSize, fetchProducts]);
+
+  const totalPages = Math.ceil(totalProducts / pageSize);
 
   if (loading) {
     return <CategoryDetailSkeleton />;
@@ -539,7 +840,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
           <BreadcrumbList>
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/">
+                <Link href="/" className="flex items-center transition-colors hover:text-primary">
                   <Home className="h-4 w-4" />
                 </Link>
               </BreadcrumbLink>
@@ -547,7 +848,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/categories">Categories</Link>
+                <Link href="/categories" className="transition-colors hover:text-primary">Categories</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -557,21 +858,23 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
           </BreadcrumbList>
         </Breadcrumb>
 
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <FolderTree className="h-12 w-12 text-muted-foreground mb-4" />
+        <div className="rounded-xl border border-dashed bg-card shadow-sm">
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="p-4 rounded-full bg-muted/50 mb-4">
+              <FolderTree className="h-10 w-10 text-muted-foreground/50" />
+            </div>
             <h2 className="text-xl font-semibold mb-2">Category Not Found</h2>
             <p className="text-muted-foreground text-center max-w-md mb-6">
               {error || "The category you're looking for doesn't exist or has been removed."}
             </p>
-            <Button asChild>
+            <Button asChild className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <Link href="/categories">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Categories
               </Link>
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -583,7 +886,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/" className="flex items-center">
+              <Link href="/" className="flex items-center transition-colors hover:text-primary">
                 <Home className="h-4 w-4" />
               </Link>
             </BreadcrumbLink>
@@ -591,40 +894,63 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/categories">Categories</Link>
+              <Link href="/categories" className="transition-colors hover:text-primary">Categories</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{category.name}</BreadcrumbPage>
+            <BreadcrumbPage className="max-w-[200px] truncate">{category.name}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       {/* Header Section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div
+        className={`
+          flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between
+          transition-all duration-300 ease-out
+          ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+        `}
+      >
         <div className="flex items-start gap-4">
-          <Button variant="outline" size="icon" asChild className="shrink-0 mt-1 transition-colors hover:bg-secondary">
+          <Button
+            variant="outline"
+            size="icon"
+            asChild
+            className="shrink-0 mt-1 transition-all duration-200 hover:bg-muted hover:shadow-md hover:-translate-y-0.5"
+          >
             <Link href="/categories">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-3xl font-bold tracking-tight">{category.name}</h1>
-              <Badge variant={category.is_active ? "default" : "secondary"}>
+              <Badge
+                variant={category.is_active ? "default" : "secondary"}
+                className={`
+                  transition-all duration-200
+                  ${category.is_active
+                    ? "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
+                    : "hover:bg-muted"
+                  }
+                `}
+              >
                 {category.is_active ? "Active" : "Inactive"}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+            <p className="text-sm text-muted-foreground flex items-center gap-1.5 transition-colors hover:text-foreground">
               <Tag className="h-3.5 w-3.5" />
               {category.slug}
             </p>
             {category.parent_name && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+              <Link
+                href={category.parent_id ? `/categories/${category.parent_id}` : "#"}
+                className="text-sm text-muted-foreground flex items-center gap-1.5 transition-colors hover:text-primary"
+              >
                 <Layers className="h-3.5 w-3.5" />
                 Parent: {category.parent_name}
-              </p>
+              </Link>
             )}
           </div>
         </div>
@@ -634,6 +960,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
             size="sm"
             onClick={() => setShowDeleteDialog(true)}
             disabled={isProcessing}
+            className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete
@@ -643,73 +970,98 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
 
       {/* Statistics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-sm transition-all hover:shadow-md border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Products</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{category.total_products.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">All products in this category</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm transition-all hover:shadow-md border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Products</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{category.active_products.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {category.total_products > 0
-                ? `${((category.active_products / category.total_products) * 100).toFixed(1)}% of total`
-                : "No products"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm transition-all hover:shadow-md border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">In Stock</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{category.in_stock_products.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {category.active_products > 0
-                ? `${((category.in_stock_products / category.active_products) * 100).toFixed(1)}% of active`
-                : "No active products"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm transition-all hover:shadow-md border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">With Prices</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{category.with_prices_products.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {category.active_products > 0
-                ? `${((category.with_prices_products / category.active_products) * 100).toFixed(1)}% of active`
-                : "No active products"}
-            </p>
-          </CardContent>
-        </Card>
+        {[
+          {
+            title: "Total Products",
+            value: category.total_products,
+            description: "All products in this category",
+            icon: Package,
+            variant: "default" as const,
+          },
+          {
+            title: "Active Products",
+            value: category.active_products,
+            description: category.total_products > 0
+              ? `${((category.active_products / category.total_products) * 100).toFixed(1)}% of total`
+              : "No products",
+            icon: CheckCircle2,
+            variant: "success" as const,
+          },
+          {
+            title: "In Stock",
+            value: category.in_stock_products,
+            description: category.active_products > 0
+              ? `${((category.in_stock_products / category.active_products) * 100).toFixed(1)}% of active`
+              : "No active products",
+            icon: Warehouse,
+            variant: category.in_stock_products > 0 ? "success" as const : "warning" as const,
+          },
+          {
+            title: "With Prices",
+            value: category.with_prices_products,
+            description: category.active_products > 0
+              ? `${((category.with_prices_products / category.active_products) * 100).toFixed(1)}% of active`
+              : "No active products",
+            icon: Tag,
+            variant: category.with_prices_products > 0 ? "success" as const : "warning" as const,
+          },
+        ].map((stat, index) => (
+          <div
+            key={stat.title}
+            className={`
+              rounded-xl border bg-card shadow-sm p-6 overflow-hidden
+              transition-all duration-300 ease-out
+              hover:shadow-lg hover:-translate-y-1.5
+              ${stat.variant === "success" ? "border-primary/20 hover:border-primary/40" : ""}
+              ${stat.variant === "warning" ? "border-destructive/20 hover:border-destructive/40" : ""}
+              ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
+            `}
+            style={{ transitionDelay: contentVisible ? `${100 + index * 75}ms` : "0ms" }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-muted-foreground">{stat.title}</span>
+              <div className={`
+                p-1.5 rounded-lg transition-colors
+                ${stat.variant === "success" ? "bg-primary/10" : ""}
+                ${stat.variant === "warning" ? "bg-destructive/10" : ""}
+                ${stat.variant === "default" ? "bg-muted" : ""}
+              `}>
+                <stat.icon className={`h-4 w-4 transition-colors ${
+                  stat.variant === "success" ? "text-primary" :
+                  stat.variant === "warning" ? "text-destructive" :
+                  "text-muted-foreground"
+                }`} />
+              </div>
+            </div>
+            <div className="text-2xl font-bold tabular-nums">{(stat.value ?? 0).toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1.5">{stat.description}</p>
+          </div>
+        ))}
       </div>
 
       {/* Category Information & Admin Actions Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div
+        className={`
+          grid gap-6 lg:grid-cols-2
+          transition-all duration-300 ease-out
+          ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
+        `}
+        style={{ transitionDelay: contentVisible ? "400ms" : "0ms" }}
+      >
         {/* Category Information */}
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FolderTree className="h-5 w-5 text-primary" />
-              Category Information
-            </CardTitle>
-            <CardDescription>
-              Details and identifiers for this category
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1">
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
+          <div className="p-6 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-background shadow-sm">
+                <FolderTree className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Category Information</h3>
+                <p className="text-sm text-muted-foreground">Details and identifiers for this category</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 space-y-1">
             <CopyableField label="ID (UUID)" value={category.id} mono />
             <Separator className="my-2" />
             <CopyableField label="Ultra ID" value={category.ultra_id} mono />
@@ -728,23 +1080,23 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
               </>
             )}
             <Separator className="my-2" />
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-muted-foreground">Sort Order</span>
-              <span className="text-sm">{category.sort_order}</span>
+            <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
+              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Sort Order</span>
+              <span className="text-sm tabular-nums font-medium">{category.sort_order}</span>
             </div>
             <Separator className="my-2" />
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-muted-foreground">Product Count</span>
-              <span className="text-sm">{category.product_count.toLocaleString()}</span>
+            <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
+              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Product Count</span>
+              <span className="text-sm tabular-nums font-medium">{(category.product_count ?? 0).toLocaleString()}</span>
             </div>
             <Separator className="my-2" />
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-muted-foreground">Child Categories</span>
-              <span className="text-sm">{category.child_count}</span>
+            <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
+              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Child Categories</span>
+              <span className="text-sm tabular-nums font-medium">{category.child_count ?? 0}</span>
             </div>
             <Separator className="my-2" />
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-muted-foreground">Status</span>
+            <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
+              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Status</span>
               <div className="flex items-center gap-3">
                 {category.is_active ? (
                   <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -755,57 +1107,62 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                   checked={category.is_active}
                   onCheckedChange={handleToggleActive}
                   disabled={isProcessing}
+                  className="transition-opacity hover:opacity-80"
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Timestamps & Actions */}
         <div className="space-y-6">
           {/* Timestamps */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Clock className="h-5 w-5 text-primary" />
-                Timestamps
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-1">
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-muted-foreground flex items-center gap-2">
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
+            <div className="p-6 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-background shadow-sm">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h3 className="font-semibold">Timestamps</h3>
+              </div>
+            </div>
+            <div className="p-6 space-y-1">
+              <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
+                <span className="text-sm text-muted-foreground flex items-center gap-2 group-hover:text-foreground transition-colors">
                   <Calendar className="h-3.5 w-3.5" />
                   Created
                 </span>
-                <span className="text-sm">{formatTimestamp(category.created_at)}</span>
+                <span className="text-sm tabular-nums">{formatTimestamp(category.created_at)}</span>
               </div>
               <Separator className="my-2" />
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
+                <span className="text-sm text-muted-foreground flex items-center gap-2 group-hover:text-foreground transition-colors">
                   <Calendar className="h-3.5 w-3.5" />
                   Updated
                 </span>
-                <span className="text-sm">{formatTimestamp(category.updated_at)}</span>
+                <span className="text-sm tabular-nums">{formatTimestamp(category.updated_at)}</span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Admin Actions */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Settings className="h-5 w-5 text-primary" />
-                Admin Actions
-              </CardTitle>
-              <CardDescription>
-                Bulk operations for category products
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="rounded-xl border bg-card shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
+            <div className="p-6 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-background shadow-sm">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Admin Actions</h3>
+                  <p className="text-sm text-muted-foreground">Bulk operations for category products</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6">
               <div className="flex flex-col gap-3">
                 <Button
                   variant="outline"
-                  className="justify-start"
+                  className="justify-start transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30 hover:shadow-sm hover:-translate-y-0.5"
                   onClick={() => setShowBulkActivateDialog(true)}
                   disabled={isProcessing || category.total_products === 0}
                 >
@@ -814,7 +1171,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 </Button>
                 <Button
                   variant="outline"
-                  className="justify-start"
+                  className="justify-start transition-all duration-200 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 hover:shadow-sm hover:-translate-y-0.5"
                   onClick={() => setShowBulkDeactivateDialog(true)}
                   disabled={isProcessing || category.total_products === 0}
                 >
@@ -822,73 +1179,97 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                   Deactivate All Products
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Subcategories Section */}
       {subcategories.length > 0 && (
-        <Card className="shadow-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300 ease-out
+            ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
+          `}
+          style={{ transitionDelay: contentVisible ? "475ms" : "0ms" }}
+        >
+          <div className="p-6 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-background shadow-sm">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+              </div>
               <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Layers className="h-5 w-5 text-primary" />
-                  Subcategories
-                </CardTitle>
-                <CardDescription>
+                <h3 className="font-semibold">Subcategories</h3>
+                <p className="text-sm text-muted-foreground">
                   {subcategories.length} child categories under this category
-                </CardDescription>
+                </p>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div className="p-6">
             <div className="flex flex-wrap gap-2">
-              {subcategories.map((sub) => (
-                <Link key={sub.id} href={`/categories/${sub.id}`}>
+              {subcategories.map((sub, index) => (
+                <Link
+                  key={sub.id}
+                  href={`/categories/${sub.id}`}
+                  className={`
+                    transition-all duration-200
+                    ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+                  `}
+                  style={{ transitionDelay: rowsVisible ? `${Math.min(index * 30, 200)}ms` : "0ms" }}
+                >
                   <Badge
                     variant="outline"
-                    className="cursor-pointer hover:bg-accent transition-all px-3 py-1.5"
+                    className="cursor-pointer hover:bg-primary/10 hover:text-primary hover:border-primary/30 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 px-3 py-1.5"
                   >
                     <FolderTree className="h-3 w-3 mr-1.5" />
                     {sub.name}
-                    <span className="ml-1.5 text-muted-foreground">({sub.product_count})</span>
+                    <span className="ml-1.5 text-muted-foreground tabular-nums">({sub.product_count ?? 0})</span>
                   </Badge>
                 </Link>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Products Table */}
-      <Card className="shadow-sm">
-        <CardHeader>
+      <div
+        className={`
+          rounded-xl border bg-card shadow-sm overflow-hidden
+          transition-all duration-300 ease-out
+          ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
+        `}
+        style={{ transitionDelay: contentVisible ? "550ms" : "0ms" }}
+      >
+        <div className="p-6 border-b bg-muted/30">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Package className="h-5 w-5 text-primary" />
-                  Products
-                </CardTitle>
-                <CardDescription>
-                  {totalProducts.toLocaleString()} products in this category
-                  {filteredProducts.length !== products.length && (
-                    <> ({filteredProducts.length} filtered)</>
-                  )}
-                </CardDescription>
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-background shadow-sm">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Products</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {(totalProducts ?? 0).toLocaleString()} products in this category
+                    {filteredProducts.length !== products.length && (
+                      <> ({filteredProducts.length} filtered)</>
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Filter Controls */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border bg-background/50 transition-all duration-200 hover:bg-background/80">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Filters:</span>
               </div>
               <Select value={priceFilter} onValueChange={setPriceFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
                   <SelectValue placeholder="Price filter" />
                 </SelectTrigger>
                 <SelectContent>
@@ -901,18 +1282,18 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 </SelectContent>
               </Select>
               <Select value={stockFilter} onValueChange={setStockFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
                   <SelectValue placeholder="Stock filter" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All stock</SelectItem>
                   <SelectItem value="in_stock">In stock</SelectItem>
                   <SelectItem value="out_of_stock">Out of stock</SelectItem>
-                  <SelectItem value="low_stock">Low stock (≤5)</SelectItem>
+                  <SelectItem value="low_stock">Low stock (5)</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
                   <SelectValue placeholder="Status filter" />
                 </SelectTrigger>
                 <SelectContent>
@@ -923,17 +1304,17 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
               </Select>
             </div>
           </div>
-        </CardHeader>
+        </div>
 
         {/* Bulk Actions Bar */}
         {isSomeSelected && (
-          <div className="flex items-center justify-between px-6 py-3 bg-accent border-b border-border">
+          <div className="flex items-center justify-between px-6 py-3 bg-accent/80 backdrop-blur-sm border-b border-border animate-in slide-in-from-top-2 duration-200">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <CheckSquare className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">
                   {selectAllMode
-                    ? `All ${totalProducts} matching products selected`
+                    ? `All ${(totalProducts ?? 0).toLocaleString()} matching products selected`
                     : `${selectedProducts.size} product${selectedProducts.size !== 1 ? "s" : ""} selected`
                   }
                 </span>
@@ -943,10 +1324,10 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 <Button
                   variant="link"
                   size="sm"
-                  className="text-primary"
+                  className="text-primary transition-colors hover:text-primary/80"
                   onClick={handleSelectAllMatching}
                 >
-                  Select all {totalProducts} matching products
+                  Select all {(totalProducts ?? 0).toLocaleString()} matching products
                 </Button>
               )}
             </div>
@@ -956,6 +1337,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 variant="outline"
                 onClick={() => setShowBulkActivateSelectedDialog(true)}
                 disabled={isProcessing}
+                className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
               >
                 <Power className="h-4 w-4 mr-2" />
                 Activate
@@ -965,6 +1347,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 variant="outline"
                 onClick={() => setShowBulkDeactivateSelectedDialog(true)}
                 disabled={isProcessing}
+                className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
               >
                 <PowerOff className="h-4 w-4 mr-2" />
                 Deactivate
@@ -974,19 +1357,23 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 variant="ghost"
                 onClick={handleClearSelection}
                 disabled={isProcessing}
+                className="transition-colors hover:bg-muted"
               >
                 Clear
               </Button>
             </div>
           </div>
         )}
-        <CardContent className="p-0">
+
+        <div className="p-0">
           {filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-12">
-              <Package className="h-12 w-12 text-muted-foreground/50" />
+            <div className="flex flex-col items-center gap-3 py-16">
+              <div className="p-4 rounded-full bg-muted/50">
+                <Package className="h-10 w-10 text-muted-foreground/50" />
+              </div>
               <div className="text-center">
-                <p className="font-medium">No products found</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">No products found</p>
+                <p className="text-sm text-muted-foreground mt-1">
                   {products.length === 0
                     ? "This category doesn't have any products yet"
                     : "Try adjusting your filters"}
@@ -997,39 +1384,87 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
             <>
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="w-[50px]">
                       <Checkbox
                         checked={allVisibleSelected}
                         onCheckedChange={handleToggleAllSelected}
+                        className="transition-transform hover:scale-110"
                       />
                     </TableHead>
-                    <TableHead className="font-semibold">Name</TableHead>
-                    <TableHead className="font-semibold">Code</TableHead>
-                    <TableHead className="text-right font-semibold">Price</TableHead>
-                    <TableHead className="text-center font-semibold">Stock</TableHead>
-                    <TableHead className="text-center font-semibold">Active</TableHead>
+                    <TableHead
+                      className="font-semibold cursor-pointer select-none transition-colors hover:text-primary"
+                      onClick={() => handleSort("name")}
+                    >
+                      <span className="flex items-center">
+                        Name
+                        {getSortIcon("name")}
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="font-semibold cursor-pointer select-none transition-colors hover:text-primary"
+                      onClick={() => handleSort("code")}
+                    >
+                      <span className="flex items-center">
+                        Code
+                        {getSortIcon("code")}
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="text-right font-semibold cursor-pointer select-none transition-colors hover:text-primary"
+                      onClick={() => handleSort("price")}
+                    >
+                      <span className="flex items-center justify-end">
+                        Price
+                        {getSortIcon("price")}
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="text-center font-semibold cursor-pointer select-none transition-colors hover:text-primary"
+                      onClick={() => handleSort("stock")}
+                    >
+                      <span className="flex items-center justify-center">
+                        Stock
+                        {getSortIcon("stock")}
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="text-center font-semibold cursor-pointer select-none transition-colors hover:text-primary"
+                      onClick={() => handleSort("active")}
+                    >
+                      <span className="flex items-center justify-center">
+                        Active
+                        {getSortIcon("active")}
+                      </span>
+                    </TableHead>
                     <TableHead className="text-right font-semibold w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.map((product) => (
+                  {filteredProducts.map((product, index) => (
                     <TableRow
                       key={product.id}
-                      className={`hover:bg-muted/50 transition-colors border-b ${
-                        selectedProducts.has(product.id) || selectAllMode ? "bg-accent" : ""
-                      }`}
+                      className={`
+                        transition-all duration-200
+                        hover:bg-muted/50
+                        ${selectedProducts.has(product.id) || selectAllMode ? "bg-accent/50" : ""}
+                        ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+                      `}
+                      style={{
+                        transitionDelay: rowsVisible ? `${Math.min(index * 25, 400)}ms` : "0ms",
+                      }}
                     >
                       <TableCell>
                         <Checkbox
                           checked={selectedProducts.has(product.id) || selectAllMode}
                           onCheckedChange={() => handleToggleProductSelected(product.id)}
+                          className="transition-transform hover:scale-110"
                         />
                       </TableCell>
                       <TableCell className="font-medium max-w-[300px]">
                         <Link
                           href={`/products/${product.id}`}
-                          className="hover:underline text-primary truncate block transition-colors"
+                          className="hover:underline hover:text-primary truncate block transition-colors duration-200"
                         >
                           {product.name.length > 50
                             ? `${product.name.substring(0, 50)}...`
@@ -1041,17 +1476,28 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                       </TableCell>
                       <TableCell className="text-right">
                         {product.price_min !== null ? (
-                          <span className="font-medium text-foreground">
+                          <span className="font-medium text-foreground tabular-nums">
                             {formatPrice(product.price_min)}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground text-sm">No price</span>
+                          <Badge variant="outline" className="font-normal text-muted-foreground">
+                            No price
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={product.total_stock > 0 ? "outline" : "destructive"}>
+                        <Badge
+                          variant={(product.total_stock ?? 0) > 0 ? "default" : "destructive"}
+                          className={`
+                            tabular-nums transition-all duration-200
+                            ${(product.total_stock ?? 0) > 0
+                              ? "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
+                              : "bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20"
+                            }
+                          `}
+                        >
                           <Warehouse className="h-3 w-3 mr-1" />
-                          {product.total_stock > 0 ? product.total_stock : "Out"}
+                          {(product.total_stock ?? 0) > 0 ? (product.total_stock ?? 0) : "Out"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
@@ -1059,12 +1505,17 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                           checked={product.is_active}
                           onCheckedChange={(checked) => handleToggleProductActive(product, checked)}
                           disabled={togglingProductId === product.id}
+                          className="transition-opacity hover:opacity-80"
                         />
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondary">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 transition-all duration-200 hover:bg-muted hover:scale-105"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Open menu</span>
                             </Button>
@@ -1082,7 +1533,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                                 setProductToDelete(product);
                                 setShowDeleteProductDialog(true);
                               }}
-                              className="text-destructive focus:text-destructive cursor-pointer"
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
@@ -1095,48 +1546,95 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                 </TableBody>
               </Table>
 
-              {/* Pagination Controls */}
+              {/* Enhanced Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/50">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {((currentPage - 1) * productsPerPage) + 1} to {Math.min(currentPage * productsPerPage, totalProducts)} of {totalProducts.toLocaleString()} products
+                <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t bg-muted/30 gap-4">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>
+                      Showing <span className="font-medium text-foreground">{((currentPage - 1) * pageSize) + 1}</span> to{" "}
+                      <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, totalProducts ?? 0)}</span> of{" "}
+                      <span className="font-medium text-foreground">{(totalProducts ?? 0).toLocaleString()}</span> products
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">Show:</span>
+                      <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                        <SelectTrigger className="h-8 w-[70px] text-xs transition-all duration-200 hover:bg-muted/50">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => fetchProducts(1)}
+                      disabled={currentPage === 1}
+                      className="h-8 w-8 p-0 transition-all duration-200 hover:bg-muted hover:shadow-sm"
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => fetchProducts(currentPage - 1)}
                       disabled={currentPage === 1}
+                      className="transition-all duration-200 hover:bg-muted hover:shadow-sm"
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
                     </Button>
-                    <div className="text-sm font-medium px-3 py-1 bg-card border rounded-md shadow-sm">
-                      {currentPage} / {totalPages}
+                    <div className="flex items-center gap-2 mx-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={totalPages}
+                        value={jumpToPage}
+                        onChange={(e) => setJumpToPage(e.target.value)}
+                        onKeyDown={handleJumpToPage}
+                        placeholder={currentPage.toString()}
+                        className="h-8 w-16 text-center text-xs tabular-nums transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                      />
+                      <span className="text-sm text-muted-foreground">/ {totalPages}</span>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => fetchProducts(currentPage + 1)}
                       disabled={currentPage === totalPages}
+                      className="transition-all duration-200 hover:bg-muted hover:shadow-sm"
                     >
                       Next
                       <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchProducts(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="h-8 w-8 p-0 transition-all duration-200 hover:bg-muted hover:shadow-sm"
+                    >
+                      <ChevronsRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Delete Category Dialog */}
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         title="Delete Category"
-        description={`Are you sure you want to delete "${category.name}"? This action cannot be undone and may affect ${category.child_count} child categories and ${category.total_products.toLocaleString()} products.`}
+        description={`Are you sure you want to delete "${category.name}"? This action cannot be undone and may affect ${category.child_count ?? 0} child categories and ${(category.total_products ?? 0).toLocaleString()} products.`}
         confirmLabel="Delete"
         onConfirm={handleDeleteCategory}
         variant="destructive"
@@ -1148,7 +1646,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         open={showBulkActivateDialog}
         onOpenChange={setShowBulkActivateDialog}
         title="Activate All Products"
-        description={`Are you sure you want to activate all ${category.total_products.toLocaleString()} products in "${category.name}"?`}
+        description={`Are you sure you want to activate all ${(category.total_products ?? 0).toLocaleString()} products in "${category.name}"?`}
         confirmLabel="Activate All"
         onConfirm={handleBulkActivateProducts}
         isLoading={isProcessing}
@@ -1159,7 +1657,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         open={showBulkDeactivateDialog}
         onOpenChange={setShowBulkDeactivateDialog}
         title="Deactivate All Products"
-        description={`Are you sure you want to deactivate all ${category.total_products.toLocaleString()} products in "${category.name}"?`}
+        description={`Are you sure you want to deactivate all ${(category.total_products ?? 0).toLocaleString()} products in "${category.name}"?`}
         confirmLabel="Deactivate All"
         onConfirm={handleBulkDeactivateProducts}
         variant="destructive"
@@ -1185,7 +1683,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         title="Activate Selected Products"
         description={
           selectAllMode
-            ? `Are you sure you want to activate all ${totalProducts} matching products?`
+            ? `Are you sure you want to activate all ${(totalProducts ?? 0).toLocaleString()} matching products?`
             : `Are you sure you want to activate ${selectedProducts.size} selected products?`
         }
         confirmLabel="Activate"
@@ -1200,7 +1698,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         title="Deactivate Selected Products"
         description={
           selectAllMode
-            ? `Are you sure you want to deactivate all ${totalProducts} matching products?`
+            ? `Are you sure you want to deactivate all ${(totalProducts ?? 0).toLocaleString()} matching products?`
             : `Are you sure you want to deactivate ${selectedProducts.size} selected products?`
         }
         confirmLabel="Deactivate"
@@ -1208,105 +1706,6 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         variant="destructive"
         isLoading={isProcessing}
       />
-    </div>
-  );
-}
-
-/**
- * Loading skeleton for category detail page
- */
-function CategoryDetailSkeleton() {
-  return (
-    <div className="space-y-6">
-      {/* Breadcrumb skeleton */}
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-4 w-4" />
-        <Skeleton className="h-4 w-4" />
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-4 w-4" />
-        <Skeleton className="h-4 w-24" />
-      </div>
-
-      {/* Header skeleton */}
-      <div className="flex items-start gap-4">
-        <Skeleton className="h-10 w-10 rounded-md" />
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-      </div>
-
-      {/* Stats cards skeleton */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i} className="shadow-sm">
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16" />
-              <Skeleton className="h-3 w-32 mt-2" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Info cards skeleton */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-4 w-56" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex justify-between">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <Skeleton className="h-5 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardHeader>
-              <Skeleton className="h-5 w-36" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Products table skeleton */}
-      <Card className="shadow-sm">
-        <CardHeader>
-          <Skeleton className="h-5 w-24" />
-          <Skeleton className="h-4 w-48" />
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="p-6 space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
