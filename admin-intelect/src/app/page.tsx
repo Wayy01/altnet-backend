@@ -17,8 +17,11 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
+  TrendingUp,
+  TrendingDown,
+  Activity,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -70,40 +73,67 @@ function formatRelativeTime(dateString: string): string {
   return "Just now";
 }
 
+/**
+ * Enhanced skeleton loader with staggered animations
+ */
 function DashboardSkeleton() {
   return (
-    <>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <div className="space-y-6">
+      {/* Header skeleton */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+      </div>
+
+      {/* Status card skeleton */}
+      <Skeleton className="h-20 w-full rounded-xl" />
+
+      {/* Stats cards skeleton with staggered animation */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border bg-card shadow-sm p-6 animate-pulse"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
+            <div className="flex items-center justify-between mb-4">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-16 mb-1" />
-              <Skeleton className="h-3 w-32" />
-            </CardContent>
-          </Card>
+            </div>
+            <Skeleton className="h-8 w-16 mb-2" />
+            <Skeleton className="h-3 w-32" />
+          </div>
         ))}
       </div>
+
+      {/* Bottom sections skeleton */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-40" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, j) => (
-                  <Skeleton key={j} className="h-12 w-full" />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div
+            key={i}
+            className="rounded-xl border bg-card shadow-sm p-6 animate-pulse"
+            style={{ animationDelay: `${(i + 9) * 50}ms` }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, j) => (
+                <Skeleton key={j} className="h-12 w-full" />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -111,6 +141,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [cardsVisible, setCardsVisible] = useState(false);
 
   async function fetchDashboardData(): Promise<DashboardData> {
     const [
@@ -160,6 +191,8 @@ export default function DashboardPage() {
         if (cancelled) return;
         setData(result);
         setLastUpdated(new Date());
+        // Trigger staggered card animation after data loads
+        setTimeout(() => setCardsVisible(true), 50);
       } catch (error) {
         if (cancelled) return;
         console.error("Failed to fetch dashboard data:", error);
@@ -204,6 +237,7 @@ export default function DashboardPage() {
       description: "Products in catalog",
       color: "text-primary",
       link: "/products",
+      variant: "default" as const,
     },
     {
       title: "Brands",
@@ -212,6 +246,7 @@ export default function DashboardPage() {
       description: "Active brands",
       color: "text-primary",
       link: "/brands",
+      variant: "default" as const,
     },
     {
       title: "Categories",
@@ -220,34 +255,39 @@ export default function DashboardPage() {
       description: "Product categories",
       color: "text-primary",
       link: "/categories",
+      variant: "default" as const,
     },
     {
       title: "Properties",
       value: (stats.total_properties ?? 0).toLocaleString(),
       icon: FileText,
       description: "Product specifications",
-      color: "text-primary",
+      color: "text-muted-foreground",
+      variant: "muted" as const,
     },
     {
       title: "Characteristics",
       value: (stats.total_characteristics ?? 0).toLocaleString(),
       icon: Tags,
       description: "Product variants/SKUs",
-      color: "text-primary",
+      color: "text-muted-foreground",
+      variant: "muted" as const,
     },
     {
       title: "Prices",
       value: (stats.total_prices ?? 0).toLocaleString(),
       icon: DollarSign,
       description: "Price entries",
-      color: "text-primary",
+      color: "text-muted-foreground",
+      variant: "muted" as const,
     },
     {
       title: "Stock Entries",
       value: (stats.total_stock ?? 0).toLocaleString(),
       icon: Warehouse,
       description: "Stock records",
-      color: "text-primary",
+      color: "text-muted-foreground",
+      variant: "muted" as const,
     },
     {
       title: "In Stock",
@@ -256,6 +296,7 @@ export default function DashboardPage() {
       description: "Products available",
       color: "text-primary",
       link: "/products?stock_filter=in_stock",
+      variant: "success" as const,
     },
     {
       title: "Low Stock",
@@ -264,13 +305,14 @@ export default function DashboardPage() {
       description: "Products with <= 5 stock",
       color: "text-destructive",
       link: "/products?stock_filter=low_stock",
+      variant: "warning" as const,
     },
   ];
 
   return (
     <div className="space-y-6">
       {/* Header with Quick Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
@@ -282,19 +324,33 @@ export default function DashboardPage() {
             Last updated: {lastUpdated.toLocaleTimeString()}
           </p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+            >
               <Link href="/sync">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Sync Status
               </Link>
             </Button>
-            <Button variant="outline" size="sm" asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+            >
               <Link href="/products?stock_filter=low_stock">
                 <AlertTriangle className="mr-2 h-4 w-4" />
                 Low Stock
               </Link>
             </Button>
-            <Button size="sm" asChild>
+            <Button
+              size="sm"
+              asChild
+              className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+            >
               <Link href="/products">
                 <Package className="mr-2 h-4 w-4" />
                 Products
@@ -306,104 +362,198 @@ export default function DashboardPage() {
 
       {/* System Status Card */}
       {latestSync && (
-        <Card className={latestSync.status === "completed" ? "border-primary" : "border-destructive"}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              System Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Last sync: {formatRelativeTime(latestSync.started_at)} •{" "}
-              {(
-                (latestSync.products_synced ?? 0) +
-                (latestSync.brands_synced ?? 0) +
-                (latestSync.categories_synced ?? 0)
-              ).toLocaleString()}{" "}
-              items • Duration: {formatDuration(latestSync.duration_seconds)}
-            </p>
-          </CardContent>
-        </Card>
+        <div
+          className={`
+            rounded-xl border shadow-sm p-4 transition-all duration-300
+            ${latestSync.status === "completed"
+              ? "bg-primary/5 border-primary/20"
+              : latestSync.status === "failed"
+              ? "bg-destructive/5 border-destructive/20"
+              : "bg-muted/50 border-border"
+            }
+            ${cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+          `}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`
+                p-2 rounded-lg
+                ${latestSync.status === "completed"
+                  ? "bg-primary/10"
+                  : latestSync.status === "failed"
+                  ? "bg-destructive/10"
+                  : "bg-muted"
+                }
+              `}>
+                {latestSync.status === "completed" ? (
+                  <Activity className="h-5 w-5 text-primary" />
+                ) : latestSync.status === "failed" ? (
+                  <XCircle className="h-5 w-5 text-destructive" />
+                ) : (
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  System Status
+                  <Badge
+                    variant={latestSync.status === "completed" ? "default" : "destructive"}
+                    className={`text-xs ${
+                      latestSync.status === "completed"
+                        ? "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
+                        : "bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20"
+                    }`}
+                  >
+                    {latestSync.status === "completed" ? "Healthy" : "Issues Detected"}
+                  </Badge>
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Last sync: {formatRelativeTime(latestSync.started_at)} | {" "}
+                  {(
+                    (latestSync.products_synced ?? 0) +
+                    (latestSync.brands_synced ?? 0) +
+                    (latestSync.categories_synced ?? 0)
+                  ).toLocaleString()}{" "}
+                  items synced | Duration: {formatDuration(latestSync.duration_seconds)}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+            >
+              <Link href="/sync">
+                View Details
+                <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* Stat Cards */}
+      {/* Stat Cards - Enhanced with premium styling */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {statCards.map((stat) =>
-          stat.link ? (
-            <Link
+        {statCards.map((stat, index) => {
+          const CardWrapper = stat.link ? Link : "div";
+          const cardProps = stat.link ? { href: stat.link } : {};
+
+          return (
+            <CardWrapper
               key={stat.title}
-              href={stat.link}
-              className="block transition-transform hover:scale-105"
+              {...cardProps}
+              className={`
+                block rounded-xl border bg-card shadow-sm overflow-hidden
+                transition-all duration-200 ease-out
+                ${stat.link ? "cursor-pointer hover:shadow-md hover:-translate-y-1" : ""}
+                ${stat.variant === "success" ? "border-primary/20 hover:border-primary/40" : ""}
+                ${stat.variant === "warning" ? "border-destructive/20 hover:border-destructive/40" : ""}
+                ${cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+              `}
+              style={{
+                transitionDelay: cardsVisible ? `${Math.min(index * 30, 300)}ms` : "0ms",
+              }}
             >
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-muted-foreground">
                     {stat.title}
-                  </CardTitle>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {stat.description}
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          ) : (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.title}
-                </CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground">
+                  </span>
+                  <div className={`
+                    p-1.5 rounded-lg transition-colors
+                    ${stat.variant === "success" ? "bg-primary/10" : ""}
+                    ${stat.variant === "warning" ? "bg-destructive/10" : ""}
+                    ${stat.variant === "default" || stat.variant === "muted" ? "bg-muted" : ""}
+                  `}>
+                    <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold tabular-nums">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">
                   {stat.description}
                 </p>
-              </CardContent>
-            </Card>
-          )
-        )}
+              </div>
+              {stat.link && (
+                <div className="px-6 py-2 bg-muted/30 border-t">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    View all
+                    <ExternalLink className="h-3 w-3" />
+                  </span>
+                </div>
+              )}
+            </CardWrapper>
+          );
+        })}
       </div>
 
       {/* Three Column Grid: Recent Syncs, Low Stock, Stock Summary */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Recent Sync Activity */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Recent Syncs
-            </CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/sync">
-                View All
-                <ExternalLink className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300
+            ${cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+          `}
+          style={{ transitionDelay: cardsVisible ? "350ms" : "0ms" }}
+        >
+          <div className="p-6 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-muted">
+                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h3 className="font-semibold">Recent Syncs</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-xs transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+              >
+                <Link href="/sync">
+                  View All
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          <div className="p-4">
             {recentSyncs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No sync activity recorded yet.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <RefreshCw className="h-6 w-6 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  No sync activity recorded yet.
+                </p>
+              </div>
             ) : (
               <div className="space-y-3">
-                {recentSyncs.map((sync) => (
+                {recentSyncs.map((sync, index) => (
                   <div
                     key={sync.id}
-                    className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0"
+                    className={`
+                      flex items-center justify-between p-3 rounded-lg border
+                      transition-all duration-200 hover:bg-muted/50
+                      ${index !== recentSyncs.length - 1 ? "" : ""}
+                    `}
                   >
-                    <div className="flex items-center gap-2">
-                      {sync.status === "completed" ? (
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-destructive" />
-                      )}
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        p-1.5 rounded-full
+                        ${sync.status === "completed"
+                          ? "bg-primary/10"
+                          : "bg-destructive/10"
+                        }
+                      `}>
+                        {sync.status === "completed" ? (
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        )}
+                      </div>
                       <div>
                         <p className="text-sm font-medium">{sync.sync_type}</p>
                         <p className="text-xs text-muted-foreground">
@@ -429,193 +579,281 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Low Stock Alerts */}
-        <Card className="border-destructive/50">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              Low Stock Alerts
-              {lowStockAlerts.length > 0 && (
-                <Badge variant="destructive">{lowStockAlerts.length}</Badge>
-              )}
-            </CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/products?stock_filter=low_stock">
-                View All
-                <ExternalLink className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
+        <div
+          className={`
+            rounded-xl border shadow-sm overflow-hidden
+            transition-all duration-300
+            ${lowStockAlerts.length > 0
+              ? "bg-destructive/5 border-destructive/20"
+              : "bg-card border-border"
+            }
+            ${cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+          `}
+          style={{ transitionDelay: cardsVisible ? "400ms" : "0ms" }}
+        >
+          <div className="p-6 border-b border-destructive/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`
+                  p-1.5 rounded-lg
+                  ${lowStockAlerts.length > 0 ? "bg-destructive/10" : "bg-muted"}
+                `}>
+                  <AlertTriangle className={`h-4 w-4 ${lowStockAlerts.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+                </div>
+                <h3 className="font-semibold">Low Stock Alerts</h3>
+                {lowStockAlerts.length > 0 && (
+                  <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
+                    {lowStockAlerts.length}
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-xs transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Link href="/products?stock_filter=low_stock">
+                  View All
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          <div className="p-4">
             {lowStockAlerts.length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                All products have adequate stock levels
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="p-3 rounded-full bg-primary/10 mb-3">
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-foreground">All Clear</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  All products have adequate stock levels
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {lowStockAlerts.slice(0, 5).map((product) => (
-                  <div
+                  <Link
                     key={product.id}
-                    className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0"
+                    href={`/products/${product.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg border border-destructive/10 hover:bg-destructive/5 transition-all duration-200"
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium line-clamp-1">
                         {product.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {product.code}
-                        {product.brand_name && ` - ${product.brand_name}`}
+                        {product.brand_name && ` | ${product.brand_name}`}
                       </p>
                     </div>
                     <Badge
-                      variant={
-                        product.total_stock <= 2 ? "destructive" : "secondary"
-                      }
+                      variant={product.total_stock <= 2 ? "destructive" : "secondary"}
+                      className={`ml-2 shrink-0 ${
+                        product.total_stock <= 2
+                          ? "bg-destructive/10 text-destructive border-destructive/20"
+                          : ""
+                      }`}
                     >
                       {product.total_stock} left
                     </Badge>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Top Categories by Stock */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Warehouse className="h-4 w-4" />
-              Top Categories
-            </CardTitle>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/categories">
-                View All
-                <ExternalLink className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300
+            ${cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+          `}
+          style={{ transitionDelay: cardsVisible ? "450ms" : "0ms" }}
+        >
+          <div className="p-6 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-muted">
+                  <Warehouse className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h3 className="font-semibold">Top Categories</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-xs transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+              >
+                <Link href="/categories">
+                  View All
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          <div className="p-4">
             {stockSummary.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No stock data available.
-              </p>
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="p-3 rounded-full bg-muted/50 mb-3">
+                  <Warehouse className="h-6 w-6 text-muted-foreground/50" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  No stock data available.
+                </p>
+              </div>
             ) : (
               <div className="space-y-3">
                 {stockSummary.slice(0, 5).map((category) => (
-                  <div
+                  <Link
                     key={category.id}
-                    className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0"
+                    href={`/categories/${category.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-all duration-200"
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium line-clamp-1">
                         {category.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {category.product_count} products • Avg:{" "}
+                        {category.product_count} products | Avg:{" "}
                         {category.avg_price.toFixed(2)} MDL
                       </p>
                     </div>
-                    <Badge variant="secondary">
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 shrink-0 bg-primary/10 text-primary border-primary/20"
+                    >
                       {category.total_stock.toLocaleString()}
                     </Badge>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Price Distribution Widget */}
       {priceSummary && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Price Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300
+            ${cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+          `}
+          style={{ transitionDelay: cardsVisible ? "500ms" : "0ms" }}
+        >
+          <div className="p-6 border-b">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-muted">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold">Price Distribution</h3>
+            </div>
+          </div>
+          <div className="p-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Under 100 MDL</p>
+              <div className="p-4 rounded-lg bg-muted/30 border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm">
+                <p className="text-sm text-muted-foreground mb-1">Under 100 MDL</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">
+                  <span className="text-2xl font-bold tabular-nums">
                     {priceSummary.distribution.under_100.toLocaleString()}
                   </span>
                   <span className="text-xs text-muted-foreground">products</span>
                 </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">100 - 500 MDL</p>
+              <div className="p-4 rounded-lg bg-muted/30 border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm">
+                <p className="text-sm text-muted-foreground mb-1">100 - 500 MDL</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">
+                  <span className="text-2xl font-bold tabular-nums">
                     {priceSummary.distribution["100_to_500"].toLocaleString()}
                   </span>
                   <span className="text-xs text-muted-foreground">products</span>
                 </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">500 - 1,000 MDL</p>
+              <div className="p-4 rounded-lg bg-muted/30 border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm">
+                <p className="text-sm text-muted-foreground mb-1">500 - 1,000 MDL</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">
+                  <span className="text-2xl font-bold tabular-nums">
                     {priceSummary.distribution["500_to_1000"].toLocaleString()}
                   </span>
                   <span className="text-xs text-muted-foreground">products</span>
                 </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Over 1,000 MDL</p>
+              <div className="p-4 rounded-lg bg-muted/30 border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm">
+                <p className="text-sm text-muted-foreground mb-1">Over 1,000 MDL</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">
+                  <span className="text-2xl font-bold tabular-nums">
                     {priceSummary.distribution.over_1000.toLocaleString()}
                   </span>
                   <span className="text-xs text-muted-foreground">products</span>
                 </div>
               </div>
             </div>
-            <Separator className="my-4" />
+            <Separator className="my-6" />
             <div className="grid gap-4 md:grid-cols-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Min Price</p>
-                <p className="text-lg font-semibold">
-                  {priceSummary.min_price !== null
-                    ? `${priceSummary.min_price.toFixed(2)} MDL`
-                    : "N/A"}
-                </p>
+              <div className="flex items-center gap-3 p-3 rounded-lg border">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <TrendingDown className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Min Price</p>
+                  <p className="text-lg font-semibold tabular-nums">
+                    {priceSummary.min_price !== null
+                      ? `${priceSummary.min_price.toFixed(2)} MDL`
+                      : "N/A"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Max Price</p>
-                <p className="text-lg font-semibold">
-                  {priceSummary.max_price !== null
-                    ? `${priceSummary.max_price.toFixed(2)} MDL`
-                    : "N/A"}
-                </p>
+              <div className="flex items-center gap-3 p-3 rounded-lg border">
+                <div className="p-2 rounded-lg bg-destructive/10">
+                  <TrendingUp className="h-4 w-4 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Max Price</p>
+                  <p className="text-lg font-semibold tabular-nums">
+                    {priceSummary.max_price !== null
+                      ? `${priceSummary.max_price.toFixed(2)} MDL`
+                      : "N/A"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Average Price</p>
-                <p className="text-lg font-semibold">
-                  {priceSummary.avg_price !== null
-                    ? `${priceSummary.avg_price.toFixed(2)} MDL`
-                    : "N/A"}
-                </p>
+              <div className="flex items-center gap-3 p-3 rounded-lg border">
+                <div className="p-2 rounded-lg bg-muted">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Average Price</p>
+                  <p className="text-lg font-semibold tabular-nums">
+                    {priceSummary.avg_price !== null
+                      ? `${priceSummary.avg_price.toFixed(2)} MDL`
+                      : "N/A"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Median Price</p>
-                <p className="text-lg font-semibold">
-                  {priceSummary.median_price !== null
-                    ? `${priceSummary.median_price.toFixed(2)} MDL`
-                    : "N/A"}
-                </p>
+              <div className="flex items-center gap-3 p-3 rounded-lg border">
+                <div className="p-2 rounded-lg bg-muted">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Median Price</p>
+                  <p className="text-lg font-semibold tabular-nums">
+                    {priceSummary.median_price !== null
+                      ? `${priceSummary.median_price.toFixed(2)} MDL`
+                      : "N/A"}
+                  </p>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );
