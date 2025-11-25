@@ -20,15 +20,17 @@ type SelectiveSync struct {
 	syncConfigRepo *repository.SyncConfigRepository
 	realtimeRepo  *repository.RealtimeSyncRepository
 	fetcher       *ultra.Fetcher
+	syncManager   *SyncManager // Manages active syncs for cancellation
 }
 
 // NewSelectiveSync creates a new selective sync instance
-func NewSelectiveSync(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher) *SelectiveSync {
+func NewSelectiveSync(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher, syncManager *SyncManager) *SelectiveSync {
 	return &SelectiveSync{
 		repo:          repo,
 		syncConfigRepo: syncConfigRepo,
 		realtimeRepo:  repository.NewRealtimeSyncRepository(repo.Pool()),
 		fetcher:       fetcher,
+		syncManager:   syncManager,
 	}
 }
 
@@ -63,8 +65,17 @@ func (s *SelectiveSync) ExecuteSelectiveSync(ctx context.Context, request *model
 	}
 
 	startTime := time.Now()
+
+	// Use pre-set sync ID if provided (for async execution), otherwise generate new one
+	var syncLogID uuid.UUID
+	if request.SyncLogID != nil {
+		syncLogID = *request.SyncLogID
+	} else {
+		syncLogID = uuid.New()
+	}
+
 	result := &SyncResult{
-		SyncLogID:   uuid.New(),
+		SyncLogID:   syncLogID,
 		StepResults: make(map[models.SyncStep]*StepResult),
 		Errors:      make([]string, 0),
 	}
@@ -75,6 +86,26 @@ func (s *SelectiveSync) ExecuteSelectiveSync(ctx context.Context, request *model
 		return nil, fmt.Errorf("failed to create sync log: %w", err)
 	}
 	result.SyncLogID = syncLog.ID
+
+	// Register sync with manager for cancellation support
+	// This creates a new cancellable context
+	syncCtx, syncCancel := s.syncManager.RegisterSync(result.SyncLogID, "selective")
+	defer syncCancel() // Ensure cleanup when sync completes
+
+	// Merge with original context to respect both parent cancellation and sync-specific cancellation
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Monitor both contexts
+	go func() {
+		select {
+		case <-syncCtx.Done():
+			log.Printf("Sync %s: Cancellation requested via SyncManager", result.SyncLogID)
+			cancel() // Cancel the main context
+		case <-ctx.Done():
+			// Original context cancelled, nothing to do
+		}
+	}()
 
 	// Log sync start
 	stepNames := make([]string, len(request.SelectedSteps))
@@ -193,10 +224,32 @@ func (s *SelectiveSync) ExecuteSelectiveSync(ctx context.Context, request *model
 
 	result.Duration = time.Since(startTime)
 
-	// Update final sync log status
+	// Determine final sync log status
 	status := "completed"
-	if len(result.Errors) > 0 {
-		status = "failed"
+
+	// Check if sync was cancelled
+	select {
+	case <-ctx.Done():
+		if ctx.Err() == context.Canceled {
+			status = "cancelled"
+
+			// Check if it was user-initiated cancellation via SyncManager
+			if activeSync, exists := s.syncManager.GetActiveSync(result.SyncLogID); exists && activeSync.IsCancelled {
+				cancelReason := activeSync.Reason
+				if cancelReason == "" {
+					cancelReason = "Sync cancelled by user"
+				}
+				result.Errors = append(result.Errors, cancelReason)
+				log.Printf("Sync %s was cancelled: %s", result.SyncLogID, cancelReason)
+			} else {
+				result.Errors = append(result.Errors, "Sync cancelled")
+			}
+		}
+	default:
+		// Not cancelled, determine status based on errors
+		if len(result.Errors) > 0 {
+			status = "failed"
+		}
 	}
 
 	// CRITICAL: Use retry logic to ensure sync status is updated
@@ -393,18 +446,36 @@ func (s *SelectiveSync) createSyncLog(ctx context.Context, syncLogID uuid.UUID, 
 
 // updateSyncProgress updates sync progress for a step
 func (s *SelectiveSync) updateSyncProgress(ctx context.Context, syncLogID uuid.UUID, step models.SyncStep, stepResult *StepResult) error {
-	// Update sync_step_details table
+	// Update sync_step_details table with completed status and 100% progress
 	query := `
 		INSERT INTO sync_step_details (
-			sync_log_id, step_number, step_name, extracted, inserted, updated, failed
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			sync_log_id, step_number, step_name, status, progress_percentage,
+			items_total, items_processed, extracted, inserted, updated, failed, completed_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+		ON CONFLICT (sync_log_id, step_number)
+		DO UPDATE SET
+			status = EXCLUDED.status,
+			progress_percentage = EXCLUDED.progress_percentage,
+			items_total = EXCLUDED.items_total,
+			items_processed = EXCLUDED.items_processed,
+			extracted = EXCLUDED.extracted,
+			inserted = EXCLUDED.inserted,
+			updated = EXCLUDED.updated,
+			failed = EXCLUDED.failed,
+			completed_at = EXCLUDED.completed_at,
+			last_updated_at = NOW()
 	`
 
 	stepNumber := getStepNumber(step)
+	totalItems := stepResult.Extracted
 	_, err := s.repo.Pool().Exec(ctx, query,
 		syncLogID,
 		stepNumber,
 		string(step),
+		"completed",         // status
+		100.0,              // progress_percentage
+		totalItems,         // items_total
+		totalItems,         // items_processed (all items are processed when step completes)
 		stepResult.Extracted,
 		stepResult.Inserted,
 		stepResult.Updated,

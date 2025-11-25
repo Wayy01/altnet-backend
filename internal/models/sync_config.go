@@ -76,6 +76,7 @@ type FieldChange struct {
 
 // SelectiveSyncRequest represents a request to perform a selective sync
 type SelectiveSyncRequest struct {
+	SyncLogID        *uuid.UUID               `json:"sync_log_id,omitempty"` // Pre-set sync ID for async execution
 	SelectedSteps    []SyncStep               `json:"selected_steps"`
 	FieldConfig      map[SyncStep]FieldConfig `json:"field_config,omitempty"`
 	SaveAsTemplate   bool                     `json:"save_as_template,omitempty"`

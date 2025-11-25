@@ -26,18 +26,20 @@ type Handler struct {
 	syncConfigRepo *repository.SyncConfigRepository
 	fetcher        *ultra.Fetcher
 	selectiveSync  *internalSync.SelectiveSync
+	syncManager    *internalSync.SyncManager // Manages active syncs
 	syncMutex      sync.Mutex // Global lock to prevent concurrent syncs
 }
 
 // New creates a new Handler instance
-func New(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher) *Handler {
-	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher)
+func New(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher, syncManager *internalSync.SyncManager) *Handler {
+	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher, syncManager)
 
 	return &Handler{
 		repo:           repo,
 		syncConfigRepo: syncConfigRepo,
 		fetcher:        fetcher,
 		selectiveSync:  selectiveSync,
+		syncManager:    syncManager,
 		syncMutex:      sync.Mutex{},
 	}
 }
@@ -2899,51 +2901,58 @@ func (h *Handler) ExecuteSelectiveSync(w http.ResponseWriter, r *http.Request) {
 		h.respondError(w, http.StatusConflict, "A sync operation is already in progress", "Please wait for the current sync to complete before starting a new one")
 		return
 	}
-	defer h.syncMutex.Unlock()
+	// NOTE: Lock will be released in the goroutine when sync completes
 
 	log.Printf("[%s] Sync lock acquired successfully", requestID)
 	log.Printf("============================================")
 
 	var request models.SelectiveSyncRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		h.syncMutex.Unlock() // Release lock on error
 		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 
 	log.Printf("[%s] Executing selective sync with steps: %v", requestID, request.SelectedSteps)
 
-	// Execute selective sync
-	result, err := h.selectiveSync.ExecuteSelectiveSync(r.Context(), &request)
-	if err != nil {
-		log.Printf("[%s] Sync failed with error: %v", requestID, err)
-		h.respondError(w, http.StatusInternalServerError, "Selective sync execution failed", err.Error())
-		return
-	}
+	// IMPORTANT: Create sync ID and set it in the request so ExecuteSelectiveSync uses it
+	syncLogID := uuid.New()
+	request.SyncLogID = &syncLogID
 
-	log.Printf("[%s] Sync completed successfully (ID: %s)", requestID, result.SyncLogID)
+	// Start sync asynchronously to avoid HTTP timeout (syncs can take 10+ minutes)
+	// The frontend will monitor progress via SSE streams at /api/v1/sync/stream/progress
+	go func() {
+		// Use background context since the HTTP request context will be canceled
+		// when we return the response
+		bgCtx := context.Background()
 
-	// Build response
+		log.Printf("[%s] Starting async sync execution (ID: %s)", requestID, syncLogID)
+
+		// Execute the sync - this may take many minutes
+		_, err := h.selectiveSync.ExecuteSelectiveSync(bgCtx, &request)
+
+		// Release the sync lock when done
+		h.syncMutex.Unlock()
+
+		if err != nil {
+			log.Printf("[%s] Async sync failed (ID: %s): %v", requestID, syncLogID, err)
+		} else {
+			log.Printf("[%s] Async sync completed successfully (ID: %s)", requestID, syncLogID)
+		}
+	}()
+
+	// Return immediately with 202 Accepted
+	log.Printf("[%s] Sync started successfully (ID: %s), returning 202 Accepted", requestID, syncLogID)
+
+	// Build response - return immediately while sync runs in background
 	response := map[string]interface{}{
-		"sync_log_id": result.SyncLogID,
-		"status":      getStatusFromResult(result),
-		"duration":    result.Duration.Seconds(),
-		"stats": map[string]interface{}{
-			"total_changes": result.TotalChanges,
-			"steps":         len(result.StepResults),
-		},
-		"step_results": buildStepResultsSummary(result.StepResults),
+		"sync_log_id": syncLogID,
+		"status":      "running",
+		"message":     "Sync started successfully. Monitor progress at /api/v1/sync/stream/progress",
 	}
 
-	if len(result.Errors) > 0 {
-		response["errors"] = result.Errors
-	}
-
-	statusCode := http.StatusOK
-	if len(result.Errors) > 0 {
-		statusCode = http.StatusPartialContent
-	}
-
-	h.respondJSON(w, statusCode, response)
+	// Return HTTP 202 Accepted to indicate async processing
+	h.respondJSON(w, http.StatusAccepted, response)
 }
 
 // getStatusFromResult determines the overall status from sync result
