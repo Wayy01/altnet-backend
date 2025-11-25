@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/api";
-import { ProductGrouping, ProductVariant, DeletionImpact } from "@/types";
+import { ProductGrouping, ProductVariant } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -21,6 +22,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Package,
   DollarSign,
   Layers,
@@ -28,10 +31,33 @@ import {
   Trash2,
   Loader2,
   Image as ImageIcon,
+  X,
+  Home,
+  Tag,
+  Warehouse,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
-import { GroupingBreadcrumb } from "@/components/groupings/GroupingBreadcrumb";
-import { GroupingStatsCards } from "@/components/groupings/GroupingStatsCards";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { DeleteConfirmDialog } from "@/components/properties/DeleteConfirmDialog";
+
+/**
+ * Stat indicator item configuration
+ */
+interface StatIndicator {
+  label: string;
+  value: number | string;
+  suffix?: string;
+  icon?: React.ReactNode;
+  variant?: "default" | "success" | "warning" | "muted";
+}
 
 export default function ProductGroupingDetailPage() {
   const params = useParams();
@@ -43,11 +69,16 @@ export default function ProductGroupingDetailPage() {
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [loading, setLoading] = useState(true);
   const [variantsLoading, setVariantsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [limit] = useState(50);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [jumpToPage, setJumpToPage] = useState("");
+
+  // Animation state for staggered row reveals
+  const [rowsVisible, setRowsVisible] = useState(false);
 
   // Deletion state
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -88,8 +119,9 @@ export default function ProductGroupingDetailPage() {
   const fetchVariants = useCallback(async () => {
     try {
       setVariantsLoading(true);
-      const offset = currentPage * limit;
-      const response = await api.getProductVariants(groupId, limit, offset, search || undefined);
+      setRowsVisible(false);
+      const offset = (currentPage - 1) * limit;
+      const response = await api.getGroupingVariants(groupId, limit, offset, search || undefined);
       setVariants(response.data || []);
       setTotalCount(response.total || 0);
 
@@ -115,10 +147,14 @@ export default function ProductGroupingDetailPage() {
           priceRange,
         });
       }
+
+      // Trigger staggered row animation after data loads
+      setTimeout(() => setRowsVisible(true), 50);
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch variants");
     } finally {
       setVariantsLoading(false);
+      setIsSearching(false);
     }
   }, [groupId, currentPage, limit, search]);
 
@@ -132,14 +168,21 @@ export default function ProductGroupingDetailPage() {
 
   // Handle search
   const handleSearch = () => {
+    setIsSearching(true);
     setSearch(searchInput);
-    setCurrentPage(0);
+    setCurrentPage(1);
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleSearch();
     }
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    setSearch("");
+    setCurrentPage(1);
   };
 
   // Handle delete
@@ -163,18 +206,49 @@ export default function ProductGroupingDetailPage() {
 
   // Pagination
   const totalPages = Math.ceil(totalCount / limit);
-  const canGoPrev = currentPage > 0;
-  const canGoNext = currentPage < totalPages - 1;
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleJumpToPage = () => {
+    const pageNum = parseInt(jumpToPage, 10);
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+      handlePageChange(pageNum);
+      setJumpToPage("");
+    }
+  };
+
+  // Stats indicators configuration
+  const statsIndicators: StatIndicator[] = [
+    {
+      label: "Total Variants",
+      value: stats.totalVariants.toLocaleString(),
+      icon: <Layers className="h-3.5 w-3.5" />,
+      variant: "default",
+    },
+    {
+      label: "Active",
+      value: stats.activeVariants,
+      icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+      variant: stats.activeVariants > 0 ? "success" : "muted",
+    },
+    {
+      label: "Total Stock",
+      value: stats.totalStock.toLocaleString(),
+      icon: <Warehouse className="h-3.5 w-3.5" />,
+      variant: stats.totalStock > 0 ? "success" : "warning",
+    },
+    {
+      label: "Price Range",
+      value: stats.priceRange,
+      icon: <DollarSign className="h-3.5 w-3.5" />,
+      variant: "muted",
+    },
+  ];
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading group details...</p>
-        </div>
-      </div>
-    );
+    return <GroupingDetailSkeleton />;
   }
 
   if (!group) {
@@ -182,20 +256,57 @@ export default function ProductGroupingDetailPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+    <div className="space-y-6">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/" className="flex items-center">
+                <Home className="h-4 w-4" />
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/groupings">Groupings</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{group.name}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-4">
           <Button
             variant="outline"
-            size="sm"
-            onClick={() => router.push("/groupings")}
+            size="icon"
+            asChild
+            className="shrink-0 mt-1 transition-all duration-200 hover:bg-muted hover:shadow-sm hover:-translate-y-0.5"
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Groups
+            <Link href="/groupings">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{group.name}</h1>
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-3xl font-bold tracking-tight">{group.name}</h1>
+              <Badge
+                variant={group.is_active ? "default" : "secondary"}
+                className={`transition-colors ${
+                  group.is_active
+                    ? "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
+                    : ""
+                }`}
+              >
+                {group.is_active ? "Active" : "Inactive"}
+              </Badge>
+            </div>
             <p className="text-muted-foreground">
               Product variants for this grouping
             </p>
@@ -203,213 +314,347 @@ export default function ProductGroupingDetailPage() {
         </div>
       </div>
 
-      {/* Breadcrumb */}
-      <GroupingBreadcrumb
-        currentLevel={2}
-        groupId={groupId}
-        groupName={group.name}
-      />
-
       {/* Group Info Card */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Code</p>
-              <p className="font-medium">{group.code || group.article || "-"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Brand</p>
-              <p className="font-medium">{group.brand_name || "-"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Category</p>
-              <p className="font-medium">{group.category_name || "-"}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Status</p>
-              <Badge
-                variant={group.is_active ? "default" : "secondary"}
-                className={group.is_active ? "bg-green-500" : ""}
-              >
-                {group.is_active ? "Active" : "Inactive"}
-              </Badge>
+      <div className="rounded-xl border bg-card shadow-sm p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Code</p>
+            <p className="font-medium">{group.code || group.article || "-"}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Brand</p>
+            <p className="font-medium">{group.brand_name || "-"}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Category</p>
+            <p className="font-medium">{group.category_name || "-"}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</p>
+            <div className="flex items-center gap-2">
+              {group.is_active ? (
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+              ) : (
+                <XCircle className="h-4 w-4 text-destructive" />
+              )}
+              <span className="font-medium">{group.is_active ? "Active" : "Inactive"}</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Stats Cards */}
-      <GroupingStatsCards
-        stats={[
-          { label: "Total Variants", value: stats.totalVariants, icon: Layers },
-          { label: "Active Variants", value: stats.activeVariants, icon: Package },
-          { label: "Total Stock", value: stats.totalStock, icon: Package },
-          { label: "Price Range", value: stats.priceRange, icon: DollarSign },
-        ]}
-      />
-
-      {/* Search */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search variants..."
-                className="pl-9"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyPress={handleSearchKeyPress}
-              />
+      <div className="space-y-4">
+        {/* Stats Bar - Enhanced with hover effects and better visual hierarchy */}
+        <div className="flex flex-wrap items-center gap-3">
+          {statsIndicators.map((stat, index) => (
+            <div
+              key={stat.label}
+              className={`
+                inline-flex items-center gap-2 px-3 py-2 rounded-lg border
+                transition-all duration-200 ease-out
+                hover:shadow-sm hover:border-border/80 hover:-translate-y-0.5
+                ${stat.variant === "success" ? "bg-primary/5 border-primary/20 hover:bg-primary/10" : ""}
+                ${stat.variant === "warning" ? "bg-destructive/5 border-destructive/20 hover:bg-destructive/10" : ""}
+                ${stat.variant === "default" || stat.variant === "muted" ? "bg-muted/50" : ""}
+              `}
+              style={{
+                animationDelay: `${index * 50}ms`,
+              }}
+            >
+              {stat.icon && (
+                <span className={`
+                  ${stat.variant === "success" ? "text-primary" : ""}
+                  ${stat.variant === "warning" ? "text-destructive" : ""}
+                  ${stat.variant === "default" || stat.variant === "muted" ? "text-muted-foreground" : ""}
+                `}>
+                  {stat.icon}
+                </span>
+              )}
+              <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
+              <span className="text-sm font-semibold tabular-nums">{stat.value}</span>
+              {stat.suffix && (
+                <span className="text-[10px] text-muted-foreground">({stat.suffix})</span>
+              )}
             </div>
-            <Button onClick={handleSearch}>Search</Button>
-            {search && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSearchInput("");
-                  setSearch("");
-                  setCurrentPage(0);
-                }}
+          ))}
+        </div>
+
+        {/* Search Bar */}
+        <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border bg-card/50 shadow-sm">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search variants..."
+              className="pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyPress={handleSearchKeyPress}
+            />
+            {isSearching && (
+              <Loader2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+            )}
+            {searchInput && !isSearching && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors"
               >
-                Clear
-              </Button>
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
             )}
           </div>
-        </CardContent>
-      </Card>
+          <Button
+            onClick={handleSearch}
+            className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+          >
+            Search
+          </Button>
+          {search && (
+            <Badge
+              variant="secondary"
+              className="
+                pl-2.5 pr-1.5 py-1 gap-1.5
+                bg-primary/10 text-primary border-primary/20
+                hover:bg-primary/15 transition-all duration-200
+              "
+            >
+              <span className="text-xs font-normal text-primary/70">Search:</span>
+              <span className="text-xs font-medium max-w-[150px] truncate">"{search}"</span>
+              <button
+                onClick={handleClearSearch}
+                className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+        </div>
 
-      {/* Variants Table */}
-      <Card>
-        <CardContent className="pt-6">
+        {/* Variants Table - Enhanced with premium styling */}
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
           {variantsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                <p className="mt-2 text-sm text-muted-foreground">Loading variants...</p>
-              </div>
-            </div>
+            <VariantsTableSkeleton />
           ) : variants.length === 0 ? (
-            <div className="text-center py-8">
-              <Layers className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium">No variants found</p>
-              <p className="text-sm text-muted-foreground">
-                {search ? "Try adjusting your search" : "No variants available"}
-              </p>
+            <div className="flex flex-col items-center justify-center gap-3 py-16">
+              <div className="p-4 rounded-full bg-muted/50">
+                <Layers className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-foreground">No variants found</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {search ? "Try adjusting your search to find what you're looking for" : "No variants available for this group"}
+                </p>
+              </div>
+              {search && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearSearch}
+                  className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                >
+                  <X className="h-4 w-4 mr-1.5" />
+                  Clear search
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Image</TableHead>
-                    <TableHead>Variant Name</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead className="text-right">Price (MDL)</TableHead>
-                    <TableHead className="text-right">Stock</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {variants.map((variant) => (
-                    <TableRow key={variant.id}>
-                      <TableCell>
-                        {variant.main_image_url ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="w-[60px]">Image</TableHead>
+                  <TableHead>Variant Name</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead className="text-right">Price (MDL)</TableHead>
+                  <TableHead className="text-right">Stock</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-right w-[80px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {variants.map((variant, index) => (
+                  <TableRow
+                    key={variant.id}
+                    className={`
+                      transition-all duration-200
+                      hover:bg-muted/50
+                      ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+                    `}
+                    style={{
+                      transitionDelay: rowsVisible ? `${Math.min(index * 20, 400)}ms` : "0ms",
+                    }}
+                  >
+                    <TableCell>
+                      {variant.main_image_url ? (
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border bg-muted transition-transform duration-200 hover:scale-105">
                           <img
                             src={variant.main_image_url}
                             alt={variant.name}
-                            className="w-12 h-12 object-cover rounded"
+                            className="w-full h-full object-cover"
                           />
-                        ) : (
-                          <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
-                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {variant.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {variant.code || variant.article || "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {variant.price_mdl !== null ? (
-                          <span>{variant.price_mdl.toFixed(2)}</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <span>{variant.total_stock.toLocaleString()}</span>
-                          {variant.is_in_stock && (
-                            <Badge variant="default" className="text-xs bg-green-500">
-                              In Stock
-                            </Badge>
-                          )}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={variant.is_active ? "default" : "secondary"}
-                          className={variant.is_active ? "bg-green-500" : ""}
-                        >
-                          {variant.is_active ? "Active" : "Inactive"}
+                      ) : (
+                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center border">
+                          <ImageIcon className="h-5 w-5 text-muted-foreground/50" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium max-w-[250px]">
+                      <Link
+                        href={`/products/${variant.id}`}
+                        className="hover:text-primary hover:underline underline-offset-4 transition-colors truncate block"
+                      >
+                        {variant.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {variant.code || variant.article || "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {variant.price_mdl !== null ? (
+                        <span className="font-medium tabular-nums">
+                          {variant.price_mdl.toFixed(2)}
+                        </span>
+                      ) : (
+                        <Badge variant="outline" className="font-normal text-muted-foreground">
+                          No price
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(variant.id, variant.name)}
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <span className="tabular-nums">{variant.total_stock.toLocaleString()}</span>
+                        {variant.is_in_stock ? (
+                          <Badge
+                            variant="default"
+                            className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors text-xs"
+                          >
+                            In Stock
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="destructive"
+                            className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 transition-colors text-xs"
+                          >
+                            Out
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {variant.is_active ? (
+                        <Badge
+                          variant="default"
+                          className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors"
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary">
+                          Inactive
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClick(variant.id, variant.name)}
+                        className="h-8 w-8 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
+        </div>
 
-          {/* Pagination */}
-          {!variantsLoading && variants.length > 0 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
-                Showing {currentPage * limit + 1} to{" "}
-                {Math.min((currentPage + 1) * limit, totalCount)} of{" "}
-                {totalCount.toLocaleString()} variants
-              </div>
+        {/* Enhanced Pagination */}
+        {!variantsLoading && variants.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <p>
+                Showing <span className="font-medium text-foreground">{variants.length}</span> of{" "}
+                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> variants
+              </p>
+            </div>
+
+            {totalPages > 1 && (
               <div className="flex items-center gap-2">
+                {/* First Page */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 transition-all duration-200 hover:bg-muted"
+                  title="First page"
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+
+                {/* Previous Page */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                  disabled={!canGoPrev}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="transition-all duration-200 hover:bg-muted"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
                 </Button>
-                <div className="text-sm font-medium">
-                  Page {currentPage + 1} of {totalPages}
+
+                {/* Page Info & Jump */}
+                <div className="flex items-center gap-2 px-2">
+                  <span className="text-sm text-muted-foreground">Page</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={jumpToPage}
+                    onChange={(e) => setJumpToPage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleJumpToPage();
+                      }
+                    }}
+                    onBlur={handleJumpToPage}
+                    placeholder={currentPage.toString()}
+                    className="w-14 h-8 text-center tabular-nums"
+                  />
+                  <span className="text-sm text-muted-foreground">of {totalPages}</span>
                 </div>
+
+                {/* Next Page */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  disabled={!canGoNext}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="transition-all duration-200 hover:bg-muted"
                 >
                   Next
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+
+                {/* Last Page */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 transition-all duration-200 hover:bg-muted"
+                  title="Last page"
+                >
+                  <ChevronsRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
@@ -421,6 +666,104 @@ export default function ProductGroupingDetailPage() {
         impactData={{ records_to_delete: 0, products_affected: 1 }}
         isLoading={deleteDialog.loading}
       />
+    </div>
+  );
+}
+
+/**
+ * Enhanced skeleton loader for grouping detail page
+ */
+function GroupingDetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumb skeleton */}
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-32" />
+      </div>
+
+      {/* Header skeleton */}
+      <div className="flex items-start gap-4">
+        <Skeleton className="h-10 w-10 rounded-md" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+      </div>
+
+      {/* Info card skeleton */}
+      <div className="rounded-xl border bg-card shadow-sm p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-5 w-24" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats skeleton */}
+      <div className="flex flex-wrap items-center gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton
+            key={i}
+            className="h-10 w-32 rounded-lg"
+            style={{ animationDelay: `${i * 100}ms` }}
+          />
+        ))}
+      </div>
+
+      {/* Search skeleton */}
+      <div className="flex flex-wrap gap-3 p-4 rounded-xl border bg-card/50">
+        <Skeleton className="h-10 w-[300px] rounded-md" />
+        <Skeleton className="h-10 w-24 rounded-md" />
+      </div>
+
+      <VariantsTableSkeleton />
+    </div>
+  );
+}
+
+/**
+ * Enhanced skeleton loader for variants table
+ */
+function VariantsTableSkeleton() {
+  return (
+    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-4 p-4 bg-muted/30 border-b">
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-24 ml-auto" />
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-4 w-12" />
+      </div>
+
+      {/* Rows with staggered opacity */}
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-4 p-4 border-b last:border-b-0 animate-pulse"
+          style={{
+            animationDelay: `${i * 50}ms`,
+            opacity: 1 - (i * 0.05),
+          }}
+        >
+          <Skeleton className="h-10 w-10 rounded-lg" />
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-20 ml-auto" />
+          <Skeleton className="h-6 w-16 rounded-full" />
+          <Skeleton className="h-6 w-16 rounded-full" />
+          <Skeleton className="h-8 w-8 rounded-md" />
+        </div>
+      ))}
     </div>
   );
 }
