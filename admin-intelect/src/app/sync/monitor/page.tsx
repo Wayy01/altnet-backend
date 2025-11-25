@@ -339,18 +339,18 @@ export default function SyncMonitorPage() {
   }, [progress, toast]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" asChild className="transition-all duration-200 hover:scale-110 active:scale-95">
             <Link href="/sync">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Real-Time Sync Monitor</h1>
-            <p className="text-muted-foreground mt-0.5 text-sm">
+            <h1 className="text-2xl font-bold tracking-tight">Real-Time Sync Monitor</h1>
+            <p className="text-muted-foreground text-xs">
               Live sync progress with detailed logging and analytics
             </p>
           </div>
@@ -391,10 +391,10 @@ export default function SyncMonitorPage() {
       {/* Error Banner */}
       {error && (
         <Card className="border-destructive/50 bg-destructive/5 animate-in fade-in slide-in-from-top-2 duration-300">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-center gap-3">
-              <XCircle className="h-5 w-5 text-destructive shrink-0" />
-              <p className="text-sm text-destructive font-medium">{error}</p>
+          <CardContent className="pt-3 pb-3">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-4 w-4 text-destructive shrink-0" />
+              <p className="text-xs text-destructive font-medium">{error}</p>
             </div>
           </CardContent>
         </Card>
@@ -403,95 +403,95 @@ export default function SyncMonitorPage() {
       {/* Progress Overview */}
       {progress && (
         <Card className={`transition-all duration-500 ${progress.is_running ? "border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg shadow-primary/10 animate-in fade-in slide-in-from-top-2" : ""}`}>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 {progress.is_running ? (
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-                    <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-lg shadow-primary/20">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-lg shadow-primary/20">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     </div>
                   </div>
                 ) : progress.status === "completed" ? (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-md shadow-primary/10 transition-all duration-300">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-md shadow-primary/10 transition-all duration-300">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
                   </div>
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 ring-2 ring-destructive/30 shadow-md shadow-destructive/10">
-                    <XCircle className="h-5 w-5 text-destructive" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/10 ring-2 ring-destructive/30 shadow-md shadow-destructive/10">
+                    <XCircle className="h-4 w-4 text-destructive" />
                   </div>
                 )}
                 <div>
-                  <CardTitle className="text-xl">
+                  <CardTitle className="text-lg">
                     {progress.is_running ? "Sync in Progress" : progress.status === "completed" ? "Sync Completed" : "Sync Failed"}
                   </CardTitle>
-                  <CardDescription className="mt-0.5 text-sm">
+                  <CardDescription className="mt-0.5 text-xs">
                     {progress.sync_type} sync • Step {progress.current_step} of {progress.selected_steps?.length || 7}
                   </CardDescription>
                 </div>
               </div>
-              <Badge variant="outline" className="text-primary border-primary/30 bg-primary/10 shadow-sm font-medium px-3 py-1">
-                <Zap className="h-3.5 w-3.5 mr-1.5" />
+              <Badge variant="outline" className="text-primary border-primary/30 bg-primary/10 shadow-sm font-medium px-2.5 py-0.5">
+                <Zap className="h-3 w-3 mr-1" />
                 {Math.round(progress.overall_progress_percentage || 0)}%
               </Badge>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-5">
+          <CardContent className="space-y-3 pt-3">
             {/* Progress Bar */}
             {progress.is_running && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center justify-between text-sm">
+              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground font-medium">Overall Progress</span>
                   <span className="font-semibold tabular-nums">{Math.round(progress.overall_progress_percentage || 0)}%</span>
                 </div>
-                <Progress value={progress.overall_progress_percentage || 0} className="h-2 shadow-inner" />
+                <Progress value={progress.overall_progress_percentage || 0} className="h-1.5 shadow-inner" />
               </div>
             )}
 
             {/* Time Statistics */}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="group flex items-center gap-3 p-3.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01]">
-                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div className="group flex items-center gap-2 p-2.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Elapsed</p>
-                  <p className="text-lg font-semibold tabular-nums truncate">{formatDuration(progress.elapsed_seconds)}</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Elapsed</p>
+                  <p className="text-sm font-semibold tabular-nums truncate">{formatDuration(progress.elapsed_seconds)}</p>
                 </div>
               </div>
 
               {progress.estimated_remaining_seconds && (
-                <div className="group flex items-center gap-3 p-3.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01] animate-in fade-in slide-in-from-left-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <div className="group flex items-center gap-2 p-2.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01] animate-in fade-in slide-in-from-left-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
+                    <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Remaining</p>
-                    <p className="text-lg font-semibold tabular-nums truncate">{formatDuration(progress.estimated_remaining_seconds)}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Remaining</p>
+                    <p className="text-sm font-semibold tabular-nums truncate">{formatDuration(progress.estimated_remaining_seconds)}</p>
                   </div>
                 </div>
               )}
 
-              <div className="group flex items-center gap-3 p-3.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01]">
-                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
-                  <Activity className="h-4 w-4 text-muted-foreground" />
+              <div className="group flex items-center gap-2 p-2.5 rounded-lg bg-card/50 border border-border/50 transition-all duration-200 hover:shadow-md hover:border-border hover:scale-[1.01]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted transition-colors group-hover:bg-muted/80">
+                  <Activity className="h-3.5 w-3.5 text-muted-foreground" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Current Step</p>
-                  <p className="text-sm font-semibold truncate">{progress.current_step_name}</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Current Step</p>
+                  <p className="text-xs font-semibold truncate">{progress.current_step_name}</p>
                 </div>
               </div>
             </div>
 
             {/* Step Details */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Step Progress</h4>
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Step Progress</h4>
               {progress.steps.map((step) => (
                 <div
                   key={step.step_number}
-                  className={`p-3.5 rounded-lg border transition-all duration-300 ${
+                  className={`p-2.5 rounded-lg border transition-all duration-300 ${
                     step.status === "running"
                       ? "border-primary/30 bg-primary/5 shadow-md animate-in fade-in slide-in-from-left-2"
                       : step.status === "completed"
@@ -499,29 +499,29 @@ export default function SyncMonitorPage() {
                       : "border-border/50 bg-card/30"
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      {step.status === "running" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
-                      {step.status === "completed" && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                      <span className="font-semibold text-sm">{step.step_name}</span>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      {step.status === "running" && <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />}
+                      {step.status === "completed" && <CheckCircle2 className="h-3.5 w-3.5 text-primary" />}
+                      <span className="font-semibold text-xs">{step.step_name}</span>
                     </div>
-                    <Badge variant="outline" className={`transition-all duration-200 ${step.status === "running" ? "border-primary/30 bg-primary/10 text-primary shadow-sm" : ""}`}>
+                    <Badge variant="outline" className={`text-xs transition-all duration-200 ${step.status === "running" ? "border-primary/30 bg-primary/10 text-primary shadow-sm" : ""}`}>
                       {step.status}
                     </Badge>
                   </div>
 
                   {step.items_total > 0 && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium">
                         <span>{step.items_processed} / {step.items_total} items</span>
                         <span className="tabular-nums">{Math.round(step.progress_percentage)}%</span>
                       </div>
-                      <Progress value={step.progress_percentage} className="h-1.5 shadow-inner" />
+                      <Progress value={step.progress_percentage} className="h-1 shadow-inner" />
                     </div>
                   )}
 
                   {(step.inserted > 0 || step.updated > 0) && (
-                    <div className="flex gap-4 mt-2.5 text-xs font-medium">
+                    <div className="flex gap-3 mt-1.5 text-[10px] font-medium">
                       {step.inserted > 0 && <span className="text-primary">+{step.inserted} added</span>}
                       {step.updated > 0 && <span className="text-primary">{step.updated} updated</span>}
                       {step.failed > 0 && <span className="text-destructive">{step.failed} failed</span>}
@@ -536,13 +536,13 @@ export default function SyncMonitorPage() {
 
       {/* Real-Time Logs */}
       <Card className={`transition-all duration-500 ${isExpanded ? "fixed inset-4 z-50 shadow-2xl" : ""}`}>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Terminal className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <Terminal className="h-4 w-4 text-muted-foreground" />
               <div>
-                <CardTitle className="text-lg">Real-Time Logs</CardTitle>
-                <CardDescription className="text-sm">
+                <CardTitle className="text-base">Real-Time Logs</CardTitle>
+                <CardDescription className="text-xs">
                   {filteredLogs.length} of {logs.length} log entries
                 </CardDescription>
               </div>
@@ -563,20 +563,20 @@ export default function SyncMonitorPage() {
           </div>
 
           {/* Filters */}
-          <div className="flex items-center gap-2.5 mt-4">
+          <div className="flex items-center gap-2 mt-3">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   placeholder="Search logs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-8 h-8 text-xs"
                 />
               </div>
             </div>
             <Select value={levelFilter} onValueChange={setLevelFilter}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-28 h-8 text-xs">
                 <SelectValue placeholder="Level" />
               </SelectTrigger>
               <SelectContent>
@@ -589,7 +589,7 @@ export default function SyncMonitorPage() {
               </SelectContent>
             </Select>
             <Select value={stepFilter} onValueChange={setStepFilter}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-28 h-8 text-xs">
                 <SelectValue placeholder="Step" />
               </SelectTrigger>
               <SelectContent>
@@ -614,32 +614,32 @@ export default function SyncMonitorPage() {
           </div>
         </CardHeader>
 
-        <CardContent>
-          <div className={`rounded-lg border bg-muted/30 p-4 font-mono text-xs overflow-y-auto shadow-inner ${
-            isExpanded ? "h-[calc(100vh-20rem)]" : "h-96"
+        <CardContent className="pt-3">
+          <div className={`rounded-lg border bg-muted/30 p-3 font-mono text-[10px] overflow-y-auto shadow-inner ${
+            isExpanded ? "h-[calc(100vh-20rem)]" : "h-80"
           }`}>
             {filteredLogs.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-muted-foreground font-medium">
+              <div className="flex items-center justify-center h-full text-muted-foreground font-medium text-xs">
                 {logs.length === 0 ? "Waiting for logs..." : "No logs match the current filters"}
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {filteredLogs.map((log, index) => (
                   <div
                     key={`${log.id}-${log.timestamp}-${index}`}
-                    className="flex items-start gap-3 py-2 hover:bg-accent/50 rounded px-2 -mx-2 transition-all duration-150 animate-in fade-in slide-in-from-left-1"
+                    className="flex items-start gap-2 py-1.5 hover:bg-accent/50 rounded px-1.5 -mx-1.5 transition-all duration-150 animate-in fade-in slide-in-from-left-1"
                   >
                     <span className="text-muted-foreground shrink-0 font-medium">{formatTimestamp(log.timestamp)}</span>
-                    <Badge variant="outline" className={`shrink-0 transition-all duration-200 ${getLevelBadgeClass(log.level)}`}>
+                    <Badge variant="outline" className={`shrink-0 text-[9px] py-0 h-4 transition-all duration-200 ${getLevelBadgeClass(log.level)}`}>
                       {getLevelIcon(log.level)}
                       {log.level}
                     </Badge>
                     {log.step_number && (
-                      <Badge variant="outline" className="shrink-0">
+                      <Badge variant="outline" className="shrink-0 text-[9px] py-0 h-4">
                         Step {log.step_number}
                       </Badge>
                     )}
-                    <span className="flex-1 break-words">{log.message}</span>
+                    <span className="flex-1 break-words leading-tight">{log.message}</span>
                   </div>
                 ))}
                 <div ref={logsEndRef} />

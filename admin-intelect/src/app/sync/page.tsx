@@ -439,10 +439,20 @@ export default function SyncPage() {
                           <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
                       </div>
-                    ) : syncProgress.currentStep === 7 ? (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-md shadow-primary/10 transition-all duration-300">
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
-                      </div>
+                    ) : syncLogs.length > 0 ? (
+                      syncLogs[0].status === "completed" ? (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-md shadow-primary/10 transition-all duration-300">
+                          <CheckCircle2 className="h-5 w-5 text-primary" />
+                        </div>
+                      ) : syncLogs[0].status === "failed" ? (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 ring-2 ring-destructive/30 shadow-md shadow-destructive/10 transition-all duration-300">
+                          <XCircle className="h-5 w-5 text-destructive" />
+                        </div>
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-yellow-500/10 ring-2 ring-yellow-500/30 shadow-md shadow-yellow-500/10 transition-all duration-300">
+                          <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                        </div>
+                      )
                     ) : (
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted ring-2 ring-muted-foreground/10">
                         <Clock className="h-5 w-5 text-muted-foreground" />
@@ -452,8 +462,14 @@ export default function SyncPage() {
                       <CardTitle className="text-xl">
                         {syncProgress.isRunning
                           ? "Sync in Progress"
-                          : syncProgress.currentStep === 7
-                            ? "Last Sync Completed"
+                          : syncLogs.length > 0
+                            ? syncLogs[0].status === "completed"
+                              ? "Last Sync Completed"
+                              : syncLogs[0].status === "failed"
+                                ? "Last Sync Failed"
+                                : syncLogs[0].status === "cancelled"
+                                  ? "Last Sync Cancelled"
+                                  : "No Active Sync"
                             : "No Active Sync"}
                       </CardTitle>
                       {syncProgress.isRunning && (
@@ -539,17 +555,41 @@ export default function SyncPage() {
             </CardContent>
           </Card>
 
-          {/* Last Sync Completed - Compact View (when no sync running) */}
+          {/* Last Sync Status - Compact View (when no sync running) */}
           {!syncProgress.isRunning && syncLogs.length > 0 && (
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 transition-all duration-300 hover:shadow-md">
+            <Card className={
+              syncLogs[0].status === "completed"
+                ? "border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 transition-all duration-300 hover:shadow-md"
+                : syncLogs[0].status === "failed"
+                  ? "border-destructive/20 bg-gradient-to-br from-destructive/5 to-destructive/10 transition-all duration-300 hover:shadow-md"
+                  : "border-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-yellow-500/10 transition-all duration-300 hover:shadow-md"
+            }>
               <CardContent className="pt-5 pb-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20 shadow-md shadow-primary/10 shrink-0 transition-all duration-300 hover:scale-105">
-                      <CheckCircle2 className="h-6 w-6 text-primary" />
+                    <div className={
+                      syncLogs[0].status === "completed"
+                        ? "flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/20 shadow-md shadow-primary/10 shrink-0 transition-all duration-300 hover:scale-105"
+                        : syncLogs[0].status === "failed"
+                          ? "flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 ring-2 ring-destructive/20 shadow-md shadow-destructive/10 shrink-0 transition-all duration-300 hover:scale-105"
+                          : "flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/10 ring-2 ring-yellow-500/20 shadow-md shadow-yellow-500/10 shrink-0 transition-all duration-300 hover:scale-105"
+                    }>
+                      {syncLogs[0].status === "completed" ? (
+                        <CheckCircle2 className="h-6 w-6 text-primary" />
+                      ) : syncLogs[0].status === "failed" ? (
+                        <XCircle className="h-6 w-6 text-destructive" />
+                      ) : (
+                        <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                      )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Last Sync Completed</p>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        {syncLogs[0].status === "completed"
+                          ? "Last Sync Completed"
+                          : syncLogs[0].status === "failed"
+                            ? "Last Sync Failed"
+                            : "Last Sync Cancelled"}
+                      </p>
                       <p className="text-lg font-semibold">{formatDate(syncLogs[0].started_at)}</p>
                       <div className="flex items-center gap-2 mt-1.5">
                         <Badge variant="outline" className="text-xs">
