@@ -37,7 +37,7 @@ export default function PropertiesPage() {
   const router = useRouter();
 
   // State
-  const [groups, setGroups] = useState<PropertyGroup[]>([]);
+  const [groups, setGroups] = useState<PropertyGroup[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -71,11 +71,11 @@ export default function PropertiesPage() {
       setLoading(true);
       const offset = currentPage * limit;
       const response = await api.getPropertyGroups(limit, offset, search || undefined);
-      setGroups(response.data);
-      setTotalCount(response.total);
+      setGroups(response.data || []);
+      setTotalCount(response.total || 0);
 
       // Calculate stats from current data
-      if (response.data.length > 0) {
+      if (response.data && response.data.length > 0) {
         setStats({
           totalGroups: response.total,
           totalProperties: response.data.reduce((sum, g) => sum + g.property_count, 0),
@@ -85,6 +85,7 @@ export default function PropertiesPage() {
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch property groups");
+      setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -202,7 +203,7 @@ export default function PropertiesPage() {
                 <p className="mt-2 text-sm text-muted-foreground">Loading groups...</p>
               </div>
             </div>
-          ) : groups.length === 0 ? (
+          ) : !groups || groups.length === 0 ? (
             <div className="text-center py-8">
               <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">No property groups found</p>
@@ -283,7 +284,7 @@ export default function PropertiesPage() {
           )}
 
           {/* Pagination */}
-          {!loading && groups.length > 0 && (
+          {!loading && groups && groups.length > 0 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <div className="text-sm text-muted-foreground">
                 Showing {currentPage * limit + 1} to{" "}

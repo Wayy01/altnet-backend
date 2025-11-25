@@ -37,7 +37,7 @@ export default function ProductGroupingsPage() {
   const router = useRouter();
 
   // State
-  const [groups, setGroups] = useState<ProductGrouping[]>([]);
+  const [groups, setGroups] = useState<ProductGrouping[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -99,6 +99,7 @@ export default function ProductGroupingsPage() {
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch product groupings");
+      setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -216,7 +217,7 @@ export default function ProductGroupingsPage() {
                 <p className="mt-2 text-sm text-muted-foreground">Loading groups...</p>
               </div>
             </div>
-          ) : groups.length === 0 ? (
+          ) : !groups || groups.length === 0 ? (
             <div className="text-center py-8">
               <Database className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">No product groups found</p>
@@ -316,7 +317,7 @@ export default function ProductGroupingsPage() {
           )}
 
           {/* Pagination */}
-          {!loading && groups.length > 0 && (
+          {!loading && groups && groups.length > 0 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <div className="text-sm text-muted-foreground">
                 Showing {currentPage * limit + 1} to{" "}

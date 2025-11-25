@@ -37,7 +37,7 @@ export default function CharacteristicsPage() {
   const router = useRouter();
 
   // State
-  const [names, setNames] = useState<CharacteristicName[]>([]);
+  const [names, setNames] = useState<CharacteristicName[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -71,11 +71,11 @@ export default function CharacteristicsPage() {
       setLoading(true);
       const offset = currentPage * limit;
       const response = await api.getCharacteristicNames(limit, offset, search || undefined);
-      setNames(response.data);
-      setTotalCount(response.total);
+      setNames(response.data || []);
+      setTotalCount(response.total || 0);
 
       // Calculate stats from current data
-      if (response.data.length > 0) {
+      if (response.data && response.data.length > 0) {
         setStats({
           totalNames: response.total,
           totalCharacteristics: response.data.reduce((sum, n) => sum + n.characteristic_count, 0),
@@ -85,6 +85,7 @@ export default function CharacteristicsPage() {
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch characteristic names");
+      setNames([]);
     } finally {
       setLoading(false);
     }
@@ -202,7 +203,7 @@ export default function CharacteristicsPage() {
                 <p className="mt-2 text-sm text-muted-foreground">Loading characteristic names...</p>
               </div>
             </div>
-          ) : names.length === 0 ? (
+          ) : !names || names.length === 0 ? (
             <div className="text-center py-8">
               <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">No characteristic names found</p>
@@ -280,7 +281,7 @@ export default function CharacteristicsPage() {
           )}
 
           {/* Pagination */}
-          {!loading && names.length > 0 && (
+          {!loading && names && names.length > 0 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <div className="text-sm text-muted-foreground">
                 Showing {currentPage * limit + 1} to{" "}
