@@ -13,6 +13,7 @@ import (
 	"ultra-api-testing/internal/database"
 	"ultra-api-testing/internal/handlers"
 	"ultra-api-testing/internal/repository"
+	internalSync "ultra-api-testing/internal/sync"
 	"ultra-api-testing/internal/ultra"
 )
 
@@ -48,13 +49,20 @@ func main() {
 	ultraClient := ultra.NewClient(cfg.Ultra)
 	fetcher := ultra.NewFetcher(ultraClient)
 
+	// Create sync manager (for cancellation support)
+	syncManager := internalSync.NewSyncManager()
+	defer syncManager.Shutdown()
+
 	// Create repositories and handlers
 	repo := repository.New(db.Pool)
 	syncConfigRepo := repository.NewSyncConfigRepository(db.Pool)
-	handler := handlers.New(repo, syncConfigRepo, fetcher)
+	realtimeSyncRepo := repository.NewRealtimeSyncRepository(db.Pool)
+	handler := handlers.New(repo, syncConfigRepo, fetcher, syncManager)
+	realtimeSyncHandler := handlers.NewRealtimeSyncHandlers(realtimeSyncRepo, repo)
+	syncControlHandler := handlers.NewSyncControlHandlers(repo, realtimeSyncRepo, syncManager)
 
 	// Setup router
-	router := setupRouter(handler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -115,7 +123,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -224,6 +232,18 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	api.HandleFunc("/sync/status", handler.GetLatestSyncStatus).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sync/progress", handler.GetSyncProgress).Methods("GET", "OPTIONS")
 
+	// Real-time sync monitoring (SSE streams)
+	api.HandleFunc("/sync/stream/progress", realtimeSyncHandler.StreamSyncProgress).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/stream/logs", realtimeSyncHandler.StreamSyncLogs).Methods("GET", "OPTIONS")
+
+	// Real-time sync data endpoints
+	api.HandleFunc("/sync/realtime/progress", realtimeSyncHandler.GetRealtimeProgress).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/realtime/progress/{sync_log_id}", realtimeSyncHandler.GetRealtimeProgress).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/realtime/logs", realtimeSyncHandler.GetLogEntries).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/realtime/logs/export", realtimeSyncHandler.ExportLogEntries).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/realtime/snapshots", realtimeSyncHandler.GetProgressSnapshots).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/realtime/api-requests", realtimeSyncHandler.GetAPIRequests).Methods("GET", "OPTIONS")
+
 	// Selective sync configuration management (specific routes before parameterized)
 	api.HandleFunc("/sync/configs", handler.CreateSyncConfig).Methods("POST", "OPTIONS")
 	api.HandleFunc("/sync/configs", handler.ListSyncConfigs).Methods("GET", "OPTIONS")
@@ -239,6 +259,10 @@ func setupRouter(handler *handlers.Handler) *mux.Router {
 	// Sync change tracking (specific routes before parameterized)
 	api.HandleFunc("/sync/{id}/changes", handler.GetSyncChanges).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sync/{id}/summary", handler.GetChangeSummary).Methods("GET", "OPTIONS")
+
+	// Sync control endpoints (cancel and status management)
+	api.HandleFunc("/sync/{id}/cancel", syncControlHandler.CancelRunningSync).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/{id}/status", syncControlHandler.UpdateSyncStatus).Methods("PATCH", "OPTIONS")
 
 	// CRUD operations - Products (bulk routes must come before {id} routes)
 	api.HandleFunc("/products", handler.CreateProduct).Methods("POST", "OPTIONS")
