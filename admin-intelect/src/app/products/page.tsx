@@ -6,17 +6,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Package,
-  ExternalLink,
   Trash2,
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Loader2,
   Eye,
-  Filter,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   CheckSquare,
-  Square,
   X,
   Power,
   PowerOff,
@@ -24,7 +25,9 @@ import {
   DollarSign,
   PackageOpen,
   Tag,
-  FolderTree
+  FolderTree,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +61,33 @@ import { api } from "@/lib/api";
 import { Product, Brand, Category, ProductFilters } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
+/**
+ * Stat indicator item configuration
+ */
+interface StatIndicator {
+  label: string;
+  value: number | string;
+  suffix?: string;
+  icon?: React.ReactNode;
+  variant?: "default" | "success" | "warning" | "muted";
+}
+
+/**
+ * Active filter configuration for display chips
+ */
+interface ActiveFilter {
+  key: string;
+  label: string;
+  value: string;
+  displayValue: string;
+}
+
+/**
+ * Sort configuration for column headers
+ */
+type SortField = "name" | "code" | "brand" | "category" | "price" | "stock";
+type SortDirection = "asc" | "desc";
+
 export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -84,6 +114,10 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status_filter") || "");
   const [sortBy, setSortBy] = useState<string>(searchParams.get("sort_by") || "name_asc");
 
+  // Pagination states
+  const [pageSize, setPageSize] = useState<number>(parseInt(searchParams.get("limit") || "50", 10));
+  const [jumpToPage, setJumpToPage] = useState<string>("");
+
   // Selection states
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectAllMode, setSelectAllMode] = useState<boolean>(false);
@@ -93,10 +127,25 @@ export default function ProductsPage() {
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [isLoadingFilters, setIsLoadingFilters] = useState(true);
 
-  const limit = 50;
+  // Animation state for staggered row reveals
+  const [rowsVisible, setRowsVisible] = useState(false);
+
+  const limit = pageSize;
   const offset = parseInt(searchParams.get("offset") || "0", 10);
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
+
+  // Parse current sort field and direction
+  const currentSortField = useMemo((): SortField => {
+    if (sortBy.startsWith("name")) return "name";
+    if (sortBy.startsWith("price")) return "price";
+    if (sortBy.startsWith("stock")) return "stock";
+    return "name";
+  }, [sortBy]);
+
+  const currentSortDirection = useMemo((): SortDirection => {
+    return sortBy.endsWith("_desc") || sortBy === "price_high" || sortBy === "stock_high" ? "desc" : "asc";
+  }, [sortBy]);
 
   // Build current filter object
   const currentFilters: ProductFilters = useMemo(() => ({
@@ -132,10 +181,13 @@ export default function ProductsPage() {
   const fetchProducts = useCallback(async () => {
     try {
       setIsLoading(true);
+      setRowsVisible(false);
       const productsData = await api.getProducts(currentFilters, limit, offset);
       setProducts(productsData.data);
       setTotal(productsData.total);
       setError(null);
+      // Trigger staggered row animation after data loads
+      setTimeout(() => setRowsVisible(true), 50);
     } catch (err) {
       console.error("Failed to fetch products:", err);
       setError("Failed to load products. Make sure the Go backend API is running.");
@@ -203,6 +255,85 @@ export default function ProductsPage() {
     return products.filter((p) => p.is_in_stock).length;
   }, [products]);
 
+  // Build active filters list for chip display
+  const activeFilters = useMemo((): ActiveFilter[] => {
+    const filters: ActiveFilter[] = [];
+
+    if (debouncedSearch) {
+      filters.push({
+        key: "search",
+        label: "Search",
+        value: debouncedSearch,
+        displayValue: `"${debouncedSearch}"`,
+      });
+    }
+
+    if (brandFilter) {
+      const brand = allBrands.find(b => b.id === brandFilter);
+      filters.push({
+        key: "brand_id",
+        label: "Brand",
+        value: brandFilter,
+        displayValue: brand?.name || brandFilter,
+      });
+    }
+
+    if (categoryFilter) {
+      const category = allCategories.find(c => c.id === categoryFilter);
+      filters.push({
+        key: "category_id",
+        label: "Category",
+        value: categoryFilter,
+        displayValue: category?.name || categoryFilter,
+      });
+    }
+
+    if (priceFilter) {
+      filters.push({
+        key: "price_filter",
+        label: "Price",
+        value: priceFilter,
+        displayValue: priceFilter === "with_price" ? "With Price" : "No Price",
+      });
+    }
+
+    if (stockFilter) {
+      filters.push({
+        key: "stock_filter",
+        label: "Stock",
+        value: stockFilter,
+        displayValue: stockFilter === "in_stock" ? "In Stock" : "Out of Stock",
+      });
+    }
+
+    if (statusFilter) {
+      filters.push({
+        key: "status_filter",
+        label: "Status",
+        value: statusFilter,
+        displayValue: statusFilter === "active" ? "Active" : "Inactive",
+      });
+    }
+
+    if (sortBy && sortBy !== "name_asc") {
+      const sortLabels: Record<string, string> = {
+        name_desc: "Name Z-A",
+        price_high: "Highest Price",
+        price_low: "Lowest Price",
+        stock_high: "Most Stock",
+        stock_low: "Least Stock",
+      };
+      filters.push({
+        key: "sort_by",
+        label: "Sort",
+        value: sortBy,
+        displayValue: sortLabels[sortBy] || sortBy,
+      });
+    }
+
+    return filters;
+  }, [debouncedSearch, brandFilter, categoryFilter, priceFilter, stockFilter, statusFilter, sortBy, allBrands, allCategories]);
+
   const handleClearSearch = () => {
     setSearchQuery("");
     setDebouncedSearch("");
@@ -219,6 +350,41 @@ export default function ProductsPage() {
     setStatusFilter("");
     setSortBy("name_asc");
     router.push("/products");
+  };
+
+  const handleRemoveFilter = (filterKey: string) => {
+    switch (filterKey) {
+      case "search":
+        handleClearSearch();
+        break;
+      case "brand_id":
+        setBrandFilter("");
+        updateUrlParams({ brand_id: null, offset: "0" });
+        break;
+      case "category_id":
+        setCategoryFilter("");
+        updateUrlParams({ category_id: null, offset: "0" });
+        break;
+      case "price_filter":
+        setPriceFilter("");
+        updateUrlParams({ price_filter: null, offset: "0" });
+        break;
+      case "stock_filter":
+        setStockFilter("");
+        updateUrlParams({ stock_filter: null, offset: "0" });
+        break;
+      case "status_filter":
+        setStatusFilter("");
+        updateUrlParams({ status_filter: null, offset: "0" });
+        break;
+      case "sort_by":
+        setSortBy("name_asc");
+        updateUrlParams({ sort_by: null, offset: "0" });
+        break;
+    }
+    // Clear selection when filter changes
+    setSelectedIds(new Set());
+    setSelectAllMode(false);
   };
 
   const handleBrandChange = (value: string) => {
@@ -271,6 +437,23 @@ export default function ProductsPage() {
     updateUrlParams({ sort_by: value, offset: "0" });
   };
 
+  // Column header sort handler
+  const handleColumnSort = (field: SortField) => {
+    let newSort = "";
+
+    if (field === "name") {
+      newSort = currentSortField === "name" && currentSortDirection === "asc" ? "name_desc" : "name_asc";
+    } else if (field === "price") {
+      newSort = currentSortField === "price" && currentSortDirection === "desc" ? "price_low" : "price_high";
+    } else if (field === "stock") {
+      newSort = currentSortField === "stock" && currentSortDirection === "desc" ? "stock_low" : "stock_high";
+    }
+
+    if (newSort) {
+      handleSortByChange(newSort);
+    }
+  };
+
   const handlePageChange = (newPage: number) => {
     const newOffset = (newPage - 1) * limit;
     // Clear page-level selection when changing pages (unless selectAllMode)
@@ -278,6 +461,23 @@ export default function ProductsPage() {
       setSelectedIds(new Set());
     }
     updateUrlParams({ offset: newOffset.toString() });
+  };
+
+  const handlePageSizeChange = (newSize: string) => {
+    const size = parseInt(newSize, 10);
+    setPageSize(size);
+    // Reset to first page when changing page size
+    setSelectedIds(new Set());
+    setSelectAllMode(false);
+    updateUrlParams({ limit: newSize, offset: "0" });
+  };
+
+  const handleJumpToPage = () => {
+    const pageNum = parseInt(jumpToPage, 10);
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+      handlePageChange(pageNum);
+      setJumpToPage("");
+    }
   };
 
   const handleToggleActive = async (productId: string, isActive: boolean) => {
@@ -463,7 +663,37 @@ export default function ProductsPage() {
   };
 
   // Check if any filters are active
-  const hasActiveFilters = debouncedSearch || brandFilter || categoryFilter || priceFilter || stockFilter || statusFilter || sortBy !== "name_asc";
+  const hasActiveFilters = activeFilters.length > 0;
+
+  // Stats indicators configuration
+  const statsIndicators: StatIndicator[] = [
+    {
+      label: "Total",
+      value: (total ?? 0).toLocaleString(),
+      suffix: hasActiveFilters ? "filtered" : undefined,
+      variant: "default",
+    },
+    {
+      label: "With Prices",
+      value: productsWithPrices,
+      suffix: "on page",
+      icon: <DollarSign className="h-3.5 w-3.5" />,
+      variant: productsWithPrices > 0 ? "success" : "muted",
+    },
+    {
+      label: "In Stock",
+      value: productsInStock,
+      suffix: "on page",
+      icon: <PackageOpen className="h-3.5 w-3.5" />,
+      variant: productsInStock > 0 ? "success" : "warning",
+    },
+    {
+      label: "Showing",
+      value: filteredProducts.length,
+      suffix: `of ${total}`,
+      variant: "muted",
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -488,8 +718,16 @@ export default function ProductsPage() {
             Manage and view all products in the catalog
           </p>
         </div>
-        <div className="flex flex-col items-center justify-center py-12">
+        <div className="flex flex-col items-center justify-center py-12 rounded-xl border bg-card shadow-sm">
+          <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
           <p className="text-muted-foreground">{error}</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </Button>
         </div>
       </div>
     );
@@ -497,6 +735,7 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Products</h1>
         <p className="text-muted-foreground">
@@ -505,35 +744,39 @@ export default function ProductsPage() {
       </div>
 
       <div className="space-y-4">
-        {/* Stats - Compact inline indicators */}
+        {/* Stats Bar - Enhanced with hover effects and better visual hierarchy */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
-            <span className="text-xs font-medium text-muted-foreground">Total</span>
-            <span className="text-sm font-semibold tabular-nums">
-              {(total ?? 0).toLocaleString()}
-            </span>
-            {hasActiveFilters && (
-              <span className="text-[10px] text-muted-foreground">(filtered)</span>
-            )}
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
-            <span className="text-xs font-medium text-muted-foreground">With Prices</span>
-            <span className="text-sm font-semibold tabular-nums">{productsWithPrices}</span>
-            <span className="text-[10px] text-muted-foreground">on page</span>
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
-            <span className="text-xs font-medium text-muted-foreground">In Stock</span>
-            <span className="text-sm font-semibold tabular-nums">{productsInStock}</span>
-            <span className="text-[10px] text-muted-foreground">on page</span>
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md border">
-            <span className="text-xs font-medium text-muted-foreground">Showing</span>
-            <span className="text-sm font-semibold tabular-nums">{filteredProducts.length}</span>
-            <span className="text-[10px] text-muted-foreground">of {total}</span>
-          </div>
+          {statsIndicators.map((stat, index) => (
+            <div
+              key={stat.label}
+              className={`
+                inline-flex items-center gap-2 px-3 py-2 rounded-lg border
+                transition-all duration-200 ease-out
+                hover:shadow-sm hover:border-border/80 hover:-translate-y-0.5
+                ${stat.variant === "success" ? "bg-primary/5 border-primary/20 hover:bg-primary/10" : ""}
+                ${stat.variant === "warning" ? "bg-destructive/5 border-destructive/20 hover:bg-destructive/10" : ""}
+                ${stat.variant === "default" || stat.variant === "muted" ? "bg-muted/50" : ""}
+              `}
+              style={{
+                animationDelay: `${index * 50}ms`,
+              }}
+            >
+              {stat.icon && (
+                <span className={`
+                  ${stat.variant === "success" ? "text-primary" : ""}
+                  ${stat.variant === "warning" ? "text-destructive" : ""}
+                  ${stat.variant === "default" || stat.variant === "muted" ? "text-muted-foreground" : ""}
+                `}>
+                  {stat.icon}
+                </span>
+              )}
+              <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
+              <span className="text-sm font-semibold tabular-nums">{stat.value}</span>
+              {stat.suffix && (
+                <span className="text-[10px] text-muted-foreground">({stat.suffix})</span>
+              )}
+            </div>
+          ))}
 
           {/* Export Button */}
           <Button
@@ -541,41 +784,46 @@ export default function ProductsPage() {
             size="sm"
             onClick={handleExport}
             disabled={isProcessing}
-            className="ml-auto"
+            className="ml-auto transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
           >
-            <Download className="h-4 w-4 mr-1" />
+            <Download className="h-4 w-4 mr-1.5" />
             Export CSV
           </Button>
         </div>
 
         {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border bg-card/50 shadow-sm">
           {/* Search */}
           <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchInputRef}
               name="search"
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[250px] pr-8"
+              className="w-[250px] pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
             />
             {isSearching && (
               <Loader2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
             )}
+            {searchQuery && !isSearching && (
+              <button
+                onClick={handleClearSearch}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors"
+              >
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            )}
           </div>
-          {searchQuery && (
-            <Button variant="ghost" size="sm" onClick={handleClearSearch}>
-              <X className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          )}
+
+          <div className="h-6 w-px bg-border" />
 
           {/* Brand Filter */}
           <div className="flex items-center gap-2">
             <Tag className="h-4 w-4 text-muted-foreground" />
             <Select value={brandFilter || "all"} onValueChange={handleBrandChange} disabled={isLoadingFilters}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
                 <SelectValue placeholder="Brand" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
@@ -593,7 +841,7 @@ export default function ProductsPage() {
           <div className="flex items-center gap-2">
             <FolderTree className="h-4 w-4 text-muted-foreground" />
             <Select value={categoryFilter || "all"} onValueChange={handleCategoryChange} disabled={isLoadingFilters}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
@@ -608,88 +856,109 @@ export default function ProductsPage() {
           </div>
 
           {/* Price Filter */}
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <Select value={priceFilter || "all"} onValueChange={handlePriceFilterChange}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Price" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="with_price">With Price</SelectItem>
-                <SelectItem value="no_price">No Price</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={priceFilter || "all"} onValueChange={handlePriceFilterChange}>
+            <SelectTrigger className="w-[130px] transition-all duration-200 hover:border-primary/50">
+              <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Price" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="with_price">With Price</SelectItem>
+              <SelectItem value="no_price">No Price</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Stock Filter */}
-          <div className="flex items-center gap-2">
-            <PackageOpen className="h-4 w-4 text-muted-foreground" />
-            <Select value={stockFilter || "all"} onValueChange={handleStockFilterChange}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Stock" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="in_stock">In Stock</SelectItem>
-                <SelectItem value="out_stock">Out of Stock</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={stockFilter || "all"} onValueChange={handleStockFilterChange}>
+            <SelectTrigger className="w-[140px] transition-all duration-200 hover:border-primary/50">
+              <PackageOpen className="h-4 w-4 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Stock" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="in_stock">In Stock</SelectItem>
+              <SelectItem value="out_stock">Out of Stock</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <Power className="h-4 w-4 text-muted-foreground" />
-            <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
+            <SelectTrigger className="w-[130px] transition-all duration-200 hover:border-primary/50">
+              <Power className="h-4 w-4 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Sort By */}
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-            <Select value={sortBy} onValueChange={handleSortByChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name_asc">Name A-Z</SelectItem>
-                <SelectItem value="name_desc">Name Z-A</SelectItem>
-                <SelectItem value="price_high">Highest Price</SelectItem>
-                <SelectItem value="price_low">Lowest Price</SelectItem>
-                <SelectItem value="stock_high">Most Stock</SelectItem>
-                <SelectItem value="stock_low">Least Stock</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Clear Filters */}
-          {hasActiveFilters && (
-            <Button variant="outline" size="sm" onClick={handleClearFilters}>
-              Clear all filters
-            </Button>
-          )}
-
-          {/* Results count */}
-          {debouncedSearch && (
-            <span className="text-sm text-muted-foreground ml-auto">
-              {total} result{total !== 1 ? "s" : ""} found
-            </span>
-          )}
+          <Select value={sortBy} onValueChange={handleSortByChange}>
+            <SelectTrigger className="w-[160px] transition-all duration-200 hover:border-primary/50">
+              <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name_asc">Name A-Z</SelectItem>
+              <SelectItem value="name_desc">Name Z-A</SelectItem>
+              <SelectItem value="price_high">Highest Price</SelectItem>
+              <SelectItem value="price_low">Lowest Price</SelectItem>
+              <SelectItem value="stock_high">Most Stock</SelectItem>
+              <SelectItem value="stock_low">Least Stock</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* Active Filter Chips */}
+        {hasActiveFilters && (
+          <div className="flex flex-wrap items-center gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="font-medium">{activeFilters.length} active filter{activeFilters.length !== 1 ? "s" : ""}:</span>
+            </div>
+            {activeFilters.map((filter, index) => (
+              <Badge
+                key={filter.key}
+                variant="secondary"
+                className="
+                  pl-2.5 pr-1.5 py-1 gap-1.5
+                  bg-primary/10 text-primary border-primary/20
+                  hover:bg-primary/15 transition-all duration-200
+                  animate-in fade-in-0 slide-in-from-left-2
+                "
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <span className="text-xs font-normal text-primary/70">{filter.label}:</span>
+                <span className="text-xs font-medium max-w-[150px] truncate">{filter.displayValue}</span>
+                <button
+                  onClick={() => handleRemoveFilter(filter.key)}
+                  className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-colors"
+                  aria-label={`Remove ${filter.label} filter`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearFilters}
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear all
+            </Button>
+          </div>
+        )}
 
         {/* Bulk Actions Bar */}
         {isSomeSelected && (
-          <div className="flex items-center gap-4 p-3 bg-accent rounded-lg border border-border">
+          <div className="flex items-center gap-4 p-3 bg-primary/5 rounded-xl border border-primary/20 animate-in fade-in-0 slide-in-from-top-2 duration-200">
             <div className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4 text-primary" />
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <CheckSquare className="h-4 w-4 text-primary" />
+              </div>
               <span className="text-sm font-medium text-foreground">
                 {selectAllMode
                   ? `All ${total} matching products selected`
@@ -702,7 +971,7 @@ export default function ProductsPage() {
               <Button
                 variant="link"
                 size="sm"
-                className="text-primary"
+                className="text-primary p-0 h-auto"
                 onClick={handleSelectAllMatching}
               >
                 Select all {total} matching products
@@ -715,8 +984,9 @@ export default function ProductsPage() {
                 size="sm"
                 onClick={handleBulkActivate}
                 disabled={isProcessing || isPending}
+                className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
               >
-                <Power className="h-4 w-4 mr-1" />
+                <Power className="h-4 w-4 mr-1.5" />
                 Activate
               </Button>
               <Button
@@ -724,8 +994,9 @@ export default function ProductsPage() {
                 size="sm"
                 onClick={handleBulkDeactivate}
                 disabled={isProcessing || isPending}
+                className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
               >
-                <PowerOff className="h-4 w-4 mr-1" />
+                <PowerOff className="h-4 w-4 mr-1.5" />
                 Deactivate
               </Button>
               <Button
@@ -741,24 +1012,67 @@ export default function ProductsPage() {
           </div>
         )}
 
-        {/* Products Table */}
-        <div className="rounded-md border">
+        {/* Products Table - Enhanced with shadow and rounded corners */}
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
                 <TableHead className="w-[40px]">
                   <Checkbox
                     checked={isAllOnPageSelected && filteredProducts.length > 0}
                     onCheckedChange={handleSelectAll}
                     aria-label="Select all"
+                    className="transition-transform duration-200 hover:scale-110"
                   />
                 </TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleColumnSort("name")}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
+                  >
+                    Name
+                    <span className={`transition-all duration-200 ${currentSortField === "name" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
+                      {currentSortField === "name" && currentSortDirection === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                  </button>
+                </TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Brand</TableHead>
                 <TableHead>Category</TableHead>
-                <TableHead className="text-right">Price (MDL)</TableHead>
-                <TableHead className="text-right">Stock</TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleColumnSort("price")}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
+                  >
+                    Price (MDL)
+                    <span className={`transition-all duration-200 ${currentSortField === "price" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
+                      {currentSortField === "price" && currentSortDirection === "desc" ? (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">
+                  <button
+                    onClick={() => handleColumnSort("stock")}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
+                  >
+                    Stock
+                    <span className={`transition-all duration-200 ${currentSortField === "stock" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
+                      {currentSortField === "stock" && currentSortDirection === "desc" ? (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      )}
+                    </span>
+                  </button>
+                </TableHead>
                 <TableHead className="w-[80px]">Active</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
@@ -766,79 +1080,131 @@ export default function ProductsPage() {
             <TableBody>
               {filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <Package className="h-8 w-8 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        No products found
-                      </span>
+                  <TableCell colSpan={9} className="h-48">
+                    <div className="flex flex-col items-center justify-center gap-3 py-8">
+                      <div className="p-4 rounded-full bg-muted/50">
+                        <Package className="h-10 w-10 text-muted-foreground/50" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-foreground">No products found</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {hasActiveFilters
+                            ? "Try adjusting your filters to find what you're looking for"
+                            : "Get started by adding your first product"
+                          }
+                        </p>
+                      </div>
+                      {hasActiveFilters && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleClearFilters}
+                          className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                        >
+                          <X className="h-4 w-4 mr-1.5" />
+                          Clear all filters
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id} className={selectedIds.has(product.id) || selectAllMode ? "bg-accent" : ""}>
+                filteredProducts.map((product, index) => (
+                  <TableRow
+                    key={product.id}
+                    className={`
+                      transition-all duration-200
+                      ${selectedIds.has(product.id) || selectAllMode ? "bg-primary/5" : ""}
+                      ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+                    `}
+                    style={{
+                      transitionDelay: rowsVisible ? `${Math.min(index * 20, 400)}ms` : "0ms",
+                    }}
+                  >
                     <TableCell>
                       <Checkbox
                         checked={selectedIds.has(product.id) || selectAllMode}
                         onCheckedChange={(checked) => handleSelectOne(product.id, checked as boolean)}
                         aria-label={`Select ${product.name}`}
+                        className="transition-transform duration-200 hover:scale-110"
                       />
                     </TableCell>
                     <TableCell className="font-medium max-w-[300px] truncate">
-                      <Link href={`/products/${product.id}`} className="hover:underline">
+                      <Link
+                        href={`/products/${product.id}`}
+                        className="hover:text-primary hover:underline underline-offset-4 transition-colors"
+                      >
                         {product.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">
+                    <TableCell className="font-mono text-sm text-muted-foreground">
                       {product.code}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {product.brand_name || "—"}
+                      {product.brand_name || (
+                        <span className="text-muted-foreground/50">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {product.category_name || "—"}
+                      {product.category_name || (
+                        <span className="text-muted-foreground/50">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       {product.price_mdl !== null ? (
-                        <span className="font-medium">
+                        <span className="font-medium tabular-nums">
                           {product.price_mdl.toLocaleString()} MDL
                         </span>
                       ) : (
-                        <Badge variant="outline">No price</Badge>
+                        <Badge variant="outline" className="font-normal text-muted-foreground">
+                          No price
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       {product.is_in_stock ? (
-                        <Badge variant="default" className="bg-primary/10 text-primary hover:bg-primary/20">
+                        <Badge
+                          variant="default"
+                          className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors"
+                        >
                           {product.total_stock}
                         </Badge>
                       ) : (
-                        <Badge variant="destructive" className="bg-destructive/10 text-destructive hover:bg-destructive/20">
+                        <Badge
+                          variant="destructive"
+                          className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 transition-colors"
+                        >
                           Out of stock
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Switch
-                        checked={product.is_active}
-                        onCheckedChange={(checked) =>
-                          handleToggleActive(product.id, checked)
-                        }
-                        disabled={isProcessing || isPending}
-                      />
+                      <div className="flex items-center">
+                        <Switch
+                          checked={product.is_active}
+                          onCheckedChange={(checked) =>
+                            handleToggleActive(product.id, checked)
+                          }
+                          disabled={isProcessing || isPending}
+                          className="data-[state=checked]:bg-primary transition-all duration-200 hover:opacity-80"
+                        />
+                      </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 transition-all duration-200 hover:bg-muted"
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">Actions</span>
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem asChild>
-                            <Link href={`/products/${product.id}`}>
+                            <Link href={`/products/${product.id}`} className="cursor-pointer">
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </Link>
@@ -848,12 +1214,13 @@ export default function ProductsPage() {
                             onClick={() =>
                               handleToggleActive(product.id, !product.is_active)
                             }
+                            className="cursor-pointer"
                           >
                             <Power className="mr-2 h-4 w-4" />
                             {product.is_active ? "Deactivate" : "Activate"}
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            className="text-destructive"
+                            className="text-destructive cursor-pointer focus:text-destructive"
                             onClick={() => {
                               setDeleteProductId(product.id);
                               setShowDeleteDialog(true);
@@ -872,33 +1239,98 @@ export default function ProductsPage() {
           </Table>
         </div>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {filteredProducts.length} of {total} products
-          </p>
+        {/* Enhanced Pagination */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <p>
+              Showing <span className="font-medium text-foreground">{filteredProducts.length}</span> of{" "}
+              <span className="font-medium text-foreground">{total}</span> products
+            </p>
+            <div className="h-4 w-px bg-border" />
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                <SelectTrigger className="w-[70px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
+              {/* First Page */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 transition-all duration-200 hover:bg-muted"
+                title="First page"
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+
+              {/* Previous Page */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
+                className="transition-all duration-200 hover:bg-muted"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 mr-1" />
                 Previous
               </Button>
-              <span className="text-sm">
-                Page {currentPage} of {totalPages}
-              </span>
+
+              {/* Page Info & Jump */}
+              <div className="flex items-center gap-2 px-2">
+                <span className="text-sm text-muted-foreground">Page</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={jumpToPage}
+                  onChange={(e) => setJumpToPage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleJumpToPage();
+                    }
+                  }}
+                  onBlur={handleJumpToPage}
+                  placeholder={currentPage.toString()}
+                  className="w-14 h-8 text-center tabular-nums"
+                />
+                <span className="text-sm text-muted-foreground">of {totalPages}</span>
+              </div>
+
+              {/* Next Page */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
+                className="transition-all duration-200 hover:bg-muted"
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+
+              {/* Last Page */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 transition-all duration-200 hover:bg-muted"
+                title="Last page"
+              >
+                <ChevronsRight className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -920,24 +1352,88 @@ export default function ProductsPage() {
   );
 }
 
+/**
+ * Enhanced skeleton loader with row-by-row loading animation
+ * Provides better visual feedback during initial load
+ */
 function ProductsPageSkeleton() {
   return (
     <div className="space-y-4">
+      {/* Stats Skeleton */}
       <div className="flex flex-wrap items-center gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-32 rounded-md" />
+          <Skeleton
+            key={i}
+            className="h-10 w-32 rounded-lg"
+            style={{ animationDelay: `${i * 100}ms` }}
+          />
+        ))}
+        <Skeleton className="h-9 w-28 ml-auto rounded-md" />
+      </div>
+
+      {/* Filters Skeleton */}
+      <div className="flex flex-wrap gap-3 p-4 rounded-xl border bg-card/50">
+        <Skeleton className="h-10 w-[250px] rounded-md" />
+        <Skeleton className="h-10 w-[180px] rounded-md" />
+        <Skeleton className="h-10 w-[180px] rounded-md" />
+        <Skeleton className="h-10 w-[130px] rounded-md" />
+        <Skeleton className="h-10 w-[140px] rounded-md" />
+        <Skeleton className="h-10 w-[130px] rounded-md" />
+        <Skeleton className="h-10 w-[160px] rounded-md" />
+      </div>
+
+      {/* Table Skeleton with row-by-row animation */}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-4 p-4 bg-muted/30 border-b">
+          <Skeleton className="h-4 w-4 rounded" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-24 ml-auto" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-12" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+
+        {/* Rows */}
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-4 p-4 border-b last:border-b-0 animate-pulse"
+            style={{
+              animationDelay: `${i * 50}ms`,
+              opacity: 1 - (i * 0.05),
+            }}
+          >
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-20 ml-auto" />
+            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="h-5 w-9 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-md" />
+          </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-4">
-        <Skeleton className="h-10 w-[250px]" />
-        <Skeleton className="h-10 w-[200px]" />
-        <Skeleton className="h-10 w-[200px]" />
-        <Skeleton className="h-10 w-[140px]" />
-        <Skeleton className="h-10 w-[140px]" />
-        <Skeleton className="h-10 w-[140px]" />
-        <Skeleton className="h-10 w-[180px]" />
+
+      {/* Pagination Skeleton */}
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-8 w-[70px] rounded-md" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-8 rounded-md" />
+          <Skeleton className="h-8 w-24 rounded-md" />
+          <Skeleton className="h-8 w-20 rounded-md" />
+          <Skeleton className="h-8 w-24 rounded-md" />
+          <Skeleton className="h-8 w-8 rounded-md" />
+        </div>
       </div>
-      <Skeleton className="h-[600px] w-full" />
     </div>
   );
 }
