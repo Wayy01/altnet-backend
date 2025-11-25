@@ -95,8 +95,8 @@ func (r *Repository) ListProductGroups(ctx context.Context, limit, offset int, s
 			COALESCE(BOOL_OR(v.is_in_stock), false) as is_in_stock,
 			p.is_active
 		FROM products p
-		LEFT JOIN brands b ON p.brand_id = b.id
-		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		LEFT JOIN categories c ON p.category_ultra_id = c.ultra_id
 		LEFT JOIN products v ON v.variant_group_id = p.id
 		WHERE p.is_group = true
 		%s
@@ -159,8 +159,8 @@ func (r *Repository) GetProductGroupByID(ctx context.Context, id uuid.UUID) (Pro
 			COALESCE(BOOL_OR(v.is_in_stock), false) as is_in_stock,
 			p.is_active
 		FROM products p
-		LEFT JOIN brands b ON p.brand_id = b.id
-		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		LEFT JOIN categories c ON p.category_ultra_id = c.ultra_id
 		LEFT JOIN products v ON v.variant_group_id = p.id
 		WHERE p.id = $1
 		GROUP BY p.id, p.name, p.code, p.article, b.name, c.name, p.is_active
