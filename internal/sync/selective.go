@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +18,7 @@ import (
 type SelectiveSync struct {
 	repo          *repository.Repository
 	syncConfigRepo *repository.SyncConfigRepository
+	realtimeRepo  *repository.RealtimeSyncRepository
 	fetcher       *ultra.Fetcher
 }
 
@@ -24,6 +27,7 @@ func NewSelectiveSync(repo *repository.Repository, syncConfigRepo *repository.Sy
 	return &SelectiveSync{
 		repo:          repo,
 		syncConfigRepo: syncConfigRepo,
+		realtimeRepo:  repository.NewRealtimeSyncRepository(repo.Pool()),
 		fetcher:       fetcher,
 	}
 }
@@ -72,6 +76,18 @@ func (s *SelectiveSync) ExecuteSelectiveSync(ctx context.Context, request *model
 	}
 	result.SyncLogID = syncLog.ID
 
+	// Log sync start
+	stepNames := make([]string, len(request.SelectedSteps))
+	for i, step := range request.SelectedSteps {
+		stepNames[i] = string(step)
+	}
+	s.logEntry(ctx, result.SyncLogID, nil, models.LogLevelInfo,
+		fmt.Sprintf("Starting selective sync with steps: [%s]", strings.Join(stepNames, ", ")),
+		map[string]interface{}{
+			"selected_steps": stepNames,
+			"sync_type":      "selective",
+		})
+
 	// Update configuration last used timestamp if configuration ID provided
 	if request.ConfigurationID != nil {
 		if err := s.syncConfigRepo.UpdateConfigurationLastUsed(ctx, *request.ConfigurationID); err != nil {
@@ -88,7 +104,18 @@ func (s *SelectiveSync) ExecuteSelectiveSync(ctx context.Context, request *model
 
 	// Execute each selected step in order
 	for _, step := range request.SelectedSteps {
+		stepNumber := getStepNumber(step)
+		stepNumberPtr := &stepNumber
+
 		log.Printf("Executing step: %s", step)
+
+		// Log step start
+		s.logEntry(ctx, result.SyncLogID, stepNumberPtr, models.LogLevelInfo,
+			fmt.Sprintf("Executing step: %s", step),
+			map[string]interface{}{
+				"step_name":   string(step),
+				"step_number": stepNumber,
+			})
 
 		stepResult := &StepResult{
 			Step: step,
@@ -124,6 +151,36 @@ func (s *SelectiveSync) ExecuteSelectiveSync(ctx context.Context, request *model
 			log.Printf("ERROR: %s", errMsg)
 			result.Errors = append(result.Errors, errMsg)
 			stepResult.Failed++
+
+			// Log step error
+			s.logEntry(ctx, result.SyncLogID, stepNumberPtr, models.LogLevelError,
+				errMsg,
+				map[string]interface{}{
+					"step_name":   string(step),
+					"step_number": stepNumber,
+					"error":       err.Error(),
+					"duration_ms": stepResult.Duration.Milliseconds(),
+				})
+		} else {
+			// Log step completion
+			s.logEntry(ctx, result.SyncLogID, stepNumberPtr, models.LogLevelInfo,
+				fmt.Sprintf("Step %s completed: %d extracted, %d inserted, %d updated, %d failed",
+					step, stepResult.Extracted, stepResult.Inserted, stepResult.Updated, stepResult.Failed),
+				map[string]interface{}{
+					"step_name":   string(step),
+					"step_number": stepNumber,
+					"extracted":   stepResult.Extracted,
+					"inserted":    stepResult.Inserted,
+					"updated":     stepResult.Updated,
+					"failed":      stepResult.Failed,
+					"duration_ms": stepResult.Duration.Milliseconds(),
+				})
+
+			// Create final progress snapshot for step
+			elapsedSec := int(stepResult.Duration.Seconds())
+			throughput := calculateThroughput(stepResult.Extracted, elapsedSec)
+			s.createProgressSnapshot(ctx, result.SyncLogID, stepNumber, string(step),
+				stepResult.Extracted, stepResult.Extracted, elapsedSec, throughput)
 		}
 
 		// Update sync log with step progress
@@ -146,8 +203,36 @@ func (s *SelectiveSync) ExecuteSelectiveSync(ctx context.Context, request *model
 	// This prevents stuck syncs in "running" state
 	if err := s.finalizeSyncLogWithRetry(ctx, result.SyncLogID, status, result); err != nil {
 		log.Printf("ERROR: failed to finalize sync log after retries: %v", err)
+
+		// Log fatal error
+		s.logEntry(ctx, result.SyncLogID, nil, models.LogLevelFatal,
+			fmt.Sprintf("Failed to finalize sync log: %v", err),
+			map[string]interface{}{
+				"error": err.Error(),
+			})
+
 		// Mark this as a fatal error - if we can't update the status, the sync is incomplete
 		return nil, fmt.Errorf("sync completed but failed to update status: %w", err)
+	}
+
+	// Log sync completion
+	if status == "completed" {
+		s.logEntry(ctx, result.SyncLogID, nil, models.LogLevelInfo,
+			fmt.Sprintf("Sync completed in %.2fs with %d total changes", result.Duration.Seconds(), result.TotalChanges),
+			map[string]interface{}{
+				"duration_seconds": result.Duration.Seconds(),
+				"total_changes":    result.TotalChanges,
+				"status":           status,
+			})
+	} else {
+		s.logEntry(ctx, result.SyncLogID, nil, models.LogLevelError,
+			fmt.Sprintf("Sync failed after %.2fs with %d errors", result.Duration.Seconds(), len(result.Errors)),
+			map[string]interface{}{
+				"duration_seconds": result.Duration.Seconds(),
+				"total_errors":     len(result.Errors),
+				"errors":           result.Errors,
+				"status":           status,
+			})
 	}
 
 	log.Printf("Selective sync completed in %v with %d total changes", result.Duration, result.TotalChanges)
@@ -468,6 +553,10 @@ func getStepNumber(step models.SyncStep) int {
 
 // processBrandsSelective processes brands with selective field syncing
 func (s *SelectiveSync) processBrandsSelective(ctx context.Context, syncLogID uuid.UUID, request *models.SelectiveSyncRequest, result *StepResult) error {
+	stepNumber := getStepNumber(models.SyncStepBrands)
+	stepNumberPtr := &stepNumber
+	stepStartTime := time.Now()
+
 	// Fetch brands from Ultra API
 	brands, err := s.fetcher.FetchBrands(ctx, true)
 	if err != nil {
@@ -476,6 +565,13 @@ func (s *SelectiveSync) processBrandsSelective(ctx context.Context, syncLogID uu
 
 	result.Extracted = len(brands)
 	log.Printf("Fetched %d brands from Ultra API", len(brands))
+
+	// Log fetch completion
+	s.logEntry(ctx, syncLogID, stepNumberPtr, models.LogLevelInfo,
+		fmt.Sprintf("Fetched %d brands from Ultra API", len(brands)),
+		map[string]interface{}{
+			"count": len(brands),
+		})
 
 	// Get field config for this step
 	fieldConfig := models.FieldConfig{}
@@ -490,13 +586,25 @@ func (s *SelectiveSync) processBrandsSelective(ctx context.Context, syncLogID uu
 
 	// Process each brand
 	for i, brand := range brands {
-		// Check for context cancellation
+		// Check for context cancellation and log progress every 100 items
 		if i%100 == 0 {
 			select {
 			case <-ctx.Done():
 				return fmt.Errorf("sync cancelled: %w", ctx.Err())
 			default:
-				// Continue processing
+				// Log progress
+				if i > 0 {
+					elapsedSec := int(time.Since(stepStartTime).Seconds())
+					throughput := calculateThroughput(i, elapsedSec)
+					s.logEntry(ctx, syncLogID, stepNumberPtr, models.LogLevelDebug,
+						fmt.Sprintf("Processing brands: %d/%d (%.1f%%)", i, len(brands), float64(i)/float64(len(brands))*100),
+						map[string]interface{}{
+							"processed": i,
+							"total":     len(brands),
+						})
+					s.createProgressSnapshot(ctx, syncLogID, stepNumber, string(models.SyncStepBrands),
+						i, len(brands), elapsedSec, throughput)
+				}
 			}
 		}
 
@@ -765,6 +873,10 @@ func (s *SelectiveSync) buildCategoryUpdates(category *models.CategoryInput, con
 
 // processProductsSelective processes products with selective field syncing
 func (s *SelectiveSync) processProductsSelective(ctx context.Context, syncLogID uuid.UUID, request *models.SelectiveSyncRequest, result *StepResult) error {
+	stepNumber := getStepNumber(models.SyncStepProducts)
+	stepNumberPtr := &stepNumber
+	stepStartTime := time.Now()
+
 	// Fetch products from Ultra API
 	products, characteristics, err := s.fetcher.FetchProducts(ctx, true)
 	if err != nil {
@@ -773,6 +885,13 @@ func (s *SelectiveSync) processProductsSelective(ctx context.Context, syncLogID 
 
 	result.Extracted = len(products)
 	log.Printf("Fetched %d products from Ultra API", len(products))
+
+	// Log fetch completion
+	s.logEntry(ctx, syncLogID, stepNumberPtr, models.LogLevelInfo,
+		fmt.Sprintf("Fetched %d products from Ultra API", len(products)),
+		map[string]interface{}{
+			"count": len(products),
+		})
 
 	// Get field config for this step
 	fieldConfig := models.FieldConfig{}
@@ -787,13 +906,25 @@ func (s *SelectiveSync) processProductsSelective(ctx context.Context, syncLogID 
 
 	// Process each product
 	for i, product := range products {
-		// Check for context cancellation (every 100 products)
+		// Check for context cancellation and log progress every 100 products
 		if i%100 == 0 {
 			select {
 			case <-ctx.Done():
 				return fmt.Errorf("sync cancelled: %w", ctx.Err())
 			default:
-				// Continue processing
+				// Log progress
+				if i > 0 {
+					elapsedSec := int(time.Since(stepStartTime).Seconds())
+					throughput := calculateThroughput(i, elapsedSec)
+					s.logEntry(ctx, syncLogID, stepNumberPtr, models.LogLevelDebug,
+						fmt.Sprintf("Processing products: %d/%d (%.1f%%)", i, len(products), float64(i)/float64(len(products))*100),
+						map[string]interface{}{
+							"processed": i,
+							"total":     len(products),
+						})
+					s.createProgressSnapshot(ctx, syncLogID, stepNumber, string(models.SyncStepProducts),
+						i, len(products), elapsedSec, throughput)
+				}
 			}
 		}
 
@@ -946,6 +1077,10 @@ func (s *SelectiveSync) buildProductUpdates(product *models.ProductInput, config
 
 // processPropertiesSelective processes properties with selective field syncing
 func (s *SelectiveSync) processPropertiesSelective(ctx context.Context, syncLogID uuid.UUID, request *models.SelectiveSyncRequest, result *StepResult) error {
+	stepNumber := getStepNumber(models.SyncStepProperties)
+	stepNumberPtr := &stepNumber
+	stepStartTime := time.Now()
+
 	// Properties are fetched per category
 	// Get all active categories
 	categories, err := s.repo.GetAllCategories(ctx)
@@ -954,6 +1089,13 @@ func (s *SelectiveSync) processPropertiesSelective(ctx context.Context, syncLogI
 	}
 
 	log.Printf("Fetching properties for %d categories", len(categories))
+
+	// Log start
+	s.logEntry(ctx, syncLogID, stepNumberPtr, models.LogLevelInfo,
+		fmt.Sprintf("Fetching properties for %d categories", len(categories)),
+		map[string]interface{}{
+			"category_count": len(categories),
+		})
 
 	totalExtracted := 0
 	totalInserted := 0
@@ -972,6 +1114,20 @@ func (s *SelectiveSync) processPropertiesSelective(ctx context.Context, syncLogI
 
 		if i%10 == 0 {
 			log.Printf("Processing properties for category %d/%d", i+1, len(categories))
+
+			// Log progress
+			if i > 0 {
+				elapsedSec := int(time.Since(stepStartTime).Seconds())
+				throughput := calculateThroughput(i, elapsedSec)
+				s.logEntry(ctx, syncLogID, stepNumberPtr, models.LogLevelDebug,
+					fmt.Sprintf("Processing properties for category %d/%d (%.1f%%)", i+1, len(categories), float64(i)/float64(len(categories))*100),
+					map[string]interface{}{
+						"processed": i,
+						"total":     len(categories),
+					})
+				s.createProgressSnapshot(ctx, syncLogID, stepNumber, string(models.SyncStepProperties),
+					i, len(categories), elapsedSec, throughput)
+			}
 		}
 
 		// Fetch properties for this category (returns map[productUltraID][]*PropertyInput)
@@ -1099,5 +1255,83 @@ func (s *SelectiveSync) processExchangeRatesSelective(ctx context.Context, syncL
 
 	log.Printf("Exchange rates sync: %d upserted", len(rates))
 
+	return nil
+}
+
+// ============================================================================
+// REAL-TIME LOGGING HELPERS
+// ============================================================================
+
+// logEntry creates a log entry for real-time monitoring
+// Gracefully handles errors to prevent logging failures from disrupting sync
+func (s *SelectiveSync) logEntry(ctx context.Context, syncLogID uuid.UUID, stepNumber *int, level models.LogLevel, message string, details map[string]interface{}) {
+	entry := &models.SyncLogEntry{
+		SyncLogID:  syncLogID,
+		StepNumber: stepNumber,
+		Level:      level,
+		Message:    message,
+		Details:    details,
+	}
+
+	// Use background context to ensure logging completes even if main context is cancelled
+	logCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.realtimeRepo.CreateLogEntry(logCtx, entry); err != nil {
+		// Log error but don't fail the sync
+		log.Printf("WARNING: Failed to create log entry: %v", err)
+	}
+}
+
+// createProgressSnapshot creates a progress snapshot for a step
+func (s *SelectiveSync) createProgressSnapshot(ctx context.Context, syncLogID uuid.UUID, stepNumber int, stepName string, itemsProcessed, itemsTotal int, elapsedSeconds int, throughputItemsPerSec *float64) {
+	progressPercentage := 0.0
+	if itemsTotal > 0 {
+		progressPercentage = (float64(itemsProcessed) / float64(itemsTotal)) * 100.0
+	}
+
+	// Calculate estimated remaining time
+	var estimatedRemaining *int
+	if itemsProcessed > 0 && itemsTotal > 0 && itemsProcessed < itemsTotal {
+		if throughputItemsPerSec != nil && *throughputItemsPerSec > 0 {
+			remaining := int((float64(itemsTotal-itemsProcessed) / *throughputItemsPerSec))
+			estimatedRemaining = &remaining
+		}
+	}
+
+	// Get memory usage
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+	memoryUsageMB := float64(memStats.Alloc) / 1024 / 1024
+
+	snapshot := &models.SyncProgressSnapshot{
+		SyncLogID:                 syncLogID,
+		StepNumber:                stepNumber,
+		StepName:                  stepName,
+		ItemsProcessed:            itemsProcessed,
+		ItemsTotal:                itemsTotal,
+		ProgressPercentage:        progressPercentage,
+		ElapsedSeconds:            elapsedSeconds,
+		EstimatedRemainingSeconds: estimatedRemaining,
+		ThroughputItemsPerSecond:  throughputItemsPerSec,
+		MemoryUsageMB:             &memoryUsageMB,
+	}
+
+	// Use background context to ensure logging completes even if main context is cancelled
+	logCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.realtimeRepo.CreateProgressSnapshot(logCtx, snapshot); err != nil {
+		// Log error but don't fail the sync
+		log.Printf("WARNING: Failed to create progress snapshot: %v", err)
+	}
+}
+
+// calculateThroughput calculates items per second throughput
+func calculateThroughput(itemsProcessed int, elapsedSeconds int) *float64 {
+	if elapsedSeconds > 0 && itemsProcessed > 0 {
+		throughput := float64(itemsProcessed) / float64(elapsedSeconds)
+		return &throughput
+	}
 	return nil
 }

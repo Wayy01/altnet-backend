@@ -32,7 +32,7 @@ brands (1,133) → products (48,316) ← categories (418)
             characteristics (460)
 ```
 
-**Tables**: products, properties, characteristics, brands, categories, exchange_rates, sync_logs, sync_step_details, sync_configurations, sync_changes, sync_snapshots, sync_snapshot_data, sync_rollbacks, sync_conflicts, sync_conflict_rules, sync_schedules, sync_filters, sync_notifications
+**Tables**: products, properties, characteristics, brands, categories, exchange_rates, sync_logs, sync_step_details, sync_configurations, sync_changes, sync_snapshots, sync_snapshot_data, sync_rollbacks, sync_conflicts, sync_conflict_rules, sync_schedules, sync_filters, sync_notifications, sync_log_entries, sync_progress_snapshots, sync_api_requests
 
 ## API Endpoints
 
@@ -64,6 +64,9 @@ brands (1,133) → products (48,316) ← categories (418)
 - GET `/api/v1/sync/conflicts[/{id}]`
 - POST `/api/v1/sync/conflicts/resolve`
 - GET/POST/PUT/DELETE `/api/v1/sync/conflict-rules[/{id}]`
+- GET `/api/v1/sync/stream/progress|logs` (SSE)
+- GET `/api/v1/sync/realtime/progress|logs|snapshots|api-requests`
+- GET `/api/v1/sync/realtime/logs/export?format=csv|json`
 
 ### Other
 - GET `/api/v1/search?q=`
@@ -91,7 +94,7 @@ brands (1,133) → products (48,316) ← categories (418)
 - `/properties` - 3-level hierarchy: Groups (111) → Names (~1,925) → Values (876k+)
 - `/characteristics` - 2-level hierarchy: Names (62) → Values (460 SKUs)
 - `/groupings` - 2-level hierarchy: Parent Products → Variants (via parent_id)
-- `/sync[/selective|/configs|/changes]` - Sync operations
+- `/sync[/selective|/configs|/changes|/monitor]` - Sync operations with real-time monitor
 - `/settings` - Configuration
 
 ## Property Hierarchy (9.6/10 - Production Ready)
@@ -110,6 +113,7 @@ brands (1,133) → products (48,316) ← categories (418)
 2. **Phase 2** (9.5/10): REST API, field schemas, execution engine
 3. **Phase 3** (9.8/10): Frontend UI (configs, selective, changes pages)
 4. **Phase 4** (9.6/10): Advanced features - rollback, comparison, conflict resolution
+5. **Phase 5** (9.7/10): Real-time monitoring - SSE streaming, live logs, progress tracking
 
 ### Key Tables
 - `sync_configurations` - Reusable templates
@@ -123,6 +127,9 @@ brands (1,133) → products (48,316) ← categories (418)
 - `sync_schedules` - Scheduled sync jobs (cron)
 - `sync_filters` - Advanced entity-level filtering
 - `sync_notifications` - Alert configuration
+- `sync_log_entries` - Real-time detailed logs with level filtering
+- `sync_progress_snapshots` - Periodic progress checkpoints
+- `sync_api_requests` - API request/response debugging
 
 ### Sync Steps
 brands, categories, products, properties, prices, stock, exchange_rates
@@ -140,6 +147,18 @@ brands, categories, products, properties, prices, stock, exchange_rates
 - **Transaction Safety**: REPEATABLE READ isolation for consistent snapshots
 - **Batch Processing**: 1000-item chunks prevent memory exhaustion
 - **Security**: HMAC-SHA256 hashing, SQL injection prevention, input validation
+
+### Phase 5: Real-Time Monitoring (9.6/10 - Production Ready)
+- **Backend Integration**: Real-time logging in selective.go with graceful error handling, background context timeouts
+- **SSE Streaming**: Server-Sent Events for live progress and log streaming via /sync/stream/* endpoints
+- **Live Logs**: Real-time log entries with level filtering (debug, info, warn, error, fatal) written during sync execution
+- **Progress Tracking**: Step-by-step progress with items processed/total, throughput (items/sec), memory usage, ETA
+- **Comprehensive Logging**: Sync start/end, step start/complete, progress every 100 items (brands/products), every 10 categories (properties)
+- **Advanced Filtering**: Filter by level, step, search query, time range
+- **Export**: CSV/JSON export of complete log history
+- **Full-Screen Viewer**: Expandable log console with auto-scroll at /sync/monitor
+- **Connection Status**: Auto-reconnect on network failures
+- **Non-Blocking**: Logging failures don't crash sync operations, 5s timeout per log entry
 
 ## Configuration (.env)
 ```

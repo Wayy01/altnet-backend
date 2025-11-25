@@ -14,6 +14,7 @@ A Go application for fetching and storing the complete Ultra B2B product catalog
 - **Multi-Currency Support**: MDL (primary), EUR, USD pricing with automatic extraction
 - **Product Variant Grouping**: Auto-links related products (e.g., storage variants)
 - **Complete Audit Trail**: Tracks every sync with detailed metrics
+- **Real-Time Sync Monitoring**: Live log streaming with SSE, progress tracking, throughput metrics, memory usage at /sync/monitor
 - **CMS Dashboard**: Next.js admin panel with global currency selector (see `admin-intelect/`)
 
 ## Quick Start
