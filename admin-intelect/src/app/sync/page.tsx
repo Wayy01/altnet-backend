@@ -25,6 +25,8 @@ import {
   Activity,
   Zap,
   ExternalLink,
+  MoreVertical,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +41,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { SyncLog, SyncProgress } from "@/types";
 
@@ -131,7 +150,12 @@ export default function SyncPage() {
   const [offset, setOffset] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [selectedSync, setSelectedSync] = useState<SyncLog | null>(null);
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [newStatus, setNewStatus] = useState<"failed" | "cancelled" | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast } = useToast();
 
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
@@ -272,6 +296,47 @@ export default function SyncPage() {
     setOffset((newPage - 1) * limit);
   };
 
+  const handleStatusChange = (log: SyncLog, status: "failed" | "cancelled") => {
+    setSelectedSync(log);
+    setNewStatus(status);
+    setShowStatusDialog(true);
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!selectedSync || !newStatus) return;
+
+    setIsUpdatingStatus(true);
+    try {
+      const result = await api.updateSyncStatus(
+        selectedSync.id,
+        newStatus,
+        `Manually marked as ${newStatus} from UI`
+      );
+
+      toast({
+        title: "Sync Status Updated",
+        description: `Sync status changed from "${result.old_status}" to "${result.new_status}"`,
+        variant: "default",
+      });
+
+      // Refresh sync logs
+      await fetchData();
+
+      setShowStatusDialog(false);
+      setSelectedSync(null);
+      setNewStatus(null);
+    } catch (error) {
+      console.error("Failed to update sync status:", error);
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update sync status",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -297,6 +362,16 @@ export default function SyncPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+          >
+            <Link href="/sync/monitor">
+              <Activity className="h-4 w-4 mr-2" />
+              Real-Time Monitor
+            </Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -786,6 +861,7 @@ export default function SyncPage() {
                       <TableHead className="text-right font-semibold">Properties</TableHead>
                       <TableHead className="text-right font-semibold">Duration</TableHead>
                       <TableHead className="font-semibold">Date</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -835,6 +911,31 @@ export default function SyncPage() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDate(log.started_at)}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(log, "failed")}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Mark as Failed
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(log, "cancelled")}
+                                className="text-muted-foreground"
+                              >
+                                <AlertTriangle className="h-4 w-4 mr-2" />
+                                Mark as Cancelled
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -917,6 +1018,63 @@ export default function SyncPage() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Status Update Confirmation Dialog */}
+      <AlertDialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Update Sync Status?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {newStatus === "failed" ? (
+                <>This will mark the sync as <strong>failed</strong>. Use this for syncs that are stuck or didn't complete properly.</>
+              ) : (
+                <>This will mark the sync as <strong>cancelled</strong>. Use this for syncs that were manually stopped.</>
+              )}
+              {selectedSync && (
+                <div className="mt-3 p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-sm font-medium text-foreground">Sync Details:</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ID: {selectedSync.id.slice(0, 8)}...
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Type: {selectedSync.sync_type}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Current Status: {selectedSync.status}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Started: {formatDate(selectedSync.started_at)}
+                  </p>
+                </div>
+              )}
+              <p className="mt-3 text-sm text-yellow-600 dark:text-yellow-500 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>This action cannot be undone. The sync will be permanently marked as {newStatus}.</span>
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmStatusUpdate}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isUpdatingStatus}
+            >
+              {isUpdatingStatus ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  {newStatus === "failed" ? <XCircle className="h-4 w-4 mr-2" /> : <AlertTriangle className="h-4 w-4 mr-2" />}
+                  Yes, Mark as {newStatus && newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

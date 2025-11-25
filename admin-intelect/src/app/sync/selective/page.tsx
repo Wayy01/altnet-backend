@@ -233,14 +233,23 @@ export default function SelectiveSyncPage() {
     }
   };
 
-  // Memoize progress calculation
+  // Memoize progress calculation - use backend-calculated progress
   const overallProgress = useMemo(() => {
-    if (!progress || !progress.steps) return 0;
+    if (!progress) return 0;
+    // Use the backend-calculated overall_progress_percentage
+    return progress.overall_progress_percentage || 0;
+  }, [progress]);
 
-    const completedSteps = progress.steps.filter((s) => s.status === "completed").length;
-    const totalSteps = progress.steps.length;
-
-    return calculateProgress(completedSteps, totalSteps);
+  // Filter steps to only show selected ones
+  const displaySteps = useMemo(() => {
+    if (!progress || !progress.steps) return [];
+    // If sync has selected_steps array, filter to show only those
+    if (progress.selected_steps && progress.selected_steps.length > 0) {
+      const selectedSet = new Set(progress.selected_steps);
+      return progress.steps.filter(step => selectedSet.has(step.name));
+    }
+    // Otherwise show all steps
+    return progress.steps;
   }, [progress]);
 
   // Grouping trigger button component
@@ -344,7 +353,7 @@ export default function SelectiveSyncPage() {
 
             {/* Step-by-Step Progress */}
             <div className="space-y-3">
-              {progress.steps.map((step) => (
+              {displaySteps.map((step) => (
                 <div key={step.number} className="flex items-center gap-3 p-3 rounded-lg border">
                   <div>
                     {step.status === "completed" && (

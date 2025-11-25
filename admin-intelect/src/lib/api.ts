@@ -549,6 +549,42 @@ class ApiClient {
     return response.data;
   }
 
+  // Cancel running sync
+  async cancelSync(syncLogId: string, reason?: string): Promise<{
+    sync_log_id: string;
+    status: string;
+    message: string;
+    cancelled_at: string;
+  }> {
+    return this.fetch(`/api/v1/sync/${syncLogId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason: reason || "Cancelled by user" }),
+    });
+  }
+
+  // Update sync status (for stuck syncs)
+  async updateSyncStatus(
+    syncLogId: string,
+    status: "failed" | "cancelled",
+    reason?: string,
+    errorMessage?: string
+  ): Promise<{
+    sync_log_id: string;
+    old_status: string;
+    new_status: string;
+    message: string;
+    updated_at: string;
+  }> {
+    return this.fetch(`/api/v1/sync/${syncLogId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        status,
+        reason: reason || "Manual status update by user",
+        error_message: errorMessage,
+      }),
+    });
+  }
+
   // Low stock alerts
   async getLowStockProducts(limit = 10): Promise<LowStockAlert[]> {
     const params = new URLSearchParams();

@@ -39,7 +39,7 @@ func NewClient(cfg config.UltraConfig) *Client {
 	return &Client{
 		config: cfg,
 		httpClient: &http.Client{
-			Timeout: cfg.Timeout,
+			// No timeout - allow requests to run indefinitely
 		},
 	}
 }
@@ -161,18 +161,15 @@ func (c *Client) IsReady(ctx context.Context, requestID string) (bool, error) {
 	return resp.Return, nil
 }
 
-// WaitForReady polls until data is ready or timeout
+// WaitForReady polls until data is ready (no timeout)
 func (c *Client) WaitForReady(ctx context.Context, requestID string) error {
-	ctx, cancel := context.WithTimeout(ctx, c.config.PollTimeout)
-	defer cancel()
-
 	ticker := time.NewTicker(c.config.PollInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for data: %w", ctx.Err())
+			return fmt.Errorf("context canceled while waiting for data: %w", ctx.Err())
 		case <-ticker.C:
 			ready, err := c.IsReady(ctx, requestID)
 			if err != nil {
