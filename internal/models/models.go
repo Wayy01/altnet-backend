@@ -128,6 +128,7 @@ type Product struct {
 	ParentUltraID   *string    `json:"parent_ultra_id,omitempty"`
 	MainImageURL    *string    `json:"main_image_url"`
 	Images          JSONBArray `json:"images"`
+	Videos          JSONBArray `json:"videos"`
 	Warranty        *string    `json:"warranty"`
 	Barcodes        JSONBArray `json:"barcodes"`
 	PriceMin        *float64   `json:"price_min"`
