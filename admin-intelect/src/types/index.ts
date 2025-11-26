@@ -76,6 +76,8 @@ export interface CategoryProduct {
   prices: ProductPriceEntry[];
   total_stock: number;
   is_active: boolean;
+  source_id: string | null;
+  source_name: string | null;
 }
 
 // Category filter options for advanced filtering
@@ -307,6 +309,7 @@ export interface ProductFilters {
   search?: string;
   brand_id?: string;
   category_id?: string;
+  source_id?: string;
   price_filter?: string; // "all", "with_price", "no_price"
   stock_filter?: string; // "all", "in_stock", "out_stock"
   status_filter?: string; // "all", "active", "inactive"
@@ -578,6 +581,8 @@ export interface BrandProduct {
   prices: ProductPriceEntry[];
   total_stock: number;
   is_active: boolean;
+  source_id: string | null;
+  source_name: string | null;
 }
 
 // Stock summary by category

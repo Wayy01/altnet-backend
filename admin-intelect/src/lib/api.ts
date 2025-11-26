@@ -310,6 +310,7 @@ class ApiClient {
       price_filter?: string;
       stock_filter?: string;
       status_filter?: string;
+      source_id?: string;
     }
   ): Promise<{ data: BrandProduct[]; total: number }> {
     const params = new URLSearchParams();
@@ -320,6 +321,7 @@ class ApiClient {
     if (filters?.price_filter) params.append("price_filter", filters.price_filter);
     if (filters?.stock_filter) params.append("stock_filter", filters.stock_filter);
     if (filters?.status_filter) params.append("status_filter", filters.status_filter);
+    if (filters?.source_id) params.append("source_id", filters.source_id);
 
     const response = await this.fetch<{ data: BrandProduct[]; meta: { total: number } }>(
       `/api/v1/brands/${id}/products?${params.toString()}`
@@ -398,6 +400,7 @@ class ApiClient {
       price_filter?: string;
       stock_filter?: string;
       status_filter?: string;
+      source_id?: string;
     }
   ): Promise<{ data: CategoryProduct[]; total: number }> {
     const params = new URLSearchParams();
@@ -408,6 +411,7 @@ class ApiClient {
     if (filters?.price_filter) params.append("price_filter", filters.price_filter);
     if (filters?.stock_filter) params.append("stock_filter", filters.stock_filter);
     if (filters?.status_filter) params.append("status_filter", filters.status_filter);
+    if (filters?.source_id) params.append("source_id", filters.source_id);
 
     const response = await this.fetch<{ data: CategoryProduct[]; meta: { total: number } }>(
       `/api/v1/categories/${id}/products?${params.toString()}`
