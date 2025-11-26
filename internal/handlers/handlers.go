@@ -1860,17 +1860,17 @@ func (h *Handler) determineCurrentStep(syncLog *models.SyncLog, isRunning bool, 
 
 // CreateProduct handles POST /api/v1/products
 // @Summary Create a new product
-// @Description Creates a new product in the database
+// @Description Creates a new product in the database with all fields including properties and characteristics
 // @Tags Products
 // @Accept json
 // @Produce json
-// @Param product body CreateProductRequest true "Product data"
+// @Param product body EnhancedCreateProductRequest true "Product data"
 // @Success 201 {object} models.Product
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/products [post]
 func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
-	var req repository.CreateProductRequest
+	var req repository.EnhancedCreateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
@@ -1882,7 +1882,11 @@ func (h *Handler) CreateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := h.repo.CreateProduct(r.Context(), &req)
+	// Use context with 30 second timeout for the transaction
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	product, err := h.repo.CreateProductFull(ctx, &req)
 	if err != nil {
 		h.respondError(w, http.StatusInternalServerError, "Failed to create product", err.Error())
 		return

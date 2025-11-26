@@ -271,6 +271,14 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/products/{id}", handler.DeleteProduct).Methods("DELETE", "OPTIONS")
 
+	// File upload endpoints
+	api.HandleFunc("/upload/image", handler.UploadImage).Methods("POST", "OPTIONS")
+	api.HandleFunc("/upload/video", handler.UploadVideo).Methods("POST", "OPTIONS")
+	api.HandleFunc("/upload/images", handler.UploadMultipleImages).Methods("POST", "OPTIONS")
+	api.HandleFunc("/upload/image/{uuid}", handler.DeleteUploadedImage).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/upload/video/{uuid}", handler.DeleteUploadedVideo).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/upload/info/{type}/{uuid}", handler.GetUploadedFile).Methods("GET", "OPTIONS")
+
 
 	// Export endpoints
 	api.HandleFunc("/export/products", handler.ExportProducts).Methods("GET", "OPTIONS")
@@ -309,6 +317,10 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 			}
 		}`))
 	}).Methods("GET", "OPTIONS")
+
+	// Serve static files from /uploads directory
+	router.PathPrefix("/uploads/").Handler(
+		http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
 
 	return router
 }

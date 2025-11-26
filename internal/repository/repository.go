@@ -79,6 +79,105 @@ type UpdateCategoryRequest struct {
 	IsActive     *bool      `json:"is_active"`
 }
 
+// ============================================================================
+// ENHANCED PRODUCT CREATION TYPES
+// ============================================================================
+
+// ImageData represents an image entry for product creation
+type ImageData struct {
+	UUID        string  `json:"uuid"`
+	URL         string  `json:"url"`
+	Description *string `json:"description"`
+	PathGlobal  *string `json:"path_global"`
+}
+
+// VideoData represents a video entry for product creation
+type VideoData struct {
+	UUID         string  `json:"uuid"`
+	URL          string  `json:"url"`
+	Title        *string `json:"title"`
+	Description  *string `json:"description"`
+	ThumbnailURL *string `json:"thumbnail_url"`
+}
+
+// PriceData represents multi-currency price entry
+type PriceData struct {
+	Price    float64 `json:"price"`
+	Currency string  `json:"currency"`
+	Type     string  `json:"type"`
+	TypeUUID *string `json:"type_uuid"`
+}
+
+// BarcodeData represents a barcode entry
+type BarcodeData struct {
+	Code string `json:"code"`
+	Type string `json:"type"`
+}
+
+// PropertyCreateData represents a property to create with product
+type PropertyCreateData struct {
+	PropertyName   string  `json:"property_name"`
+	PropertyCode   *string `json:"property_code"`
+	Value          *string `json:"value"`
+	ValueType      *string `json:"value_type"`
+	GroupName      *string `json:"group_name"`
+	GroupUUID      *string `json:"group_uuid"`
+	SortOrder      int     `json:"sort_order"`
+	IsFilter       bool    `json:"is_filter"`
+	IsModification bool    `json:"is_modification"`
+}
+
+// CharacteristicCreateData represents a characteristic/SKU to create
+type CharacteristicCreateData struct {
+	Name           string      `json:"name"`
+	Code           *string     `json:"code"`
+	Reference      *string     `json:"reference"`
+	Prices         []PriceData `json:"prices"`
+	StockWarehouse int         `json:"stock_warehouse"`
+	StockShowroom  int         `json:"stock_showroom"`
+	IsActive       bool        `json:"is_active"`
+}
+
+// EnhancedCreateProductRequest for full product creation with all fields
+type EnhancedCreateProductRequest struct {
+	// Basic Info
+	Name        string  `json:"name"`
+	Code        *string `json:"code"`
+	Article     *string `json:"article"`
+	Description *string `json:"description"`
+	Warranty    *string `json:"warranty"`
+
+	// Relationships
+	BrandID    *uuid.UUID `json:"brand_id"`
+	CategoryID *uuid.UUID `json:"category_id"`
+	ParentID   *uuid.UUID `json:"parent_id"` // For variant linking
+
+	// Media
+	MainImageURL *string      `json:"main_image_url"`
+	Images       []ImageData  `json:"images"`
+	Videos       []VideoData  `json:"videos"`
+	Barcodes     []BarcodeData `json:"barcodes"`
+
+	// Pricing (product-level)
+	Prices   []PriceData `json:"prices"`
+	PriceMDL *float64    `json:"price_mdl"`
+	PriceEUR *float64    `json:"price_eur"`
+	PriceUSD *float64    `json:"price_usd"`
+
+	// Stock
+	TotalStock int  `json:"total_stock"`
+	IsInStock  bool `json:"is_in_stock"`
+
+	// Flags
+	IsActive  bool `json:"is_active"`
+	IsService bool `json:"is_service"`
+	IsGroup   bool `json:"is_group"`
+
+	// Nested Entities
+	Properties      []PropertyCreateData       `json:"properties"`
+	Characteristics []CharacteristicCreateData `json:"characteristics"`
+}
+
 type Repository struct {
 	pool *pgxpool.Pool
 }
@@ -1377,7 +1476,7 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 	query := `
 		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
-		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		       images, videos, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
 		       is_active, is_service, created_at, updated_at,
 		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 		FROM products
@@ -1389,7 +1488,7 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
 		&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
-		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+		&product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
@@ -1412,7 +1511,7 @@ func (r *Repository) GetProductsByUltraIDs(ctx context.Context, ultraIDs []strin
 	query := `
 		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
-		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		       images, videos, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
 		       is_active, is_service, created_at, updated_at,
 		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 		FROM products
@@ -1432,7 +1531,7 @@ func (r *Repository) GetProductsByUltraIDs(ctx context.Context, ultraIDs []strin
 			&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 			&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
 			&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
-			&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+			&product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
 			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
@@ -2931,7 +3030,7 @@ func (r *Repository) GetProductVariants(ctx context.Context, productID uuid.UUID
 	query := `
 		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		       parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
-		       images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		       images, videos, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
 		       is_active, is_service, created_at, updated_at,
 		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 		FROM products
@@ -2952,7 +3051,7 @@ func (r *Repository) GetProductVariants(ctx context.Context, productID uuid.UUID
 			&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 			&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
 			&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
-			&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+			&product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
 			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
@@ -3778,7 +3877,7 @@ func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductReques
 		)
 		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		          parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
-		          images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		          images, videos, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
 		          is_active, is_service, created_at, updated_at,
 		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 	`
@@ -3791,7 +3890,7 @@ func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductReques
 		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
 		&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
-		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+		&product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
@@ -3799,6 +3898,183 @@ func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductReques
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create product: %w", err)
+	}
+
+	return &product, nil
+}
+
+// CreateProductFull creates a new product with all fields including nested properties and characteristics
+func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateProductRequest) (*models.Product, error) {
+	// Begin transaction with repeatable read isolation for consistency
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Generate slug and ultra_id
+	productSlug := slug.Make(req.Name)
+	if productSlug == "" {
+		productSlug = "product"
+	}
+	ultraID := fmt.Sprintf("manual-%s", uuid.New().String())
+
+	// Convert images to JSONB
+	var imagesJSON interface{}
+	if len(req.Images) > 0 {
+		imagesJSON = req.Images
+	} else {
+		imagesJSON = []interface{}{}
+	}
+
+	// Convert videos to JSONB
+	var videosJSON interface{}
+	if len(req.Videos) > 0 {
+		videosJSON = req.Videos
+	} else {
+		videosJSON = []interface{}{}
+	}
+
+	// Convert barcodes to JSONB
+	var barcodesJSON interface{}
+	if len(req.Barcodes) > 0 {
+		barcodesJSON = req.Barcodes
+	} else {
+		barcodesJSON = []interface{}{}
+	}
+
+	// Convert prices to JSONB
+	var pricesJSON interface{}
+	if len(req.Prices) > 0 {
+		pricesJSON = req.Prices
+	} else {
+		pricesJSON = []interface{}{}
+	}
+
+	// Insert the product with all fields
+	query := `
+		INSERT INTO products (
+			ultra_id, code, article, name, slug, description, warranty,
+			brand_id, category_id, parent_id,
+			main_image_url, images, videos, barcodes,
+			prices, price_mdl, price_eur, price_usd,
+			total_stock, is_in_stock, is_active, is_service, is_group
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7,
+			$8, $9, $10,
+			$11, $12, $13, $14,
+			$15, $16, $17, $18,
+			$19, $20, $21, $22, $23
+		)
+		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
+		          parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
+		          images, videos, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		          is_active, is_service, created_at, updated_at,
+		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+	`
+
+	var product models.Product
+	err = tx.QueryRow(ctx, query,
+		ultraID, req.Code, req.Article, req.Name, productSlug, req.Description, req.Warranty,
+		req.BrandID, req.CategoryID, req.ParentID,
+		req.MainImageURL, imagesJSON, videosJSON, barcodesJSON,
+		pricesJSON, req.PriceMDL, req.PriceEUR, req.PriceUSD,
+		req.TotalStock, req.IsInStock, req.IsActive, req.IsService, req.IsGroup,
+	).Scan(
+		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
+		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
+		&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
+		&product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
+		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		&product.VariantGroupID, &product.IsGroup,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("insert product: %w", err)
+	}
+
+	// Insert properties if provided
+	if len(req.Properties) > 0 {
+		propertyQuery := `
+			INSERT INTO properties (
+				product_id, property_uuid, property_name, property_code, value, value_type,
+				group_uuid, group_name, sort_order, is_filter, is_modification
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		`
+		for _, prop := range req.Properties {
+			propertyUUID := uuid.New().String()
+			_, err = tx.Exec(ctx, propertyQuery,
+				product.ID, propertyUUID, prop.PropertyName, prop.PropertyCode, prop.Value, prop.ValueType,
+				prop.GroupUUID, prop.GroupName, prop.SortOrder, prop.IsFilter, prop.IsModification,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("insert property %s: %w", prop.PropertyName, err)
+			}
+		}
+	}
+
+	// Insert characteristics if provided
+	if len(req.Characteristics) > 0 {
+		charQuery := `
+			INSERT INTO characteristics (
+				product_id, ultra_id, code, reference, name, prices,
+				stock_warehouse, stock_showroom, stock_total, is_active
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		`
+		for _, char := range req.Characteristics {
+			charUltraID := fmt.Sprintf("manual-char-%s", uuid.New().String())
+
+			// Convert characteristic prices to JSONB
+			var charPricesJSON interface{}
+			if len(char.Prices) > 0 {
+				charPricesJSON = char.Prices
+			} else {
+				charPricesJSON = []interface{}{}
+			}
+
+			stockTotal := char.StockWarehouse + char.StockShowroom
+
+			_, err = tx.Exec(ctx, charQuery,
+				product.ID, charUltraID, char.Code, char.Reference, char.Name, charPricesJSON,
+				char.StockWarehouse, char.StockShowroom, stockTotal, char.IsActive,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("insert characteristic %s: %w", char.Name, err)
+			}
+		}
+
+		// Update product aggregates if characteristics were added
+		aggregateQuery := `
+			UPDATE products SET
+				price_min = (SELECT MIN((price->>'price')::numeric) FROM characteristics, jsonb_array_elements(prices) AS price WHERE characteristics.product_id = $1 AND prices IS NOT NULL AND jsonb_array_length(prices) > 0),
+				price_max = (SELECT MAX((price->>'price')::numeric) FROM characteristics, jsonb_array_elements(prices) AS price WHERE characteristics.product_id = $1 AND prices IS NOT NULL AND jsonb_array_length(prices) > 0),
+				total_stock = (SELECT COALESCE(SUM(stock_total), 0) FROM characteristics WHERE product_id = $1),
+				is_in_stock = (SELECT COALESCE(SUM(stock_total), 0) > 0 FROM characteristics WHERE product_id = $1),
+				updated_at = NOW()
+			WHERE id = $1
+		`
+		_, err = tx.Exec(ctx, aggregateQuery, product.ID)
+		if err != nil {
+			return nil, fmt.Errorf("update product aggregates: %w", err)
+		}
+
+		// Refresh product data after aggregate update
+		refreshQuery := `
+			SELECT price_min, price_max, total_stock, is_in_stock
+			FROM products WHERE id = $1
+		`
+		err = tx.QueryRow(ctx, refreshQuery, product.ID).Scan(
+			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("refresh product data: %w", err)
+		}
+	}
+
+	// Commit transaction
+	if err = tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit transaction: %w", err)
 	}
 
 	return &product, nil
@@ -3876,7 +4152,7 @@ func (r *Repository) UpdateProduct(ctx context.Context, id uuid.UUID, req *Updat
 		WHERE id = $%d
 		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		          parent_id, brand_ultra_id, category_ultra_id, parent_ultra_id, main_image_url,
-		          images, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
+		          images, videos, warranty, barcodes, price_min, price_max, total_stock, is_in_stock,
 		          is_active, is_service, created_at, updated_at,
 		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
 	`, strings.Join(updates, ", "), argPos)
@@ -3886,7 +4162,7 @@ func (r *Repository) UpdateProduct(ctx context.Context, id uuid.UUID, req *Updat
 		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
 		&product.ParentID, &product.BrandUltraID, &product.CategoryUltraID, &product.ParentUltraID,
-		&product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+		&product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
