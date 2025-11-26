@@ -81,8 +81,17 @@ export interface BulkUpdateCategoriesByIdsPayload {
 export interface ImageEntry {
   uuid: string;
   url: string;
-  description: string;
-  path_global: string;
+  description: string | null;
+  path_global: string | null;
+}
+
+// Video entry in products
+export interface VideoEntry {
+  uuid: string;
+  url: string;
+  title: string | null;
+  description: string | null;
+  thumbnail_url: string | null;
 }
 
 // Price entry in characteristics
@@ -213,6 +222,7 @@ export interface Product {
   parent_id: string | null;
   main_image_url: string | null;
   images: ImageEntry[];
+  videos: VideoEntry[];
   warranty: string | null;
   barcodes: string[];
   prices: ProductPriceEntry[];
@@ -741,4 +751,170 @@ export interface ProductVariantsResponse {
   total: number;
   limit: number;
   offset: number;
+}
+
+// ============================================================================
+// UPLOAD TYPES
+// ============================================================================
+
+// Response from image/video upload
+export interface UploadResponse {
+  uuid: string;
+  url: string;
+  filename: string;
+  size: number;
+  content_type: string;
+}
+
+// Multiple upload response
+export interface MultiUploadResponse {
+  files: UploadResponse[];
+  failed: Array<{
+    filename: string;
+    error: string;
+  }>;
+}
+
+// ============================================================================
+// PRODUCT CREATION TYPES
+// ============================================================================
+
+// Image data for product creation
+export interface CreateImageData {
+  uuid: string;
+  url: string;
+  description?: string | null;
+  path_global?: string | null;
+}
+
+// Video data for product creation
+export interface CreateVideoData {
+  uuid: string;
+  url: string;
+  title?: string | null;
+  description?: string | null;
+  thumbnail_url?: string | null;
+}
+
+// Price data for product creation
+export interface CreatePriceData {
+  price: number;
+  currency: string;
+  type?: string;
+  type_uuid?: string;
+}
+
+// Property data for product creation
+export interface CreatePropertyData {
+  property_name: string;
+  property_code?: string | null;
+  value: string;
+  value_type?: string | null;
+  group_uuid?: string | null;
+  group_name?: string | null;
+  sort_order?: number;
+  is_filter?: boolean;
+  is_modification?: boolean;
+}
+
+// Characteristic/SKU data for product creation
+export interface CreateCharacteristicData {
+  name: string;
+  code?: string | null;
+  reference?: string | null;
+  prices: CreatePriceData[];
+  stock_warehouse?: number;
+  stock_showroom?: number;
+  is_active?: boolean;
+}
+
+// Full product creation payload
+export interface CreateProductPayload {
+  // Basic info
+  name: string;
+  code?: string | null;
+  article?: string | null;
+  description?: string | null;
+
+  // Relationships
+  brand_id?: string | null;
+  category_id?: string | null;
+  parent_id?: string | null;
+
+  // Media
+  main_image_url?: string | null;
+  images?: CreateImageData[];
+  videos?: CreateVideoData[];
+
+  // Additional info
+  warranty?: string | null;
+  barcodes?: string[];
+
+  // Prices (product-level)
+  prices?: CreatePriceData[];
+
+  // Flags
+  is_group?: boolean;
+  is_active?: boolean;
+  is_service?: boolean;
+
+  // Nested entities
+  properties?: CreatePropertyData[];
+  characteristics?: CreateCharacteristicData[];
+}
+
+// Update product payload (partial)
+export interface UpdateProductFullPayload {
+  name?: string;
+  code?: string | null;
+  article?: string | null;
+  description?: string | null;
+  brand_id?: string | null;
+  category_id?: string | null;
+  parent_id?: string | null;
+  main_image_url?: string | null;
+  images?: CreateImageData[];
+  videos?: CreateVideoData[];
+  warranty?: string | null;
+  barcodes?: string[];
+  prices?: CreatePriceData[];
+  is_group?: boolean;
+  is_active?: boolean;
+  is_service?: boolean;
+}
+
+// Form state for multi-tab product creation
+export interface ProductFormState {
+  // Tab 1: Basic Info
+  basicInfo: {
+    name: string;
+    code: string;
+    article: string;
+    description: string;
+    brand_id: string;
+    category_id: string;
+    warranty: string;
+    barcodes: string[];
+    is_active: boolean;
+    is_service: boolean;
+  };
+
+  // Tab 2: Media
+  media: {
+    main_image_url: string;
+    images: CreateImageData[];
+    videos: CreateVideoData[];
+  };
+
+  // Tab 3: Properties
+  properties: CreatePropertyData[];
+
+  // Tab 4: Characteristics/SKUs
+  characteristics: CreateCharacteristicData[];
+
+  // Tab 5: Variants
+  variants: {
+    parent_id: string | null;
+    is_group: boolean;
+  };
 }
