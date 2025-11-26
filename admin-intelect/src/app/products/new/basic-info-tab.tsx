@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Plus, X, Tag, FolderTree, Search, Loader2, Check, DollarSign, Package } from "lucide-react";
+import { Plus, X, Tag, FolderTree, Search, Loader2, Check, DollarSign, Package, Globe, Trash2 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +23,9 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { api } from "@/lib/api";
-import { Brand, Category, ProductFormState } from "@/types";
+import { Brand, Category, ProductFormState, ProductSource } from "@/types";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface BasicInfoTabProps {
   data: ProductFormState["basicInfo"];
@@ -32,23 +33,31 @@ interface BasicInfoTabProps {
 }
 
 /**
- * Premium Basic Info Tab with searchable selectors for brands and categories
+ * Premium Basic Info Tab with searchable selectors for brands, categories, and sources
  * Supports 100+ items efficiently with search filtering and virtualized scrolling
  */
 export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
+  const { toast } = useToast();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [sources, setSources] = useState<ProductSource[]>([]);
   const [barcodeInput, setBarcodeInput] = useState("");
+  const [newSourceName, setNewSourceName] = useState("");
   const [isLoadingBrands, setIsLoadingBrands] = useState(true);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingSources, setIsLoadingSources] = useState(true);
+  const [isAddingSource, setIsAddingSource] = useState(false);
+  const [isDeletingSource, setIsDeletingSource] = useState<string | null>(null);
 
   // Popover open states
   const [brandOpen, setBrandOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
 
   // Search states for filtering
   const [brandSearch, setBrandSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
+  const [sourceSearch, setSourceSearch] = useState("");
 
   // Animation state for form sections
   const [sectionsVisible, setSectionsVisible] = useState(false);
@@ -59,24 +68,36 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Load brands and categories on mount
+  // Load brands, categories, and sources on mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [brandsData, categoriesData] = await Promise.all([
+        const [brandsData, categoriesData, sourcesData] = await Promise.all([
           api.getAllBrands(),
           api.getAllCategories(),
+          api.getSources(),
         ]);
         setBrands(brandsData);
         setCategories(categoriesData);
+        setSources(sourcesData);
+
+        // Auto-select the default source if no source is selected
+        if (!data.source_id && sourcesData.length > 0) {
+          const defaultSource = sourcesData.find((s) => s.is_default);
+          if (defaultSource) {
+            onChange({ source_id: defaultSource.id });
+          }
+        }
       } catch (error) {
-        console.error("Failed to load brands/categories:", error);
+        console.error("Failed to load brands/categories/sources:", error);
       } finally {
         setIsLoadingBrands(false);
         setIsLoadingCategories(false);
+        setIsLoadingSources(false);
       }
     };
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filter brands based on search
@@ -97,7 +118,16 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
     );
   }, [categories, categorySearch]);
 
-  // Get selected brand/category names
+  // Filter sources based on search
+  const filteredSources = useMemo(() => {
+    if (!sourceSearch.trim()) return sources;
+    const searchLower = sourceSearch.toLowerCase();
+    return sources.filter((source) =>
+      source.name.toLowerCase().includes(searchLower)
+    );
+  }, [sources, sourceSearch]);
+
+  // Get selected brand/category/source names
   const selectedBrand = useMemo(() => {
     return brands.find((b) => b.id === data.brand_id);
   }, [brands, data.brand_id]);
@@ -105,6 +135,71 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
   const selectedCategory = useMemo(() => {
     return categories.find((c) => c.id === data.category_id);
   }, [categories, data.category_id]);
+
+  const selectedSource = useMemo(() => {
+    return sources.find((s) => s.id === data.source_id);
+  }, [sources, data.source_id]);
+
+  // Add new source handler
+  const handleAddSource = async () => {
+    if (!newSourceName.trim()) return;
+
+    setIsAddingSource(true);
+    try {
+      const newSource = await api.createSource({ name: newSourceName.trim() });
+      setSources((prev) => [...prev, newSource]);
+      onChange({ source_id: newSource.id });
+      setNewSourceName("");
+      toast({
+        title: "Source Created",
+        description: `"${newSource.name}" has been added.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create source. It may already exist.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingSource(false);
+    }
+  };
+
+  // Delete source handler
+  const handleDeleteSource = async (sourceId: string) => {
+    const sourceToDelete = sources.find((s) => s.id === sourceId);
+    if (!sourceToDelete || sourceToDelete.is_default || !sourceToDelete.is_deletable) {
+      toast({
+        title: "Cannot Delete",
+        description: "This source cannot be deleted.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeletingSource(sourceId);
+    try {
+      await api.deleteSource(sourceId);
+      setSources((prev) => prev.filter((s) => s.id !== sourceId));
+      // If deleted source was selected, clear selection or select default
+      if (data.source_id === sourceId) {
+        const defaultSource = sources.find((s) => s.is_default);
+        onChange({ source_id: defaultSource?.id || "" });
+      }
+      toast({
+        title: "Source Deleted",
+        description: `"${sourceToDelete.name}" has been deleted.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete source. It may be in use by products.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingSource(null);
+    }
+  };
 
   const addBarcode = () => {
     if (barcodeInput.trim() && !data.barcodes.includes(barcodeInput.trim())) {
@@ -475,8 +570,184 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         </div>
       </FormSection>
 
-      {/* Description */}
+      {/* Source Selector */}
       <FormSection index={3}>
+        <div className="space-y-2">
+          <Label htmlFor="source" className="text-sm font-medium flex items-center gap-2">
+            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+            Source
+          </Label>
+          <Popover open={sourceOpen} onOpenChange={setSourceOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={sourceOpen}
+                disabled={isLoadingSources}
+                className={cn(
+                  "w-full h-11 justify-between rounded-lg font-normal",
+                  "transition-all duration-200",
+                  "hover:border-primary/50 hover:bg-muted/30",
+                  !data.source_id && "text-muted-foreground"
+                )}
+              >
+                {isLoadingSources ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading sources...
+                  </span>
+                ) : selectedSource ? (
+                  <span className="flex items-center gap-2">
+                    <span className="truncate">{selectedSource.name}</span>
+                    {selectedSource.is_default && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        Default
+                      </Badge>
+                    )}
+                  </span>
+                ) : (
+                  "Select source..."
+                )}
+                <Globe className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command shouldFilter={false}>
+                <div className="flex items-center border-b px-3">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <input
+                    placeholder="Search or add source..."
+                    value={sourceSearch}
+                    onChange={(e) => {
+                      setSourceSearch(e.target.value);
+                      setNewSourceName(e.target.value);
+                    }}
+                    className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                  {sourceSearch && (
+                    <button
+                      onClick={() => {
+                        setSourceSearch("");
+                        setNewSourceName("");
+                      }}
+                      className="p-1 rounded-full hover:bg-muted transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+                <CommandList className="max-h-[300px] overflow-y-auto">
+                  <CommandEmpty className="py-2 px-3 text-sm text-muted-foreground">
+                    {newSourceName.trim() ? (
+                      <div className="flex flex-col gap-2">
+                        <span>No sources found matching "{newSourceName}"</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleAddSource}
+                          disabled={isAddingSource}
+                          className="w-full"
+                        >
+                          {isAddingSource ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Plus className="h-4 w-4 mr-2" />
+                          )}
+                          Add "{newSourceName.trim()}"
+                        </Button>
+                      </div>
+                    ) : (
+                      "No sources available"
+                    )}
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {/* Source list */}
+                    {filteredSources.map((source) => (
+                      <CommandItem
+                        key={source.id}
+                        value={source.id}
+                        onSelect={() => {
+                          onChange({ source_id: source.id });
+                          setSourceOpen(false);
+                          setSourceSearch("");
+                          setNewSourceName("");
+                        }}
+                        className="cursor-pointer group"
+                      >
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            data.source_id === source.id
+                              ? "bg-primary text-primary-foreground"
+                              : "opacity-50"
+                          )}
+                        >
+                          {data.source_id === source.id && (
+                            <Check className="h-3 w-3" />
+                          )}
+                        </div>
+                        <span className="truncate flex-1">{source.name}</span>
+                        {source.is_default && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mr-2">
+                            Default
+                          </Badge>
+                        )}
+                        {/* Delete button for non-default, deletable sources */}
+                        {source.is_deletable && !source.is_default && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSource(source.id);
+                            }}
+                            disabled={isDeletingSource === source.id}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                          >
+                            {isDeletingSource === source.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+                {/* Add new source inline */}
+                {newSourceName.trim() && !filteredSources.some(s => s.name.toLowerCase() === newSourceName.trim().toLowerCase()) && filteredSources.length > 0 && (
+                  <div className="border-t px-3 py-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleAddSource}
+                      disabled={isAddingSource}
+                      className="w-full justify-start"
+                    >
+                      {isAddingSource ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      Add "{newSourceName.trim()}"
+                    </Button>
+                  </div>
+                )}
+                {sources.length > 5 && (
+                  <div className="border-t px-3 py-2 text-xs text-muted-foreground">
+                    {filteredSources.length} of {sources.length} sources
+                  </div>
+                )}
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <p className="text-xs text-muted-foreground">
+            Where this product originated from (Ultra for synced products)
+          </p>
+        </div>
+      </FormSection>
+
+      {/* Description */}
+      <FormSection index={4}>
         <div className="space-y-2">
           <Label htmlFor="description" className="text-sm font-medium">
             Description
@@ -500,7 +771,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Warranty */}
-      <FormSection index={4}>
+      <FormSection index={5}>
         <div className="space-y-2">
           <Label htmlFor="warranty" className="text-sm font-medium">
             Warranty
@@ -523,7 +794,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Barcodes */}
-      <FormSection index={5}>
+      <FormSection index={6}>
         <div className="space-y-3">
           <Label className="text-sm font-medium">Barcodes</Label>
           <div className="flex gap-2">
@@ -591,7 +862,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Pricing & Stock */}
-      <FormSection index={6}>
+      <FormSection index={7}>
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-4 w-4 text-primary" />
@@ -741,7 +1012,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Status Switches */}
-      <FormSection index={7}>
+      <FormSection index={8}>
         <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-border/50">
             <div className="space-y-0.5">

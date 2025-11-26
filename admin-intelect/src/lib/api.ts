@@ -52,6 +52,8 @@ import {
   UploadResponse,
   MultiUploadResponse,
   CreateProductPayload,
+  ProductSource,
+  CreateSourceRequest,
 } from "@/types";
 import {
   SelectiveSyncRequest,
@@ -1418,6 +1420,54 @@ class ApiClient {
     } catch {
       return [];
     }
+  }
+
+  // ============================================================================
+  // PRODUCT SOURCES
+  // ============================================================================
+
+  /**
+   * Get all product sources
+   */
+  async getSources(): Promise<ProductSource[]> {
+    const response = await this.fetch<{ data: ProductSource[] }>("/api/v1/sources");
+    return response.data || [];
+  }
+
+  /**
+   * Get a single source by ID
+   */
+  async getSource(id: string): Promise<ProductSource> {
+    const response = await this.fetch<{ data: ProductSource }>(`/api/v1/sources/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Get the default source (Ultra)
+   */
+  async getDefaultSource(): Promise<ProductSource> {
+    const response = await this.fetch<{ data: ProductSource }>("/api/v1/sources/default");
+    return response.data;
+  }
+
+  /**
+   * Create a new source
+   */
+  async createSource(payload: CreateSourceRequest): Promise<ProductSource> {
+    const response = await this.fetch<{ data: ProductSource }>("/api/v1/sources", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  }
+
+  /**
+   * Delete a source by ID (cannot delete default source)
+   */
+  async deleteSource(id: string): Promise<void> {
+    await this.fetch<void>(`/api/v1/sources/${id}`, {
+      method: "DELETE",
+    });
   }
 }
 

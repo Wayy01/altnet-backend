@@ -16,21 +16,23 @@ import (
 
 // SelectiveSync handles selective sync operations
 type SelectiveSync struct {
-	repo          *repository.Repository
+	repo           *repository.Repository
 	syncConfigRepo *repository.SyncConfigRepository
-	realtimeRepo  *repository.RealtimeSyncRepository
-	fetcher       *ultra.Fetcher
-	syncManager   *SyncManager // Manages active syncs for cancellation
+	realtimeRepo   *repository.RealtimeSyncRepository
+	sourceRepo     *repository.SourceRepository
+	fetcher        *ultra.Fetcher
+	syncManager    *SyncManager // Manages active syncs for cancellation
 }
 
 // NewSelectiveSync creates a new selective sync instance
 func NewSelectiveSync(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher, syncManager *SyncManager) *SelectiveSync {
 	return &SelectiveSync{
-		repo:          repo,
+		repo:           repo,
 		syncConfigRepo: syncConfigRepo,
-		realtimeRepo:  repository.NewRealtimeSyncRepository(repo.Pool()),
-		fetcher:       fetcher,
-		syncManager:   syncManager,
+		realtimeRepo:   repository.NewRealtimeSyncRepository(repo.Pool()),
+		sourceRepo:     repository.NewSourceRepository(repo.Pool()),
+		fetcher:        fetcher,
+		syncManager:    syncManager,
 	}
 }
 
@@ -948,10 +950,25 @@ func (s *SelectiveSync) processProductsSelective(ctx context.Context, syncLogID 
 	stepNumberPtr := &stepNumber
 	stepStartTime := time.Now()
 
+	// Get the default source ID (Ultra) for synced products
+	ultraSource, err := s.sourceRepo.GetDefaultSource(ctx)
+	if err != nil {
+		log.Printf("Warning: Could not get Ultra source ID: %v. Products will be synced without source.", err)
+	}
+	var ultraSourceID *uuid.UUID
+	if ultraSource != nil {
+		ultraSourceID = &ultraSource.ID
+	}
+
 	// Fetch products from Ultra API
 	products, characteristics, err := s.fetcher.FetchProducts(ctx, true)
 	if err != nil {
 		return fmt.Errorf("failed to fetch products: %w", err)
+	}
+
+	// Set source_id for all products being synced
+	for _, product := range products {
+		product.SourceID = ultraSourceID
 	}
 
 	result.Extracted = len(products)

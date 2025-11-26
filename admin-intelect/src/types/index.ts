@@ -1,3 +1,28 @@
+// ============================================================================
+// PRODUCT SOURCES
+// ============================================================================
+
+// Product source (where products originate from)
+export interface ProductSource {
+  id: string;
+  name: string;
+  description: string | null;
+  is_default: boolean;
+  is_deletable: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Create source request
+export interface CreateSourceRequest {
+  name: string;
+  description?: string | null;
+}
+
+// ============================================================================
+// BRANDS
+// ============================================================================
+
 // Brand types
 export interface Brand {
   id: string;
@@ -220,6 +245,8 @@ export interface Product {
   category_id: string | null;
   category_name?: string;
   parent_id: string | null;
+  source_id: string | null;
+  source_name?: string;
   main_image_url: string | null;
   images: ImageEntry[];
   videos: VideoEntry[];
@@ -840,6 +867,7 @@ export interface CreateProductPayload {
   brand_id?: string | null;
   category_id?: string | null;
   parent_id?: string | null;
+  source_id?: string | null;
 
   // Media
   main_image_url?: string | null;
@@ -899,6 +927,7 @@ export interface ProductFormState {
     description: string;
     brand_id: string;
     category_id: string;
+    source_id: string;
     warranty: string;
     barcodes: string[];
     is_active: boolean;

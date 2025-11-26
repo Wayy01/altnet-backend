@@ -151,6 +151,7 @@ type EnhancedCreateProductRequest struct {
 	BrandID    *uuid.UUID `json:"brand_id"`
 	CategoryID *uuid.UUID `json:"category_id"`
 	ParentID   *uuid.UUID `json:"parent_id"` // For variant linking
+	SourceID   *uuid.UUID `json:"source_id"` // Product source (Ultra, Manual, etc.)
 
 	// Media
 	MainImageURL *string      `json:"main_image_url"`
@@ -1316,9 +1317,9 @@ func (r *Repository) UpsertProducts(ctx context.Context, products []*models.Prod
 	query := `
 		INSERT INTO products (
 			ultra_id, code, article, name, slug, description, brand_id, category_id,
-			parent_id, main_image_url, images, warranty, barcodes, is_active, is_service
+			parent_id, source_id, main_image_url, images, warranty, barcodes, is_active, is_service
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
 		)
 		ON CONFLICT (ultra_id) DO UPDATE SET
 			code = EXCLUDED.code,
@@ -1329,6 +1330,7 @@ func (r *Repository) UpsertProducts(ctx context.Context, products []*models.Prod
 			brand_id = EXCLUDED.brand_id,
 			category_id = EXCLUDED.category_id,
 			parent_id = EXCLUDED.parent_id,
+			source_id = COALESCE(products.source_id, EXCLUDED.source_id),
 			main_image_url = EXCLUDED.main_image_url,
 			images = EXCLUDED.images,
 			warranty = EXCLUDED.warranty,
@@ -1375,6 +1377,7 @@ func (r *Repository) UpsertProducts(ctx context.Context, products []*models.Prod
 			product.BrandID,
 			product.CategoryID,
 			product.ParentID,
+			product.SourceID,
 			product.MainImageURL,
 			imagesJSON,
 			product.Warranty,
@@ -1442,14 +1445,15 @@ func (r *Repository) ResolveProductReferences(ctx context.Context) error {
 func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Product, error) {
 	query := `
 		SELECT p.id, p.ultra_id, p.code, p.article, p.name, p.slug, p.description, p.brand_id, p.category_id,
-		       p.parent_id, p.main_image_url, p.images, p.warranty, p.barcodes,
+		       p.parent_id, p.source_id, p.main_image_url, p.images, p.warranty, p.barcodes,
 		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
 		       p.is_active, p.is_service, p.created_at, p.updated_at,
 		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
-		       b.name AS brand_name, c.name AS category_name
+		       b.name AS brand_name, c.name AS category_name, s.name AS source_name
 		FROM products p
 		LEFT JOIN brands b ON p.brand_id = b.id
 		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN product_sources s ON p.source_id = s.id
 		WHERE p.id = $1
 	`
 
@@ -1457,12 +1461,12 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
-		&product.ParentID, &product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+		&product.ParentID, &product.SourceID, &product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
 		&product.VariantGroupID, &product.IsGroup,
-		&product.BrandName, &product.CategoryName,
+		&product.BrandName, &product.CategoryName, &product.SourceName,
 	)
 	if err != nil {
 		return nil, err
@@ -1474,7 +1478,7 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*models.Product, error) {
 	query := `
 		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
-		       parent_id, main_image_url, images, videos, warranty, barcodes,
+		       parent_id, source_id, main_image_url, images, videos, warranty, barcodes,
 		       price_min, price_max, total_stock, is_in_stock,
 		       is_active, is_service, created_at, updated_at,
 		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
@@ -1486,7 +1490,7 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 	err := r.pool.QueryRow(ctx, query, ultraID).Scan(
 		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
-		&product.ParentID, &product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
+		&product.ParentID, &product.SourceID, &product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
@@ -1565,14 +1569,15 @@ type ProductFilter struct {
 func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, limit, offset int) ([]*models.Product, error) {
 	query := `
 		SELECT p.id, p.ultra_id, p.code, p.article, p.name, p.slug, p.description, p.brand_id, p.category_id,
-		       p.parent_id, p.main_image_url, p.images, p.warranty, p.barcodes,
+		       p.parent_id, p.source_id, p.main_image_url, p.images, p.warranty, p.barcodes,
 		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
 		       p.is_active, p.is_service, p.created_at, p.updated_at,
 		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
-		       b.name as brand_name, c.name as category_name
+		       b.name as brand_name, c.name as category_name, s.name as source_name
 		FROM products p
 		LEFT JOIN brands b ON p.brand_id = b.id
 		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN product_sources s ON p.source_id = s.id
 		WHERE 1=1
 	`
 
@@ -1677,12 +1682,12 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 		err := rows.Scan(
 			&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 			&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
-			&product.ParentID, &product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+			&product.ParentID, &product.SourceID, &product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
 			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
 			&product.VariantGroupID, &product.IsGroup,
-			&product.BrandName, &product.CategoryName,
+			&product.BrandName, &product.CategoryName, &product.SourceName,
 		)
 		if err != nil {
 			return nil, err
@@ -3949,19 +3954,19 @@ func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateP
 	query := `
 		INSERT INTO products (
 			ultra_id, code, article, name, slug, description, warranty,
-			brand_id, category_id, parent_id,
+			brand_id, category_id, parent_id, source_id,
 			main_image_url, images, videos, barcodes,
 			prices, price_mdl, price_eur, price_usd,
 			total_stock, is_in_stock, is_active, is_service, is_group
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
-			$8, $9, $10,
-			$11, $12, $13, $14,
-			$15, $16, $17, $18,
-			$19, $20, $21, $22, $23
+			$8, $9, $10, $11,
+			$12, $13, $14, $15,
+			$16, $17, $18, $19,
+			$20, $21, $22, $23, $24
 		)
 		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
-		          parent_id, main_image_url, images, videos, warranty, barcodes,
+		          parent_id, source_id, main_image_url, images, videos, warranty, barcodes,
 		          price_min, price_max, total_stock, is_in_stock,
 		          is_active, is_service, created_at, updated_at,
 		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
@@ -3970,14 +3975,14 @@ func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateP
 	var product models.Product
 	err = tx.QueryRow(ctx, query,
 		ultraID, req.Code, req.Article, req.Name, productSlug, req.Description, req.Warranty,
-		req.BrandID, req.CategoryID, req.ParentID,
+		req.BrandID, req.CategoryID, req.ParentID, req.SourceID,
 		req.MainImageURL, imagesJSON, videosJSON, barcodesJSON,
 		pricesJSON, req.PriceMDL, req.PriceEUR, req.PriceUSD,
 		req.TotalStock, req.IsInStock, req.IsActive, req.IsService, req.IsGroup,
 	).Scan(
 		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
-		&product.ParentID, &product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
+		&product.ParentID, &product.SourceID, &product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,

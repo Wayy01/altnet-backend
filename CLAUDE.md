@@ -19,7 +19,7 @@ brands (1,112) --> products (47,227) <-- categories (418)
                    groupings (parent_id self-ref)
 ```
 
-**Core Tables**: products, properties, brands, categories, exchange_rates
+**Core Tables**: products, properties, brands, categories, product_sources, exchange_rates
 **Sync Tables**: sync_logs, sync_configurations, sync_changes, sync_snapshots, sync_rollbacks
 
 ## API Endpoints
@@ -40,6 +40,10 @@ brands (1,112) --> products (47,227) <-- categories (418)
 - POST `/api/v1/sync/selective`
 - GET/POST `/api/v1/sync/configs`
 - POST `/api/v1/sync/rollback`
+
+### Sources
+- GET/POST/DELETE `/api/v1/sources[/{id}]`
+- GET `/api/v1/sources/default`
 
 ### Other
 - GET `/api/v1/search?q=`
@@ -66,9 +70,10 @@ brands (1,112) --> products (47,227) <-- categories (418)
 - `/settings` - Configuration
 
 ## Key Features
-- Products use direct `brand_id`/`category_id` UUID foreign keys (not ultra_id strings)
+- Products use direct `brand_id`/`category_id`/`source_id` UUID foreign keys
+- Product sources track origin (Ultra sync vs manual entry); default "Ultra" cannot be deleted
 - Field schemas define allowed fields per sync step (SQL injection prevention)
-- Selective sync with field-level change tracking
+- Selective sync with field-level change tracking, auto-sets source to Ultra
 - Rollback system with snapshots
 - Real-time sync monitoring via SSE
 

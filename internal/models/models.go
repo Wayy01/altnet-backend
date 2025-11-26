@@ -123,6 +123,7 @@ type Product struct {
 	BrandID    *uuid.UUID `json:"brand_id"`
 	CategoryID *uuid.UUID `json:"category_id"`
 	ParentID   *uuid.UUID `json:"parent_id"`
+	SourceID   *uuid.UUID `json:"source_id"`
 	MainImageURL    *string    `json:"main_image_url"`
 	Images          JSONBArray `json:"images"`
 	Videos          JSONBArray `json:"videos"`
@@ -150,6 +151,7 @@ type Product struct {
 	// Denormalized fields for efficient listing (populated via JOIN)
 	BrandName    *string `json:"brand_name,omitempty"`
 	CategoryName *string `json:"category_name,omitempty"`
+	SourceName   *string `json:"source_name,omitempty"`
 }
 
 // ============================================================================
@@ -339,6 +341,7 @@ type ProductInput struct {
 	BrandID      *uuid.UUID // Resolved from Ultra API brand_ultra_id
 	CategoryID   *uuid.UUID // Resolved from Ultra API category_ultra_id
 	ParentID     *uuid.UUID // Resolved from Ultra API parent_ultra_id
+	SourceID     *uuid.UUID // Product source (Ultra, Manual, etc.)
 	MainImageURL *string
 	Images       []map[string]string
 	Warranty     *string
@@ -393,4 +396,19 @@ type StockInput struct {
 	CharacteristicUUID string // Empty string means product-level stock
 	Warehouse          int
 	Showroom           int
+}
+
+// ============================================================================
+// PRODUCT SOURCES
+// ============================================================================
+
+// ProductSource represents a source where products can originate from
+type ProductSource struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description"`
+	IsDefault   bool      `json:"is_default"`
+	IsDeletable bool      `json:"is_deletable"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }

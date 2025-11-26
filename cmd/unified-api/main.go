@@ -57,12 +57,14 @@ func main() {
 	repo := repository.New(db.Pool)
 	syncConfigRepo := repository.NewSyncConfigRepository(db.Pool)
 	realtimeSyncRepo := repository.NewRealtimeSyncRepository(db.Pool)
+	sourceRepo := repository.NewSourceRepository(db.Pool)
 	handler := handlers.New(repo, syncConfigRepo, fetcher, syncManager)
 	realtimeSyncHandler := handlers.NewRealtimeSyncHandlers(realtimeSyncRepo, repo)
 	syncControlHandler := handlers.NewSyncControlHandlers(repo, realtimeSyncRepo, syncManager)
+	sourceHandler := handlers.NewSourceHandler(sourceRepo)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -123,7 +125,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -132,6 +134,13 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 
 	// API v1 routes
 	api := router.PathPrefix("/api/v1").Subrouter()
+
+	// Product Sources (specific routes before parameterized routes)
+	api.HandleFunc("/sources", sourceHandler.ListSources).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sources", sourceHandler.CreateSource).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sources/default", sourceHandler.GetDefaultSource).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sources/{id}", sourceHandler.GetSource).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sources/{id}", sourceHandler.DeleteSource).Methods("DELETE", "OPTIONS")
 
 	// Brands (specific routes before parameterized routes)
 	api.HandleFunc("/brands", handler.ListBrands).Methods("GET", "OPTIONS")
