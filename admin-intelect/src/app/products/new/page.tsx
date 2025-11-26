@@ -1,0 +1,539 @@
+"use client";
+
+import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Package,
+  ArrowLeft,
+  Save,
+  Loader2,
+  FileText,
+  Image as ImageIcon,
+  Settings2,
+  Tags,
+  GitBranch,
+  CheckCircle2,
+  ChevronRight,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
+import {
+  ProductFormState,
+  CreateProductPayload,
+  CreateImageData,
+  CreateVideoData,
+  CreatePropertyData,
+  CreateCharacteristicData,
+} from "@/types";
+import { cn } from "@/lib/utils";
+
+import { BasicInfoTab } from "./basic-info-tab";
+import { MediaTab } from "./media-tab";
+import { PropertiesTab } from "./properties-tab";
+import { CharacteristicsTab } from "./characteristics-tab";
+import { VariantsTab } from "./variants-tab";
+
+const initialFormState: ProductFormState = {
+  basicInfo: {
+    name: "",
+    code: "",
+    article: "",
+    description: "",
+    brand_id: "",
+    category_id: "",
+    warranty: "",
+    barcodes: [],
+    is_active: true,
+    is_service: false,
+  },
+  media: {
+    main_image_url: "",
+    images: [],
+    videos: [],
+  },
+  properties: [],
+  characteristics: [],
+  variants: {
+    parent_id: null,
+    is_group: false,
+  },
+};
+
+/**
+ * Tab configuration with icons, labels, and validation status
+ */
+interface TabConfig {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+}
+
+const tabs: TabConfig[] = [
+  {
+    id: "basic",
+    label: "Basic Info",
+    icon: <FileText className="h-4 w-4" />,
+    description: "Name, code, and classification",
+  },
+  {
+    id: "media",
+    label: "Media",
+    icon: <ImageIcon className="h-4 w-4" />,
+    description: "Images and videos",
+  },
+  {
+    id: "properties",
+    label: "Properties",
+    icon: <Settings2 className="h-4 w-4" />,
+    description: "Specifications and attributes",
+  },
+  {
+    id: "characteristics",
+    label: "SKUs",
+    icon: <Tags className="h-4 w-4" />,
+    description: "Variants with prices and stock",
+  },
+  {
+    id: "variants",
+    label: "Variants",
+    icon: <GitBranch className="h-4 w-4" />,
+    description: "Product groupings",
+  },
+];
+
+export default function CreateProductPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("basic");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formState, setFormState] = useState<ProductFormState>(initialFormState);
+  const [contentVisible, setContentVisible] = useState(false);
+
+  // Trigger entrance animation
+  useEffect(() => {
+    const timer = setTimeout(() => setContentVisible(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Update handlers for each section
+  const updateBasicInfo = useCallback(
+    (updates: Partial<ProductFormState["basicInfo"]>) => {
+      setFormState((prev) => ({
+        ...prev,
+        basicInfo: { ...prev.basicInfo, ...updates },
+      }));
+    },
+    []
+  );
+
+  const updateMedia = useCallback(
+    (updates: Partial<ProductFormState["media"]>) => {
+      setFormState((prev) => ({
+        ...prev,
+        media: { ...prev.media, ...updates },
+      }));
+    },
+    []
+  );
+
+  const setProperties = useCallback((properties: CreatePropertyData[]) => {
+    setFormState((prev) => ({ ...prev, properties }));
+  }, []);
+
+  const setCharacteristics = useCallback(
+    (characteristics: CreateCharacteristicData[]) => {
+      setFormState((prev) => ({ ...prev, characteristics }));
+    },
+    []
+  );
+
+  const updateVariants = useCallback(
+    (updates: Partial<ProductFormState["variants"]>) => {
+      setFormState((prev) => ({
+        ...prev,
+        variants: { ...prev.variants, ...updates },
+      }));
+    },
+    []
+  );
+
+  // Validation
+  const validateForm = (): string | null => {
+    if (!formState.basicInfo.name.trim()) {
+      return "Product name is required";
+    }
+    return null;
+  };
+
+  // Get tab completion status
+  const getTabStatus = useCallback(
+    (tabId: string) => {
+      switch (tabId) {
+        case "basic":
+          return formState.basicInfo.name.trim().length > 0;
+        case "media":
+          return (
+            formState.media.images.length > 0 ||
+            formState.media.videos.length > 0 ||
+            formState.media.main_image_url.length > 0
+          );
+        case "properties":
+          return formState.properties.length > 0;
+        case "characteristics":
+          return formState.characteristics.length > 0;
+        case "variants":
+          return formState.variants.parent_id !== null || formState.variants.is_group;
+        default:
+          return false;
+      }
+    },
+    [formState]
+  );
+
+  // Get count badge for tabs
+  const getTabCount = useCallback(
+    (tabId: string): number | null => {
+      switch (tabId) {
+        case "media":
+          return formState.media.images.length + formState.media.videos.length || null;
+        case "properties":
+          return formState.properties.length || null;
+        case "characteristics":
+          return formState.characteristics.length || null;
+        default:
+          return null;
+      }
+    },
+    [formState]
+  );
+
+  // Submit handler
+  const handleSubmit = async () => {
+    const validationError = validateForm();
+    if (validationError) {
+      toast({
+        title: "Validation Error",
+        description: validationError,
+        variant: "destructive",
+      });
+      setActiveTab("basic");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const payload: CreateProductPayload = {
+        name: formState.basicInfo.name,
+        code: formState.basicInfo.code || null,
+        article: formState.basicInfo.article || null,
+        description: formState.basicInfo.description || null,
+        brand_id: formState.basicInfo.brand_id || null,
+        category_id: formState.basicInfo.category_id || null,
+        warranty: formState.basicInfo.warranty || null,
+        barcodes: formState.basicInfo.barcodes,
+        is_active: formState.basicInfo.is_active,
+        is_service: formState.basicInfo.is_service,
+        main_image_url: formState.media.main_image_url || null,
+        images: formState.media.images.length > 0 ? formState.media.images : undefined,
+        videos: formState.media.videos.length > 0 ? formState.media.videos : undefined,
+        properties: formState.properties.length > 0 ? formState.properties : undefined,
+        characteristics:
+          formState.characteristics.length > 0 ? formState.characteristics : undefined,
+        parent_id: formState.variants.parent_id,
+        is_group: formState.variants.is_group,
+      };
+
+      const product = await api.createProduct(payload);
+
+      toast({
+        title: "Product Created",
+        description: `"${product.name}" has been created successfully.`,
+      });
+
+      router.push(`/products/${product.id}`);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to create product",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Navigate to next tab
+  const goToNextTab = () => {
+    const currentIndex = tabs.findIndex((t) => t.id === activeTab);
+    if (currentIndex < tabs.length - 1) {
+      setActiveTab(tabs[currentIndex + 1].id);
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-6 p-6 transition-all duration-500",
+        contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+      )}
+    >
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Link
+          href="/products"
+          className="hover:text-foreground transition-colors"
+        >
+          Products
+        </Link>
+        <ChevronRight className="h-3.5 w-3.5" />
+        <span className="text-foreground font-medium">New Product</span>
+      </nav>
+
+      {/* Premium Page Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => router.back()}
+            className="shrink-0 h-10 w-10 rounded-xl border-border/50 transition-all duration-200 hover:bg-muted hover:border-border hover:-translate-y-0.5 hover:shadow-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 shadow-sm">
+              <Package className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Create Product</h1>
+              <p className="text-sm text-muted-foreground">
+                Add a new product to your catalog
+              </p>
+            </div>
+          </div>
+        </div>
+        <Button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="h-10 px-6 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+        >
+          {isSubmitting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-4 w-4" />
+          )}
+          Create Product
+        </Button>
+      </div>
+
+      {/* Multi-Tab Form Card */}
+      <Card className="rounded-xl border-border/50 shadow-sm overflow-hidden">
+        <CardContent className="p-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            {/* Premium Tab Navigation */}
+            <div className="border-b border-border/50 bg-gradient-to-r from-muted/30 to-muted/10">
+              <TabsList className="h-auto w-full justify-start gap-0 rounded-none bg-transparent p-0">
+                {tabs.map((tab, index) => {
+                  const isActive = activeTab === tab.id;
+                  const isCompleted = getTabStatus(tab.id);
+                  const count = getTabCount(tab.id);
+
+                  return (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      className={cn(
+                        "relative flex items-center gap-2 rounded-none border-b-2 px-6 py-4",
+                        "transition-all duration-200 ease-out",
+                        "data-[state=active]:bg-background data-[state=active]:border-primary",
+                        "data-[state=inactive]:border-transparent data-[state=inactive]:hover:bg-muted/50",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0"
+                      )}
+                      style={{
+                        animationDelay: contentVisible ? `${index * 50}ms` : "0ms",
+                      }}
+                    >
+                      <span
+                        className={cn(
+                          "transition-colors duration-200",
+                          isActive ? "text-primary" : "text-muted-foreground"
+                        )}
+                      >
+                        {tab.icon}
+                      </span>
+                      <span className="font-medium">{tab.label}</span>
+                      {count !== null && count > 0 && (
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "ml-1 h-5 min-w-[20px] px-1.5 text-xs font-medium transition-colors duration-200",
+                            isActive
+                              ? "bg-primary/10 text-primary border-primary/20"
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {count}
+                        </Badge>
+                      )}
+                      {isCompleted && !count && (
+                        <CheckCircle2
+                          className={cn(
+                            "ml-1 h-4 w-4 transition-colors duration-200",
+                            isActive ? "text-primary" : "text-primary/50"
+                          )}
+                        />
+                      )}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+
+            {/* Tab Content with Smooth Transitions */}
+            <div className="p-6">
+              <TabsContent
+                value="basic"
+                className="m-0 focus-visible:outline-none focus-visible:ring-0"
+              >
+                <div
+                  className={cn(
+                    "transition-all duration-300",
+                    activeTab === "basic"
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-2"
+                  )}
+                >
+                  <BasicInfoTab
+                    data={formState.basicInfo}
+                    onChange={updateBasicInfo}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent
+                value="media"
+                className="m-0 focus-visible:outline-none focus-visible:ring-0"
+              >
+                <div
+                  className={cn(
+                    "transition-all duration-300",
+                    activeTab === "media"
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-2"
+                  )}
+                >
+                  <MediaTab data={formState.media} onChange={updateMedia} />
+                </div>
+              </TabsContent>
+
+              <TabsContent
+                value="properties"
+                className="m-0 focus-visible:outline-none focus-visible:ring-0"
+              >
+                <div
+                  className={cn(
+                    "transition-all duration-300",
+                    activeTab === "properties"
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-2"
+                  )}
+                >
+                  <PropertiesTab
+                    properties={formState.properties}
+                    onChange={setProperties}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent
+                value="characteristics"
+                className="m-0 focus-visible:outline-none focus-visible:ring-0"
+              >
+                <div
+                  className={cn(
+                    "transition-all duration-300",
+                    activeTab === "characteristics"
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-2"
+                  )}
+                >
+                  <CharacteristicsTab
+                    characteristics={formState.characteristics}
+                    onChange={setCharacteristics}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent
+                value="variants"
+                className="m-0 focus-visible:outline-none focus-visible:ring-0"
+              >
+                <div
+                  className={cn(
+                    "transition-all duration-300",
+                    activeTab === "variants"
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-2"
+                  )}
+                >
+                  <VariantsTab
+                    data={formState.variants}
+                    onChange={updateVariants}
+                  />
+                </div>
+              </TabsContent>
+            </div>
+
+            {/* Bottom Action Bar */}
+            <div className="border-t border-border/50 bg-muted/20 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>
+                    Step {tabs.findIndex((t) => t.id === activeTab) + 1} of {tabs.length}
+                  </span>
+                  <span className="text-border">|</span>
+                  <span className="text-foreground font-medium">
+                    {tabs.find((t) => t.id === activeTab)?.description}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {activeTab !== tabs[tabs.length - 1].id && (
+                    <Button
+                      variant="outline"
+                      onClick={goToNextTab}
+                      className="transition-all duration-200 hover:bg-muted"
+                    >
+                      Continue
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    Create Product
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
