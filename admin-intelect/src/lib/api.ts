@@ -49,6 +49,9 @@ import {
   ProductVariant,
   ProductGroupsResponse,
   ProductVariantsResponse,
+  UploadResponse,
+  MultiUploadResponse,
+  CreateProductPayload,
 } from "@/types";
 import {
   SelectiveSyncRequest,
@@ -217,6 +220,7 @@ class ApiClient {
       parent_id: variant.parent_id,
       main_image_url: variant.main_image_url || null,
       images: [],
+      videos: [],
       warranty: null,
       barcodes: [],
       prices: variant.prices || [],
@@ -1254,6 +1258,166 @@ class ApiClient {
     }>(`/api/v1/products/groupings/trigger`, {
       method: "POST",
     });
+  }
+
+  // ============================================================================
+  // UPLOAD METHODS
+  // ============================================================================
+
+  /**
+   * Upload a single image file
+   */
+  async uploadImage(file: File): Promise<UploadResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const url = `${this.baseUrl}/api/v1/upload/image`;
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Upload a single video file
+   */
+  async uploadVideo(file: File): Promise<UploadResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const url = `${this.baseUrl}/api/v1/upload/video`;
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Upload multiple images at once
+   */
+  async uploadMultipleImages(files: File[]): Promise<MultiUploadResponse> {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    const url = `${this.baseUrl}/api/v1/upload/images`;
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Delete an uploaded image by UUID
+   */
+  async deleteUploadedImage(uuid: string): Promise<void> {
+    await this.fetch<void>(`/api/v1/upload/image/${uuid}`, {
+      method: "DELETE",
+    });
+  }
+
+  /**
+   * Delete an uploaded video by UUID
+   */
+  async deleteUploadedVideo(uuid: string): Promise<void> {
+    await this.fetch<void>(`/api/v1/upload/video/${uuid}`, {
+      method: "DELETE",
+    });
+  }
+
+  // ============================================================================
+  // PRODUCT CREATION METHODS
+  // ============================================================================
+
+  /**
+   * Create a new product with all nested entities (properties, characteristics)
+   */
+  async createProduct(payload: CreateProductPayload): Promise<Product> {
+    const response = await this.fetch<{ data: Product }>(`/api/v1/products`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  }
+
+  /**
+   * Search for products to link as variants (for variant tab)
+   */
+  async searchProductsForVariants(
+    query: string,
+    excludeIds: string[] = [],
+    limit = 20
+  ): Promise<Product[]> {
+    const params = new URLSearchParams();
+    params.append("search", query);
+    params.append("limit", limit.toString());
+    // Only get products that are not already groups or have parent
+    params.append("status_filter", "active");
+
+    const response = await this.fetch<{ data: Product[]; meta: { total: number } }>(
+      `/api/v1/products?${params.toString()}`
+    );
+
+    // Filter out excluded IDs client-side
+    return response.data.filter((p) => !excludeIds.includes(p.id));
+  }
+
+  /**
+   * Get all property groups for property creation dropdown
+   */
+  async getPropertyGroupOptions(): Promise<string[]> {
+    try {
+      const response = await this.getPropertyGroups(1000, 0);
+      return response.data.map((g) => g.group_name);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get property names for a group (for cascading dropdown)
+   */
+  async getPropertyNameOptions(groupName: string): Promise<string[]> {
+    try {
+      const response = await this.getPropertyNames(groupName, 1000, 0);
+      return response.data.map((n) => n.property_name);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get characteristic names for SKU creation dropdown
+   */
+  async getCharacteristicNameOptions(): Promise<string[]> {
+    try {
+      const response = await this.getCharacteristicNames(1000, 0);
+      return response.data.map((c) => c.name);
+    } catch {
+      return [];
+    }
   }
 }
 
