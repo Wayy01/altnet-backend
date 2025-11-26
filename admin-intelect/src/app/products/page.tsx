@@ -29,6 +29,7 @@ import {
   Search,
   SlidersHorizontal,
   GitBranch,
+  Layers,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api } from "@/lib/api";
-import { Product, Brand, Category, ProductFilters } from "@/types";
+import { Product, Brand, Category, ProductFilters, ProductSource } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
 /**
@@ -110,6 +111,7 @@ export default function ProductsPage() {
   // Filter states
   const [brandFilter, setBrandFilter] = useState<string>(searchParams.get("brand_id") || "");
   const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get("category_id") || "");
+  const [sourceFilter, setSourceFilter] = useState<string>(searchParams.get("source_id") || "");
   const [priceFilter, setPriceFilter] = useState<string>(searchParams.get("price_filter") || "");
   const [stockFilter, setStockFilter] = useState<string>(searchParams.get("stock_filter") || "");
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status_filter") || "");
@@ -123,9 +125,10 @@ export default function ProductsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectAllMode, setSelectAllMode] = useState<boolean>(false);
 
-  // Load all brands and categories for dropdowns
+  // Load all brands, categories, and sources for dropdowns
   const [allBrands, setAllBrands] = useState<Brand[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [allSources, setAllSources] = useState<ProductSource[]>([]);
   const [isLoadingFilters, setIsLoadingFilters] = useState(true);
 
   // Animation state for staggered row reveals
@@ -153,23 +156,26 @@ export default function ProductsPage() {
     search: debouncedSearch || undefined,
     brand_id: brandFilter || undefined,
     category_id: categoryFilter || undefined,
+    source_id: sourceFilter || undefined,
     price_filter: priceFilter || undefined,
     stock_filter: stockFilter || undefined,
     status_filter: statusFilter || undefined,
     sort_by: sortBy || undefined,
-  }), [debouncedSearch, brandFilter, categoryFilter, priceFilter, stockFilter, statusFilter, sortBy]);
+  }), [debouncedSearch, brandFilter, categoryFilter, sourceFilter, priceFilter, stockFilter, statusFilter, sortBy]);
 
-  // Load all brands and categories for filter dropdowns
+  // Load all brands, categories, and sources for filter dropdowns
   useEffect(() => {
     async function loadFilters() {
       try {
         setIsLoadingFilters(true);
-        const [brandsData, categoriesData] = await Promise.all([
+        const [brandsData, categoriesData, sourcesData] = await Promise.all([
           api.getAllBrands(),
           api.getAllCategories(),
+          api.getSources(),
         ]);
         setAllBrands(brandsData);
         setAllCategories(categoriesData);
+        setAllSources(sourcesData);
       } catch (err) {
         console.error("Failed to load filter options:", err);
       } finally {
@@ -289,6 +295,16 @@ export default function ProductsPage() {
       });
     }
 
+    if (sourceFilter) {
+      const source = allSources.find(s => s.id === sourceFilter);
+      filters.push({
+        key: "source_id",
+        label: "Source",
+        value: sourceFilter,
+        displayValue: source?.name || sourceFilter,
+      });
+    }
+
     if (priceFilter) {
       filters.push({
         key: "price_filter",
@@ -333,7 +349,7 @@ export default function ProductsPage() {
     }
 
     return filters;
-  }, [debouncedSearch, brandFilter, categoryFilter, priceFilter, stockFilter, statusFilter, sortBy, allBrands, allCategories]);
+  }, [debouncedSearch, brandFilter, categoryFilter, sourceFilter, priceFilter, stockFilter, statusFilter, sortBy, allBrands, allCategories, allSources]);
 
   const handleClearSearch = () => {
     setSearchQuery("");
@@ -346,6 +362,7 @@ export default function ProductsPage() {
     setDebouncedSearch("");
     setBrandFilter("");
     setCategoryFilter("");
+    setSourceFilter("");
     setPriceFilter("");
     setStockFilter("");
     setStatusFilter("");
@@ -365,6 +382,10 @@ export default function ProductsPage() {
       case "category_id":
         setCategoryFilter("");
         updateUrlParams({ category_id: null, offset: "0" });
+        break;
+      case "source_id":
+        setSourceFilter("");
+        updateUrlParams({ source_id: null, offset: "0" });
         break;
       case "price_filter":
         setPriceFilter("");
@@ -404,6 +425,15 @@ export default function ProductsPage() {
     setSelectedIds(new Set());
     setSelectAllMode(false);
     updateUrlParams({ category_id: filterValue || null, offset: "0" });
+  };
+
+  const handleSourceChange = (value: string) => {
+    const filterValue = value === "all" ? "" : value;
+    setSourceFilter(filterValue);
+    // Clear selection when filter changes
+    setSelectedIds(new Set());
+    setSelectAllMode(false);
+    updateUrlParams({ source_id: filterValue || null, offset: "0" });
   };
 
   const handlePriceFilterChange = (value: string) => {
@@ -856,6 +886,24 @@ export default function ProductsPage() {
             </Select>
           </div>
 
+          {/* Source Filter */}
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-muted-foreground" />
+            <Select value={sourceFilter || "all"} onValueChange={handleSourceChange} disabled={isLoadingFilters}>
+              <SelectTrigger className="w-[140px] transition-all duration-200 hover:border-primary/50">
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sources</SelectItem>
+                {allSources.map(source => (
+                  <SelectItem key={source.id} value={source.id}>
+                    {source.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Price Filter */}
           <Select value={priceFilter || "all"} onValueChange={handlePriceFilterChange}>
             <SelectTrigger className="w-[130px] transition-all duration-200 hover:border-primary/50">
@@ -1044,6 +1092,7 @@ export default function ProductsPage() {
                 <TableHead>Code</TableHead>
                 <TableHead>Brand</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead className="text-right">
                   <button
                     onClick={() => handleColumnSort("price")}
@@ -1081,7 +1130,7 @@ export default function ProductsPage() {
             <TableBody>
               {filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-48">
+                  <TableCell colSpan={10} className="h-48">
                     <div className="flex flex-col items-center justify-center gap-3 py-8">
                       <div className="p-4 rounded-full bg-muted/50">
                         <Package className="h-10 w-10 text-muted-foreground/50" />
@@ -1148,6 +1197,15 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {product.category_name || (
+                        <span className="text-muted-foreground/50">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {product.source_name ? (
+                        <Badge variant="outline" className="font-normal">
+                          {product.source_name}
+                        </Badge>
+                      ) : (
                         <span className="text-muted-foreground/50">-</span>
                       )}
                     </TableCell>

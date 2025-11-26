@@ -75,7 +75,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { api } from "@/lib/api";
-import { CategoryWithStats, CategoryProduct, Category } from "@/types";
+import { CategoryWithStats, CategoryProduct, Category, ProductSource } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCurrency } from "@/contexts/currency-context";
 
@@ -406,6 +406,8 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
   const [priceFilter, setPriceFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [allSources, setAllSources] = useState<ProductSource[]>([]);
 
   // Selection state
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -486,14 +488,16 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
 
         setResolvedId(id);
 
-        const [categoryData, productsData, subcategoriesData] = await Promise.all([
+        const [categoryData, productsData, subcategoriesData, sourcesData] = await Promise.all([
           api.getCategoryWithStats(id),
           api.getCategoryProducts(id, pageSize, 0, {
             price_filter: mapFilterToApi(priceFilter),
             stock_filter: mapFilterToApi(stockFilter),
             status_filter: mapFilterToApi(statusFilter),
+            source_id: sourceFilter !== "all" ? sourceFilter : undefined,
           }),
           api.getCategorySubcategories(id),
+          api.getSources(),
         ]);
 
         if (cancelled) return;
@@ -507,6 +511,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         setProducts(productsData.data);
         setTotalProducts(productsData.total);
         setSubcategories(subcategoriesData);
+        setAllSources(sourcesData);
 
         // Trigger animations after data loads
         setTimeout(() => setContentVisible(true), 50);
@@ -539,6 +544,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
         price_filter: mapFilterToApi(priceFilter),
         stock_filter: mapFilterToApi(stockFilter),
         status_filter: mapFilterToApi(statusFilter),
+        source_id: sourceFilter !== "all" ? sourceFilter : undefined,
       });
       setProducts(productsData.data);
       setTotalProducts(productsData.total);
@@ -554,7 +560,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
       console.error("Failed to fetch products:", err);
       toast.error("Failed to load products");
     }
-  }, [resolvedId, pageSize, priceFilter, stockFilter, statusFilter, selectAllMode]);
+  }, [resolvedId, pageSize, priceFilter, stockFilter, statusFilter, sourceFilter, selectAllMode]);
 
   // Refetch when filters change
   useEffect(() => {
@@ -563,7 +569,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
       setSelectedProducts(new Set());
       setSelectAllMode(false);
     }
-  }, [priceFilter, stockFilter, statusFilter]);
+  }, [priceFilter, stockFilter, statusFilter, sourceFilter]);
 
   // Products are filtered on backend, so just use sortedProducts directly
   const filteredProducts = sortedProducts;
@@ -1302,6 +1308,20 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                   <SelectItem value="inactive">Inactive only</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-[180px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
+                  <Layers className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Source filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  {allSources.map((source) => (
+                    <SelectItem key={source.id} value={source.id}>
+                      {source.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
@@ -1437,6 +1457,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                         {getSortIcon("active")}
                       </span>
                     </TableHead>
+                    <TableHead className="font-semibold">Source</TableHead>
                     <TableHead className="text-right font-semibold w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1507,6 +1528,15 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                           disabled={togglingProductId === product.id}
                           className="transition-opacity hover:opacity-80"
                         />
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {product.source_name ? (
+                          <Badge variant="outline" className="font-normal">
+                            {product.source_name}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/50">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

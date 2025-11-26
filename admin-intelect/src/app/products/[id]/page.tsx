@@ -36,6 +36,7 @@ import {
   ArrowUp,
   ArrowDown,
   GitBranch,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1215,6 +1216,7 @@ export default function ProductDetailPage({
               </div>
               <CopyableField label="Brand ID" value={product.brand_id} mono />
               <CopyableField label="Category ID" value={product.category_id} mono />
+              <CopyableField label="Source ID" value={product.source_id} mono />
               <CopyableField label="Parent ID" value={product.parent_id} mono />
               <CopyableField label="Variant Group ID" value={product.variant_group_id} mono />
             </div>

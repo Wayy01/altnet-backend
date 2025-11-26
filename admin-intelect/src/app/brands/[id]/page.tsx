@@ -34,6 +34,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -75,7 +76,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { api } from "@/lib/api";
-import { BrandWithStats, BrandProduct } from "@/types";
+import { BrandWithStats, BrandProduct, ProductSource } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCurrency } from "@/contexts/currency-context";
 
@@ -383,6 +384,8 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
   const [priceFilter, setPriceFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [allSources, setAllSources] = useState<ProductSource[]>([]);
 
   // Selection state
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
@@ -464,13 +467,15 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
         setResolvedId(id);
 
-        const [brandData, productsData] = await Promise.all([
+        const [brandData, productsData, sourcesData] = await Promise.all([
           api.getBrandWithStats(id),
           api.getBrandProducts(id, pageSize, 0, {
             price_filter: mapFilterToApi(priceFilter),
             stock_filter: mapFilterToApi(stockFilter),
             status_filter: mapFilterToApi(statusFilter),
+            source_id: mapFilterToApi(sourceFilter),
           }),
+          api.getSources(),
         ]);
 
         if (cancelled) return;
@@ -483,6 +488,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         setBrand(brandData);
         setAllProducts(productsData.data);
         setTotalProducts(productsData.total);
+        setAllSources(sourcesData);
 
         // Trigger animations after data loads
         setTimeout(() => setContentVisible(true), 50);
@@ -515,6 +521,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         price_filter: mapFilterToApi(priceFilter),
         stock_filter: mapFilterToApi(stockFilter),
         status_filter: mapFilterToApi(statusFilter),
+        source_id: mapFilterToApi(sourceFilter),
       });
       setAllProducts(productsData.data);
       setTotalProducts(productsData.total);
@@ -530,7 +537,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       console.error("Failed to fetch products:", err);
       toast.error("Failed to load products");
     }
-  }, [resolvedId, pageSize, priceFilter, stockFilter, statusFilter, selectAllMode]);
+  }, [resolvedId, pageSize, priceFilter, stockFilter, statusFilter, sourceFilter, selectAllMode]);
 
   // Refetch when filters change
   useEffect(() => {
@@ -539,7 +546,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       setSelectedProducts(new Set());
       setSelectAllMode(false);
     }
-  }, [priceFilter, stockFilter, statusFilter]);
+  }, [priceFilter, stockFilter, statusFilter, sourceFilter]);
 
   // Products are filtered on backend, so just use sortedProducts directly
   const filteredProducts = sortedProducts;
@@ -1222,6 +1229,22 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                   <SelectItem value="inactive">Inactive only</SelectItem>
                 </SelectContent>
               </Select>
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                  <SelectTrigger className="w-[140px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
+                    <SelectValue placeholder="Source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All sources</SelectItem>
+                    {allSources.map((source) => (
+                      <SelectItem key={source.id} value={source.id}>
+                        {source.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
@@ -1357,6 +1380,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                         {getSortIcon("active")}
                       </span>
                     </TableHead>
+                    <TableHead className="font-semibold">Source</TableHead>
                     <TableHead className="text-right font-semibold w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1427,6 +1451,15 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                           disabled={togglingProductId === product.id}
                           className="transition-opacity hover:opacity-80"
                         />
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {product.source_name ? (
+                          <Badge variant="outline" className="font-normal">
+                            {product.source_name}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/50">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
