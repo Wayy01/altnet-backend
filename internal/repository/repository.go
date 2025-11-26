@@ -1050,24 +1050,28 @@ func (r *Repository) GetCategoryWithStats(ctx context.Context, id uuid.UUID) (*C
 
 // CategoryProduct represents a simplified product for category details page
 type CategoryProduct struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	Code       string    `json:"code"`
-	PriceMin   *float64  `json:"price_min"`
-	PriceMax   *float64  `json:"price_max"`
-	PriceMDL   *float64  `json:"price_mdl"`
-	PriceEUR   *float64  `json:"price_eur"`
-	PriceUSD   *float64  `json:"price_usd"`
-	TotalStock int       `json:"total_stock"`
-	IsActive   bool      `json:"is_active"`
+	ID         uuid.UUID  `json:"id"`
+	Name       string     `json:"name"`
+	Code       string     `json:"code"`
+	PriceMin   *float64   `json:"price_min"`
+	PriceMax   *float64   `json:"price_max"`
+	PriceMDL   *float64   `json:"price_mdl"`
+	PriceEUR   *float64   `json:"price_eur"`
+	PriceUSD   *float64   `json:"price_usd"`
+	TotalStock int        `json:"total_stock"`
+	IsActive   bool       `json:"is_active"`
+	SourceID   *uuid.UUID `json:"source_id"`
+	SourceName *string    `json:"source_name"`
 }
 
 // GetProductsByCategoryID returns paginated products for a specific category
 func (r *Repository) GetProductsByCategoryID(ctx context.Context, categoryID uuid.UUID, limit, offset int) ([]*CategoryProduct, error) {
 	query := `
-		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active
+		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active,
+		       p.source_id, s.name as source_name
 		FROM products p
 		JOIN categories c ON p.category_ultra_id = c.ultra_id
+		LEFT JOIN product_sources s ON p.source_id = s.id
 		WHERE c.id = $1
 		ORDER BY p.name ASC
 		LIMIT $2 OFFSET $3
@@ -1085,6 +1089,7 @@ func (r *Repository) GetProductsByCategoryID(ctx context.Context, categoryID uui
 		err := rows.Scan(
 			&product.ID, &product.Name, &product.Code, &product.PriceMin,
 			&product.PriceMax, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD, &product.TotalStock, &product.IsActive,
+			&product.SourceID, &product.SourceName,
 		)
 		if err != nil {
 			return nil, err
@@ -1121,14 +1126,23 @@ func (r *Repository) BulkUpdateProductsByCategoryID(ctx context.Context, categor
 // GetProductsByCategoryIDWithFilters returns filtered and paginated products for a specific category
 func (r *Repository) GetProductsByCategoryIDWithFilters(ctx context.Context, categoryID uuid.UUID, filters ProductFilters, limit, offset int) ([]*CategoryProduct, error) {
 	query := `
-		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active
+		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active,
+		       p.source_id, s.name as source_name
 		FROM products p
 		JOIN categories c ON p.category_ultra_id = c.ultra_id
+		LEFT JOIN product_sources s ON p.source_id = s.id
 		WHERE c.id = $1
 	`
 
 	args := []interface{}{categoryID}
 	paramIndex := 2
+
+	// Source filter
+	if filters.SourceID != nil {
+		query += fmt.Sprintf(" AND p.source_id = $%d", paramIndex)
+		args = append(args, *filters.SourceID)
+		paramIndex++
+	}
 
 	// Price filters
 	if filters.PriceFilter == "no_price" {
@@ -1174,6 +1188,7 @@ func (r *Repository) GetProductsByCategoryIDWithFilters(ctx context.Context, cat
 		err := rows.Scan(
 			&product.ID, &product.Name, &product.Code, &product.PriceMin,
 			&product.PriceMax, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD, &product.TotalStock, &product.IsActive,
+			&product.SourceID, &product.SourceName,
 		)
 		if err != nil {
 			return nil, err
@@ -1216,6 +1231,12 @@ func (r *Repository) CountProductsByCategoryIDWithFilters(ctx context.Context, c
 		query += " AND p.is_active = true"
 	} else if filters.StatusFilter == "inactive" {
 		query += " AND p.is_active = false"
+	}
+
+	// Source filter
+	if filters.SourceID != nil {
+		args = append(args, *filters.SourceID)
+		query += fmt.Sprintf(" AND p.source_id = $%d", len(args))
 	}
 
 	var count int
@@ -1555,6 +1576,7 @@ func (r *Repository) GetProductsByUltraIDs(ctx context.Context, ultraIDs []strin
 type ProductFilter struct {
 	BrandID      *uuid.UUID
 	CategoryID   *uuid.UUID
+	SourceID     *uuid.UUID
 	InStock      *bool
 	MinPrice     *float64
 	MaxPrice     *float64
@@ -1604,6 +1626,13 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 		if filter.CategoryID != nil {
 			query += fmt.Sprintf(" AND p.category_id = $%d", argPos)
 			args = append(args, filter.CategoryID)
+			argPos++
+		}
+
+		// Source filter
+		if filter.SourceID != nil {
+			query += fmt.Sprintf(" AND p.source_id = $%d", argPos)
+			args = append(args, filter.SourceID)
 			argPos++
 		}
 
@@ -1725,6 +1754,13 @@ func (r *Repository) CountProducts(ctx context.Context, filter *ProductFilter) (
 		if filter.CategoryID != nil {
 			query += fmt.Sprintf(" AND category_id = $%d", argPos)
 			args = append(args, filter.CategoryID)
+			argPos++
+		}
+
+		// Source filter
+		if filter.SourceID != nil {
+			query += fmt.Sprintf(" AND source_id = $%d", argPos)
+			args = append(args, filter.SourceID)
 			argPos++
 		}
 
@@ -1930,24 +1966,28 @@ func (r *Repository) GetBrandWithStats(ctx context.Context, id uuid.UUID) (*Bran
 
 // BrandProduct represents a simplified product for brand details page
 type BrandProduct struct {
-	ID         uuid.UUID `json:"id"`
-	Name       string    `json:"name"`
-	Code       string    `json:"code"`
-	PriceMin   *float64  `json:"price_min"`
-	PriceMax   *float64  `json:"price_max"`
-	PriceMDL   *float64  `json:"price_mdl"`
-	PriceEUR   *float64  `json:"price_eur"`
-	PriceUSD   *float64  `json:"price_usd"`
-	TotalStock int       `json:"total_stock"`
-	IsActive   bool      `json:"is_active"`
+	ID         uuid.UUID  `json:"id"`
+	Name       string     `json:"name"`
+	Code       string     `json:"code"`
+	PriceMin   *float64   `json:"price_min"`
+	PriceMax   *float64   `json:"price_max"`
+	PriceMDL   *float64   `json:"price_mdl"`
+	PriceEUR   *float64   `json:"price_eur"`
+	PriceUSD   *float64   `json:"price_usd"`
+	TotalStock int        `json:"total_stock"`
+	IsActive   bool       `json:"is_active"`
+	SourceID   *uuid.UUID `json:"source_id"`
+	SourceName *string    `json:"source_name"`
 }
 
 // GetProductsByBrandID returns paginated products for a specific brand
 func (r *Repository) GetProductsByBrandID(ctx context.Context, brandID uuid.UUID, limit, offset int) ([]*BrandProduct, error) {
 	query := `
-		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active
+		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active,
+		       p.source_id, s.name as source_name
 		FROM products p
 		JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		LEFT JOIN product_sources s ON p.source_id = s.id
 		WHERE b.id = $1
 		ORDER BY p.name ASC
 		LIMIT $2 OFFSET $3
@@ -1965,6 +2005,7 @@ func (r *Repository) GetProductsByBrandID(ctx context.Context, brandID uuid.UUID
 		err := rows.Scan(
 			&product.ID, &product.Name, &product.Code, &product.PriceMin,
 			&product.PriceMax, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD, &product.TotalStock, &product.IsActive,
+			&product.SourceID, &product.SourceName,
 		)
 		if err != nil {
 			return nil, err
@@ -2000,22 +2041,32 @@ func (r *Repository) BulkUpdateProductsByBrandID(ctx context.Context, brandID uu
 
 // ProductFilters represents filter options for brand/category products
 type ProductFilters struct {
-	PriceFilter  string // "all", "no_price", "no_mdl", "no_eur", "no_usd", "with_price"
-	StockFilter  string // "all", "in_stock", "out_of_stock", "low_stock"
-	StatusFilter string // "all", "active", "inactive"
+	PriceFilter  string     // "all", "no_price", "no_mdl", "no_eur", "no_usd", "with_price"
+	StockFilter  string     // "all", "in_stock", "out_of_stock", "low_stock"
+	StatusFilter string     // "all", "active", "inactive"
+	SourceID     *uuid.UUID // Filter by source ID
 }
 
 // GetProductsByBrandIDWithFilters returns filtered and paginated products for a specific brand
 func (r *Repository) GetProductsByBrandIDWithFilters(ctx context.Context, brandID uuid.UUID, filters ProductFilters, limit, offset int) ([]*BrandProduct, error) {
 	query := `
-		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active
+		SELECT p.id, p.name, COALESCE(p.code, ''), p.price_min, p.price_max, p.price_mdl, p.price_eur, p.price_usd, p.total_stock, p.is_active,
+		       p.source_id, s.name as source_name
 		FROM products p
 		JOIN brands b ON p.brand_ultra_id = b.ultra_id
+		LEFT JOIN product_sources s ON p.source_id = s.id
 		WHERE b.id = $1
 	`
 
 	args := []interface{}{brandID}
 	paramIndex := 2
+
+	// Source filter
+	if filters.SourceID != nil {
+		query += fmt.Sprintf(" AND p.source_id = $%d", paramIndex)
+		args = append(args, *filters.SourceID)
+		paramIndex++
+	}
 
 	// Price filters
 	if filters.PriceFilter == "no_price" {
@@ -2061,6 +2112,7 @@ func (r *Repository) GetProductsByBrandIDWithFilters(ctx context.Context, brandI
 		err := rows.Scan(
 			&product.ID, &product.Name, &product.Code, &product.PriceMin,
 			&product.PriceMax, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD, &product.TotalStock, &product.IsActive,
+			&product.SourceID, &product.SourceName,
 		)
 		if err != nil {
 			return nil, err
@@ -2075,6 +2127,14 @@ func (r *Repository) GetProductsByBrandIDWithFilters(ctx context.Context, brandI
 func (r *Repository) CountProductsByBrandIDWithFilters(ctx context.Context, brandID uuid.UUID, filters ProductFilters) (int, error) {
 	query := `SELECT COUNT(*) FROM products p JOIN brands b ON p.brand_ultra_id = b.ultra_id WHERE b.id = $1`
 	args := []interface{}{brandID}
+	paramIndex := 2
+
+	// Source filter
+	if filters.SourceID != nil {
+		query += fmt.Sprintf(" AND p.source_id = $%d", paramIndex)
+		args = append(args, *filters.SourceID)
+		paramIndex++
+	}
 
 	// Price filters
 	if filters.PriceFilter == "no_price" {

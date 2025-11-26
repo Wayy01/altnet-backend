@@ -169,8 +169,15 @@ func (h *Handler) GetBrandProducts(w http.ResponseWriter, r *http.Request) {
 		StatusFilter: r.URL.Query().Get("status_filter"),
 	}
 
+	// Parse source_id filter
+	if sourceIDStr := r.URL.Query().Get("source_id"); sourceIDStr != "" {
+		if sourceID, err := uuid.Parse(sourceIDStr); err == nil {
+			filters.SourceID = &sourceID
+		}
+	}
+
 	// Use filtered functions if any filters are provided
-	hasFilters := filters.PriceFilter != "" || filters.StockFilter != "" || filters.StatusFilter != ""
+	hasFilters := filters.PriceFilter != "" || filters.StockFilter != "" || filters.StatusFilter != "" || filters.SourceID != nil
 
 	var products []*repository.BrandProduct
 	var total int
@@ -424,8 +431,15 @@ func (h *Handler) GetCategoryProducts(w http.ResponseWriter, r *http.Request) {
 		StatusFilter: r.URL.Query().Get("status_filter"),
 	}
 
+	// Parse source_id filter
+	if sourceIDStr := r.URL.Query().Get("source_id"); sourceIDStr != "" {
+		if sourceID, err := uuid.Parse(sourceIDStr); err == nil {
+			filters.SourceID = &sourceID
+		}
+	}
+
 	// Use filtered functions if any filters are provided
-	hasFilters := filters.PriceFilter != "" || filters.StockFilter != "" || filters.StatusFilter != ""
+	hasFilters := filters.PriceFilter != "" || filters.StockFilter != "" || filters.StatusFilter != "" || filters.SourceID != nil
 
 	var products []*repository.CategoryProduct
 	var total int
@@ -612,6 +626,13 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 	if categoryIDStr := r.URL.Query().Get("category_id"); categoryIDStr != "" {
 		if id, err := uuid.Parse(categoryIDStr); err == nil {
 			filter.CategoryID = &id
+		}
+	}
+
+	// Source filter
+	if sourceIDStr := r.URL.Query().Get("source_id"); sourceIDStr != "" {
+		if id, err := uuid.Parse(sourceIDStr); err == nil {
+			filter.SourceID = &id
 		}
 	}
 
