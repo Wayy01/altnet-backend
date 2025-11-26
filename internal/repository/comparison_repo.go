@@ -600,13 +600,13 @@ func brandInputToMap(brand *models.BrandInput) map[string]interface{} {
 
 func categoryToMap(category *models.Category) map[string]interface{} {
 	return map[string]interface{}{
-		"id":              category.ID,
-		"ultra_id":        category.UltraID,
-		"name":            category.Name,
-		"parent_ultra_id": category.ParentUltraID,
-		"sort_order":      category.SortOrder,
-		"image_url":       category.ImageURL,
-		"is_active":       category.IsActive,
+		"id":         category.ID,
+		"ultra_id":   category.UltraID,
+		"name":       category.Name,
+		"parent_id":  category.ParentID,
+		"sort_order": category.SortOrder,
+		"image_url":  category.ImageURL,
+		"is_active":  category.IsActive,
 	}
 }
 
@@ -627,18 +627,18 @@ func productToMap(product *models.Product) map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"id":                product.ID,
-		"ultra_id":          product.UltraID,
-		"name":              product.Name,
-		"code":              product.Code,
-		"article":           product.Article,
-		"description":       product.Description,
-		"brand_ultra_id":    product.BrandUltraID,
-		"category_ultra_id": product.CategoryUltraID,
-		"parent_ultra_id":   product.ParentUltraID,
-		"main_image_url":    product.MainImageURL,
-		"is_active":         product.IsActive,
-		"is_service":        product.IsService,
+		"id":             product.ID,
+		"ultra_id":       product.UltraID,
+		"name":           product.Name,
+		"code":           product.Code,
+		"article":        product.Article,
+		"description":    product.Description,
+		"brand_id":       product.BrandID,
+		"category_id":    product.CategoryID,
+		"parent_id":      product.ParentID,
+		"main_image_url": product.MainImageURL,
+		"is_active":      product.IsActive,
+		"is_service":     product.IsService,
 	}
 }
 
@@ -649,9 +649,12 @@ func productInputToMap(product *models.ProductInput) map[string]interface{} {
 		"code":              product.Code,
 		"article":           product.Article,
 		"description":       product.Description,
-		"brand_ultra_id":    product.BrandUltraID,
-		"category_ultra_id": product.CategoryUltraID,
-		"parent_ultra_id":   product.ParentUltraID,
+		"brand_id":          product.BrandID,
+		"category_id":       product.CategoryID,
+		"parent_id":         product.ParentID,
+		"brand_ultra_id":    product.BrandUltraID,    // Temporary field for comparison
+		"category_ultra_id": product.CategoryUltraID, // Temporary field for comparison
+		"parent_ultra_id":   product.ParentUltraID,   // Temporary field for comparison
 		"main_image_url":    product.MainImageURL,
 		"is_active":         product.IsActive,
 		"is_service":        product.IsService,

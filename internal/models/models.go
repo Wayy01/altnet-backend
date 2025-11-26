@@ -120,12 +120,9 @@ type Product struct {
 	Name            string     `json:"name"`
 	Slug            string     `json:"slug"`
 	Description     *string    `json:"description"`
-	BrandID         *uuid.UUID `json:"brand_id"`
-	CategoryID      *uuid.UUID `json:"category_id"`
-	ParentID        *uuid.UUID `json:"parent_id"`
-	BrandUltraID    *string    `json:"brand_ultra_id,omitempty"`
-	CategoryUltraID *string    `json:"category_ultra_id,omitempty"`
-	ParentUltraID   *string    `json:"parent_ultra_id,omitempty"`
+	BrandID    *uuid.UUID `json:"brand_id"`
+	CategoryID *uuid.UUID `json:"category_id"`
+	ParentID   *uuid.UUID `json:"parent_id"`
 	MainImageURL    *string    `json:"main_image_url"`
 	Images          JSONBArray `json:"images"`
 	Videos          JSONBArray `json:"videos"`
@@ -334,20 +331,26 @@ type CategoryInput struct {
 
 // ProductInput is used when inserting/updating products from Ultra API
 type ProductInput struct {
-	UltraID         string
-	Code            *string
-	Article         *string
-	Name            string
-	Description     *string
+	UltraID      string
+	Code         *string
+	Article      *string
+	Name         string
+	Description  *string
+	BrandID      *uuid.UUID // Resolved from Ultra API brand_ultra_id
+	CategoryID   *uuid.UUID // Resolved from Ultra API category_ultra_id
+	ParentID     *uuid.UUID // Resolved from Ultra API parent_ultra_id
+	MainImageURL *string
+	Images       []map[string]string
+	Warranty     *string
+	Barcodes     []map[string]string
+	IsActive     bool
+	IsService    bool
+
+	// Temporary fields used during sync (Ultra API returns string UUIDs)
+	// These are resolved to brand_id/category_id/parent_id by ResolveProductReferences()
 	BrandUltraID    *string
 	CategoryUltraID *string
 	ParentUltraID   *string
-	MainImageURL    *string
-	Images          []map[string]string
-	Warranty        *string
-	Barcodes        []map[string]string
-	IsActive        bool
-	IsService       bool
 }
 
 // PropertyInput is used when inserting/updating properties

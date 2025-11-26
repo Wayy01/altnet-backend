@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
-import { Plus, X, Tag, FolderTree, Search, Loader2, Check } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Plus, X, Tag, FolderTree, Search, Loader2, Check, DollarSign, Package } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -590,8 +590,158 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         </div>
       </FormSection>
 
-      {/* Status Switches */}
+      {/* Pricing & Stock */}
       <FormSection index={6}>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <DollarSign className="h-4 w-4 text-primary" />
+            <Label className="text-sm font-semibold">Pricing & Stock</Label>
+          </div>
+
+          {/* Prices Grid - 3 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="price_mdl" className="text-sm font-medium">
+                Price (MDL) <span className="text-xs text-muted-foreground">Primary</span>
+              </Label>
+              <Input
+                id="price_mdl"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={data.price_mdl ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) {
+                    onChange({ price_mdl: null });
+                    return;
+                  }
+                  const parsed = parseFloat(value);
+                  if (!isNaN(parsed) && parsed >= 0) {
+                    onChange({ price_mdl: parsed });
+                  }
+                }}
+                className={cn(
+                  "h-11 rounded-lg font-mono transition-all duration-200",
+                  "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "hover:border-primary/50"
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="price_eur" className="text-sm font-medium">
+                Price (EUR)
+              </Label>
+              <Input
+                id="price_eur"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={data.price_eur ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) {
+                    onChange({ price_eur: null });
+                    return;
+                  }
+                  const parsed = parseFloat(value);
+                  if (!isNaN(parsed) && parsed >= 0) {
+                    onChange({ price_eur: parsed });
+                  }
+                }}
+                className={cn(
+                  "h-11 rounded-lg font-mono transition-all duration-200",
+                  "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "hover:border-primary/50"
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="price_usd" className="text-sm font-medium">
+                Price (USD)
+              </Label>
+              <Input
+                id="price_usd"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={data.price_usd ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) {
+                    onChange({ price_usd: null });
+                    return;
+                  }
+                  const parsed = parseFloat(value);
+                  if (!isNaN(parsed) && parsed >= 0) {
+                    onChange({ price_usd: parsed });
+                  }
+                }}
+                className={cn(
+                  "h-11 rounded-lg font-mono transition-all duration-200",
+                  "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "hover:border-primary/50"
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Stock Grid - 2 columns */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="total_stock" className="text-sm font-medium flex items-center gap-2">
+                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                Total Stock
+              </Label>
+              <Input
+                id="total_stock"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={data.total_stock || ""}
+                onChange={(e) => {
+                  const stock = parseInt(e.target.value) || 0;
+                  onChange({
+                    total_stock: stock,
+                    is_in_stock: stock > 0
+                  });
+                }}
+                className={cn(
+                  "h-11 rounded-lg font-mono transition-all duration-200",
+                  "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "hover:border-primary/50"
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                Available units in inventory
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Stock Status</Label>
+              <div className="flex items-center gap-3 h-11 px-4 rounded-lg border bg-muted/30">
+                <Switch
+                  id="is_in_stock"
+                  checked={data.is_in_stock}
+                  onCheckedChange={(checked) => onChange({ is_in_stock: checked })}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <Label htmlFor="is_in_stock" className="text-sm cursor-pointer">
+                  {data.is_in_stock ? "In Stock" : "Out of Stock"}
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Auto-calculated from stock (can override)
+              </p>
+            </div>
+          </div>
+        </div>
+      </FormSection>
+
+      {/* Status Switches */}
+      <FormSection index={7}>
         <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-border/50">
             <div className="space-y-0.5">

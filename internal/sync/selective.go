@@ -1078,6 +1078,12 @@ func (s *SelectiveSync) processProductsSelective(ctx context.Context, syncLogID 
 		}
 	}
 
+	// Resolve brand_id, category_id, parent_id from ultra_id references
+	if err := s.repo.ResolveProductReferences(ctx); err != nil {
+		log.Printf("Warning: failed to resolve product references: %v", err)
+		// Don't fail the sync, just log the warning
+	}
+
 	return nil
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Search,
   Link2,
@@ -22,64 +22,96 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import { Product, ProductFormState } from "@/types";
+import { Product, ProductFormState, ProductDetail } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface VariantsTabProps {
   data: ProductFormState["variants"];
   onChange: (updates: Partial<ProductFormState["variants"]>) => void;
+  /** Source product when duplicating/creating variant */
+  sourceProduct?: ProductDetail | null;
 }
 
 /**
  * Premium Variants Tab with enhanced parent product search and linking
  * Features elegant search UI, product cards, and informational callouts
  */
-export function VariantsTab({ data, onChange }: VariantsTabProps) {
+export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps) {
+  // Check if this is an auto-linked variant (came from ?duplicate= query param)
+  const isAutoLinked = !!sourceProduct && !!data.parent_id;
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedParent, setSelectedParent] = useState<Product | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [sectionsVisible, setSectionsVisible] = useState(false);
+  const mountedRef = useRef(true);
 
-  // Trigger entrance animation
+  // Trigger entrance animation and setup cleanup
   useEffect(() => {
     const timer = setTimeout(() => setSectionsVisible(true), 50);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      mountedRef.current = false;
+    };
   }, []);
 
   // Load parent product details if parent_id is set
   useEffect(() => {
-    const loadParent = async () => {
-      if (data.parent_id && !selectedParent) {
-        try {
-          const parent = await api.getProduct(data.parent_id);
+    if (!data.parent_id) {
+      setSelectedParent(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadParent() {
+      try {
+        const parent = await api.getProduct(data.parent_id!);
+        if (!cancelled) {
           setSelectedParent(parent as Product);
-        } catch (error) {
+        }
+      } catch (error) {
+        if (!cancelled) {
           console.error("Failed to load parent product:", error);
         }
       }
-    };
+    }
+
     loadParent();
-  }, [data.parent_id, selectedParent]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data.parent_id]);
 
   // Debounced search
   const debouncedSearch = useDebouncedCallback(async (query: string) => {
     if (!query.trim()) {
-      setSearchResults([]);
-      setHasSearched(false);
+      if (mountedRef.current) {
+        setSearchResults([]);
+        setHasSearched(false);
+      }
       return;
     }
 
-    setIsSearching(true);
+    if (mountedRef.current) {
+      setIsSearching(true);
+    }
     try {
       const results = await api.searchProductsForVariants(query, []);
-      setSearchResults(results);
-      setHasSearched(true);
+      if (mountedRef.current) {
+        setSearchResults(results);
+        setHasSearched(true);
+      }
     } catch (error) {
-      console.error("Failed to search products:", error);
+      if (mountedRef.current) {
+        console.error("Failed to search products:", error);
+      }
     } finally {
-      setIsSearching(false);
+      if (mountedRef.current) {
+        setIsSearching(false);
+      }
     }
   }, 300);
 
@@ -146,8 +178,72 @@ export function VariantsTab({ data, onChange }: VariantsTabProps) {
         </div>
       </Section>
 
+      {/* Auto-Linked Banner - Shows when creating variant from existing product */}
+      {isAutoLinked && sourceProduct && (
+        <Section index={1}>
+          <div className="rounded-xl border-2 border-blue-500/30 bg-blue-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <Link2 className="h-5 w-5 text-blue-500" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-semibold text-blue-600 dark:text-blue-400">
+                    Auto-Linked as Variant
+                  </h4>
+                  <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20">
+                    Automatic
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  This product will be automatically linked as a variant of the source product.
+                </p>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border/50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted border border-border/50 overflow-hidden">
+                    {sourceProduct.main_image_url ? (
+                      <img
+                        src={sourceProduct.main_image_url}
+                        alt={sourceProduct.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Package className="h-6 w-6 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{sourceProduct.name}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {sourceProduct.code && (
+                        <span className="font-mono">{sourceProduct.code}</span>
+                      )}
+                      {sourceProduct.brand_name && (
+                        <>
+                          <span className="text-border">|</span>
+                          <span>{sourceProduct.brand_name}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/products/${sourceProduct.id}`}
+                    target="_blank"
+                    className={cn(
+                      "flex items-center justify-center h-9 w-9 rounded-lg",
+                      "border border-border/50 bg-muted",
+                      "transition-all duration-200 hover:bg-muted/80 hover:border-border"
+                    )}
+                  >
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Section>
+      )}
+
       {/* Is Group Toggle */}
-      <Section index={1}>
+      <Section index={isAutoLinked ? 2 : 1}>
         <div className="rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -202,8 +298,8 @@ export function VariantsTab({ data, onChange }: VariantsTabProps) {
       </Section>
 
       {/* Link to Parent Section */}
-      {!data.is_group && (
-        <Section index={2}>
+      {!data.is_group && !isAutoLinked && (
+        <Section index={isAutoLinked ? 3 : 2}>
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted border border-border/50">
@@ -385,7 +481,7 @@ export function VariantsTab({ data, onChange }: VariantsTabProps) {
       )}
 
       {/* Info Box */}
-      <Section index={3}>
+      <Section index={isAutoLinked ? 3 : (data.is_group ? 2 : 3)}>
         <div className="rounded-xl border border-border/50 bg-muted/30 p-4">
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
@@ -434,7 +530,7 @@ export function VariantsTab({ data, onChange }: VariantsTabProps) {
       </Section>
 
       {/* Summary */}
-      <Section index={4}>
+      <Section index={isAutoLinked ? 4 : (data.is_group ? 3 : 4)}>
         <div className="rounded-xl border border-border/50 bg-muted/30 p-4">
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="space-y-1">

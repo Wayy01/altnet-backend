@@ -8,7 +8,6 @@ import {
   FolderTree,
   Settings,
   Coins,
-  Zap,
   FileText,
   History,
   Database,
@@ -84,12 +83,6 @@ const mainMenuItems: NavItem[] = [
     url: "/properties",
     icon: Database,
     description: "Product properties",
-  },
-  {
-    title: "Characteristics",
-    url: "/characteristics",
-    icon: Zap,
-    description: "Product characteristics",
   },
   {
     title: "Groupings",

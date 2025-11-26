@@ -28,6 +28,7 @@ import {
   FolderTree,
   Search,
   SlidersHorizontal,
+  GitBranch,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1207,6 +1208,12 @@ export default function ProductsPage() {
                             <Link href={`/products/${product.id}`} className="cursor-pointer">
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/products/new?duplicate=${product.id}`} className="cursor-pointer">
+                              <GitBranch className="mr-2 h-4 w-4" />
+                              Add Variant
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />

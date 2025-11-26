@@ -296,19 +296,19 @@ func (r *Repository) UpdateProductSelective(ctx context.Context, ultraID string,
 				oldValue = *existingProduct.Article
 				wasNull = false
 			}
-		case "brand_ultra_id":
-			if existingProduct.BrandUltraID != nil {
-				oldValue = *existingProduct.BrandUltraID
+		case "brand_id":
+			if existingProduct.BrandID != nil {
+				oldValue = existingProduct.BrandID.String()
 				wasNull = false
 			}
-		case "category_ultra_id":
-			if existingProduct.CategoryUltraID != nil {
-				oldValue = *existingProduct.CategoryUltraID
+		case "category_id":
+			if existingProduct.CategoryID != nil {
+				oldValue = existingProduct.CategoryID.String()
 				wasNull = false
 			}
-		case "parent_ultra_id":
-			if existingProduct.ParentUltraID != nil {
-				oldValue = *existingProduct.ParentUltraID
+		case "parent_id":
+			if existingProduct.ParentID != nil {
+				oldValue = existingProduct.ParentID.String()
 				wasNull = false
 			}
 		case "warranty":

@@ -852,6 +852,13 @@ export interface CreateProductPayload {
 
   // Prices (product-level)
   prices?: CreatePriceData[];
+  price_mdl?: number | null;
+  price_eur?: number | null;
+  price_usd?: number | null;
+
+  // Stock
+  total_stock?: number;
+  is_in_stock?: boolean;
 
   // Flags
   is_group?: boolean;
@@ -860,7 +867,6 @@ export interface CreateProductPayload {
 
   // Nested entities
   properties?: CreatePropertyData[];
-  characteristics?: CreateCharacteristicData[];
 }
 
 // Update product payload (partial)
@@ -885,7 +891,7 @@ export interface UpdateProductFullPayload {
 
 // Form state for multi-tab product creation
 export interface ProductFormState {
-  // Tab 1: Basic Info
+  // Tab 1: Basic Info (including pricing)
   basicInfo: {
     name: string;
     code: string;
@@ -897,6 +903,12 @@ export interface ProductFormState {
     barcodes: string[];
     is_active: boolean;
     is_service: boolean;
+    // Product-level pricing
+    price_mdl: number | null;
+    price_eur: number | null;
+    price_usd: number | null;
+    total_stock: number;
+    is_in_stock: boolean;
   };
 
   // Tab 2: Media
@@ -909,10 +921,7 @@ export interface ProductFormState {
   // Tab 3: Properties
   properties: CreatePropertyData[];
 
-  // Tab 4: Characteristics/SKUs
-  characteristics: CreateCharacteristicData[];
-
-  // Tab 5: Variants
+  // Tab 4: Variants
   variants: {
     parent_id: string | null;
     is_group: boolean;

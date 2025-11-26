@@ -547,10 +547,10 @@ export default function ProductGroupingsPage() {
 
         {/* Groups Table - Enhanced with shadow and rounded corners */}
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow className="bg-muted/30 hover:bg-muted/30">
-                <TableHead>
+                <TableHead className="w-[35%]">
                   <button
                     onClick={() => handleColumnSort("name")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
@@ -565,13 +565,12 @@ export default function ProductGroupingsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Brand</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">
+                <TableHead className="w-[12%]">Brand</TableHead>
+                <TableHead className="w-[12%]">Category</TableHead>
+                <TableHead className="text-center w-[8%]">
                   <button
                     onClick={() => handleColumnSort("variants")}
-                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
                   >
                     Variants
                     <span className={`transition-all duration-200 ${currentSortField === "variants" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
@@ -583,8 +582,8 @@ export default function ProductGroupingsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead className="text-right">Price Range</TableHead>
-                <TableHead className="text-right">
+                <TableHead className="text-right w-[12%]">Price Range</TableHead>
+                <TableHead className="text-right w-[10%]">
                   <button
                     onClick={() => handleColumnSort("stock")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
@@ -599,14 +598,14 @@ export default function ProductGroupingsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right w-[180px]">Actions</TableHead>
+                <TableHead className="w-[80px]">Status</TableHead>
+                <TableHead className="text-right w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-48">
+                  <TableCell colSpan={8} className="h-48">
                     <div className="flex items-center justify-center py-8">
                       <div className="text-center">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
@@ -617,7 +616,7 @@ export default function ProductGroupingsPage() {
                 </TableRow>
               ) : !groups || groups.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-48">
+                  <TableCell colSpan={8} className="h-48">
                     <div className="flex flex-col items-center justify-center gap-3 py-8">
                       <div className="p-4 rounded-full bg-muted/50">
                         <Database className="h-10 w-10 text-muted-foreground/50" />
@@ -657,21 +656,18 @@ export default function ProductGroupingsPage() {
                       transitionDelay: rowsVisible ? `${Math.min(index * 20, 400)}ms` : "0ms",
                     }}
                   >
-                    <TableCell className="font-medium">
-                      <span className="hover:text-primary transition-colors cursor-default">
+                    <TableCell className="font-medium max-w-0">
+                      <span className="hover:text-primary transition-colors cursor-default block truncate" title={group.name}>
                         {group.name}
                       </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-sm">
-                      {group.code || group.article || "-"}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground truncate max-w-0" title={group.brand_name || "-"}>
                       {group.brand_name || "-"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground truncate max-w-0" title={group.category_name || "-"}>
                       {group.category_name || "-"}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       {group.variant_count > 0 ? (
                         <Badge
                           variant="default"
@@ -687,47 +683,41 @@ export default function ProductGroupingsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       {group.price_min !== null && group.price_max !== null ? (
-                        <span className="text-sm tabular-nums">
-                          {group.price_min.toFixed(0)} - {group.price_max.toFixed(0)} MDL
+                        <span className="text-sm tabular-nums whitespace-nowrap">
+                          {group.price_min.toFixed(0)}-{group.price_max.toFixed(0)}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <span className="tabular-nums">{group.total_stock.toLocaleString()}</span>
-                        {group.is_in_stock && (
-                          <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600">
-                            In Stock
-                          </Badge>
-                        )}
-                      </div>
+                      <span className="tabular-nums">{group.total_stock.toLocaleString()}</span>
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={group.is_active ? "default" : "secondary"}
-                        className={`transition-colors ${group.is_active ? "bg-green-500 hover:bg-green-600" : ""}`}
+                        className={`transition-colors text-xs ${group.is_active ? "bg-green-500 hover:bg-green-600" : ""}`}
                       >
                         {group.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => router.push(`/groupings/${group.id}`)}
-                          className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                          className="h-8 w-8 transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                          title="View Variants"
                         >
-                          <Eye className="mr-1.5 h-4 w-4" />
-                          View Variants
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDeleteClick(group.id, group.name)}
                           className="h-8 w-8 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
+                          title="Delete"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -882,15 +872,14 @@ function GroupingsPageSkeleton() {
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-4 p-4 bg-muted/30 border-b">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-16 ml-auto" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-[35%]" />
+          <Skeleton className="h-4 w-[12%]" />
+          <Skeleton className="h-4 w-[12%]" />
+          <Skeleton className="h-4 w-[8%]" />
+          <Skeleton className="h-4 w-[12%]" />
+          <Skeleton className="h-4 w-[10%]" />
+          <Skeleton className="h-4 w-[80px]" />
+          <Skeleton className="h-4 w-[100px]" />
         </div>
 
         {/* Rows */}
@@ -903,15 +892,14 @@ function GroupingsPageSkeleton() {
               opacity: 1 - (i * 0.05),
             }}
           >
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-6 w-10 ml-auto rounded-full" />
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-6 w-16 rounded-full" />
-            <Skeleton className="h-8 w-32 rounded-md" />
+            <Skeleton className="h-4 w-[35%]" />
+            <Skeleton className="h-4 w-[12%]" />
+            <Skeleton className="h-4 w-[12%]" />
+            <Skeleton className="h-6 w-8 rounded-full" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-6 w-14 rounded-full" />
+            <Skeleton className="h-8 w-20 rounded-md" />
           </div>
         ))}
       </div>

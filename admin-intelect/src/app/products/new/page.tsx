@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Package,
@@ -11,7 +11,6 @@ import {
   FileText,
   Image as ImageIcon,
   Settings2,
-  Tags,
   GitBranch,
   CheckCircle2,
   ChevronRight,
@@ -26,18 +25,50 @@ import { api } from "@/lib/api";
 import {
   ProductFormState,
   CreateProductPayload,
-  CreateImageData,
-  CreateVideoData,
   CreatePropertyData,
-  CreateCharacteristicData,
+  ProductDetail,
 } from "@/types";
 import { cn } from "@/lib/utils";
 
 import { BasicInfoTab } from "./basic-info-tab";
 import { MediaTab } from "./media-tab";
 import { PropertiesTab } from "./properties-tab";
-import { CharacteristicsTab } from "./characteristics-tab";
 import { VariantsTab } from "./variants-tab";
+
+/**
+ * Generate a unique product code that doesn't exist in the database.
+ * Format: PRD-XXXXXX (uppercase alphanumeric)
+ */
+async function generateUniqueCode(): Promise<string> {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const maxAttempts = 10;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Generate random 6-character suffix
+    let suffix = "";
+    for (let i = 0; i < 6; i++) {
+      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const code = `PRD-${suffix}`;
+
+    // Check if code already exists
+    try {
+      const { data } = await api.getProducts({ search: code }, 1, 0);
+      // If no exact match found, this code is unique
+      const exactMatch = data.some((p) => p.code === code);
+      if (!exactMatch) {
+        return code;
+      }
+    } catch {
+      // If API fails, just return the generated code
+      return code;
+    }
+  }
+
+  // Fallback: use timestamp-based code
+  return `PRD-${Date.now().toString(36).toUpperCase()}`;
+}
+
 
 const initialFormState: ProductFormState = {
   basicInfo: {
@@ -51,6 +82,12 @@ const initialFormState: ProductFormState = {
     barcodes: [],
     is_active: true,
     is_service: false,
+    // Pricing
+    price_mdl: null,
+    price_eur: null,
+    price_usd: null,
+    total_stock: 0,
+    is_in_stock: false,
   },
   media: {
     main_image_url: "",
@@ -58,7 +95,6 @@ const initialFormState: ProductFormState = {
     videos: [],
   },
   properties: [],
-  characteristics: [],
   variants: {
     parent_id: null,
     is_group: false,
@@ -80,7 +116,7 @@ const tabs: TabConfig[] = [
     id: "basic",
     label: "Basic Info",
     icon: <FileText className="h-4 w-4" />,
-    description: "Name, code, and classification",
+    description: "Name, code, pricing, and classification",
   },
   {
     id: "media",
@@ -95,12 +131,6 @@ const tabs: TabConfig[] = [
     description: "Specifications and attributes",
   },
   {
-    id: "characteristics",
-    label: "SKUs",
-    icon: <Tags className="h-4 w-4" />,
-    description: "Variants with prices and stock",
-  },
-  {
     id: "variants",
     label: "Variants",
     icon: <GitBranch className="h-4 w-4" />,
@@ -110,17 +140,103 @@ const tabs: TabConfig[] = [
 
 export default function CreateProductPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("basic");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formState, setFormState] = useState<ProductFormState>(initialFormState);
   const [contentVisible, setContentVisible] = useState(false);
 
+  // Duplicate/variant functionality
+  const duplicateId = searchParams.get("duplicate");
+  const [sourceProduct, setSourceProduct] = useState<ProductDetail | null>(null);
+  const [isLoadingSource, setIsLoadingSource] = useState(false);
+
   // Trigger entrance animation
   useEffect(() => {
     const timer = setTimeout(() => setContentVisible(true), 50);
     return () => clearTimeout(timer);
   }, []);
+
+  // Fetch source product for duplication/variant creation
+  useEffect(() => {
+    if (!duplicateId) return;
+
+    let cancelled = false;
+
+    async function fetchSourceProduct() {
+      setIsLoadingSource(true);
+      try {
+        // Fetch source product and generate unique code in parallel
+        const [product, uniqueCode] = await Promise.all([
+          api.getProduct(duplicateId),
+          generateUniqueCode(),
+        ]);
+
+        if (cancelled) return;
+
+        setSourceProduct(product);
+
+        // Pre-fill form with ALL source product data for complete variant duplication
+        setFormState((prev) => ({
+          ...prev,
+          basicInfo: {
+            ...prev.basicInfo,
+            name: `${product.name} (Variant)`,
+            code: uniqueCode, // Auto-generated unique code
+            article: product.article || "",
+            description: product.description || "",
+            // Copy brand and category from source product (now using direct IDs)
+            brand_id: product.brand_id || "",
+            category_id: product.category_id || "",
+            warranty: product.warranty || "",
+            barcodes: [], // Clear barcodes - should be unique
+            is_active: true,
+            is_service: product.is_service || false,
+            // Copy pricing
+            price_mdl: product.price_mdl ?? null,
+            price_eur: product.price_eur ?? null,
+            price_usd: product.price_usd ?? null,
+            total_stock: 0, // Reset stock for new variant
+            is_in_stock: false,
+          },
+          media: {
+            main_image_url: product.main_image_url || "",
+            // Copy all images and videos from source product
+            images: product.images || [],
+            videos: product.videos || [],
+          },
+          // Copy all properties from source product
+          properties: (product.properties || []).map((prop) => ({
+            group_name: prop.group_name || "",
+            property_name: prop.property_name || "",
+            property_value: prop.property_value || "",
+          })),
+          variants: {
+            // Auto-link to parent: use source's group if it's already a variant, otherwise use source as parent
+            parent_id: product.parent_id || product.id,
+            is_group: false,
+          },
+        }));
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to fetch source product:", error);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSource(false);
+        }
+      }
+    }
+
+    fetchSourceProduct();
+
+    return () => {
+      cancelled = true;
+    };
+    // Note: toast is intentionally excluded from deps to prevent infinite re-renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [duplicateId]);
 
   // Update handlers for each section
   const updateBasicInfo = useCallback(
@@ -146,13 +262,6 @@ export default function CreateProductPage() {
   const setProperties = useCallback((properties: CreatePropertyData[]) => {
     setFormState((prev) => ({ ...prev, properties }));
   }, []);
-
-  const setCharacteristics = useCallback(
-    (characteristics: CreateCharacteristicData[]) => {
-      setFormState((prev) => ({ ...prev, characteristics }));
-    },
-    []
-  );
 
   const updateVariants = useCallback(
     (updates: Partial<ProductFormState["variants"]>) => {
@@ -186,8 +295,6 @@ export default function CreateProductPage() {
           );
         case "properties":
           return formState.properties.length > 0;
-        case "characteristics":
-          return formState.characteristics.length > 0;
         case "variants":
           return formState.variants.parent_id !== null || formState.variants.is_group;
         default:
@@ -205,8 +312,6 @@ export default function CreateProductPage() {
           return formState.media.images.length + formState.media.videos.length || null;
         case "properties":
           return formState.properties.length || null;
-        case "characteristics":
-          return formState.characteristics.length || null;
         default:
           return null;
       }
@@ -241,12 +346,17 @@ export default function CreateProductPage() {
         barcodes: formState.basicInfo.barcodes,
         is_active: formState.basicInfo.is_active,
         is_service: formState.basicInfo.is_service,
+        // Product-level pricing
+        price_mdl: formState.basicInfo.price_mdl,
+        price_eur: formState.basicInfo.price_eur,
+        price_usd: formState.basicInfo.price_usd,
+        total_stock: formState.basicInfo.total_stock,
+        is_in_stock: formState.basicInfo.is_in_stock,
+        // Media
         main_image_url: formState.media.main_image_url || null,
         images: formState.media.images.length > 0 ? formState.media.images : undefined,
         videos: formState.media.videos.length > 0 ? formState.media.videos : undefined,
         properties: formState.properties.length > 0 ? formState.properties : undefined,
-        characteristics:
-          formState.characteristics.length > 0 ? formState.characteristics : undefined,
         parent_id: formState.variants.parent_id,
         is_group: formState.variants.is_group,
       };
@@ -295,7 +405,20 @@ export default function CreateProductPage() {
           Products
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-foreground font-medium">New Product</span>
+        {sourceProduct && (
+          <>
+            <Link
+              href={`/products/${sourceProduct.id}`}
+              className="hover:text-foreground transition-colors max-w-[200px] truncate"
+            >
+              {sourceProduct.name}
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </>
+        )}
+        <span className="text-foreground font-medium">
+          {duplicateId ? "New Variant" : "New Product"}
+        </span>
       </nav>
 
       {/* Premium Page Header */}
@@ -310,28 +433,41 @@ export default function CreateProductPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 shadow-sm">
-              <Package className="h-6 w-6 text-primary" />
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm",
+              duplicateId
+                ? "bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/20"
+                : "bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20"
+            )}>
+              {duplicateId ? (
+                <GitBranch className="h-6 w-6 text-blue-500" />
+              ) : (
+                <Package className="h-6 w-6 text-primary" />
+              )}
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Create Product</h1>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {duplicateId ? "Create Variant" : "Create Product"}
+              </h1>
               <p className="text-sm text-muted-foreground">
-                Add a new product to your catalog
+                {duplicateId && sourceProduct
+                  ? `Creating variant of "${sourceProduct.name}"`
+                  : "Add a new product to your catalog"}
               </p>
             </div>
           </div>
         </div>
         <Button
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLoadingSource}
           className="h-10 px-6 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
         >
-          {isSubmitting ? (
+          {isSubmitting || isLoadingSource ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}
-          Create Product
+          {duplicateId ? "Create Variant" : "Create Product"}
         </Button>
       </div>
 
@@ -455,25 +591,6 @@ export default function CreateProductPage() {
               </TabsContent>
 
               <TabsContent
-                value="characteristics"
-                className="m-0 focus-visible:outline-none focus-visible:ring-0"
-              >
-                <div
-                  className={cn(
-                    "transition-all duration-300",
-                    activeTab === "characteristics"
-                      ? "opacity-100 translate-y-0"
-                      : "opacity-0 translate-y-2"
-                  )}
-                >
-                  <CharacteristicsTab
-                    characteristics={formState.characteristics}
-                    onChange={setCharacteristics}
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent
                 value="variants"
                 className="m-0 focus-visible:outline-none focus-visible:ring-0"
               >
@@ -488,6 +605,7 @@ export default function CreateProductPage() {
                   <VariantsTab
                     data={formState.variants}
                     onChange={updateVariants}
+                    sourceProduct={sourceProduct}
                   />
                 </div>
               </TabsContent>
@@ -518,15 +636,15 @@ export default function CreateProductPage() {
                   )}
                   <Button
                     onClick={handleSubmit}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isLoadingSource}
                     className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
                   >
-                    {isSubmitting ? (
+                    {isSubmitting || isLoadingSource ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                       <Save className="mr-2 h-4 w-4" />
                     )}
-                    Create Product
+                    {duplicateId ? "Create Variant" : "Create Product"}
                   </Button>
                 </div>
               </div>

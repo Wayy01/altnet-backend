@@ -118,15 +118,15 @@ func (r *RollbackRepository) CaptureEntitySnapshot(ctx context.Context, snapshot
 		`
 	case "category":
 		query = `
-			SELECT id, ultra_id, name, parent_ultra_id, sort_order, image_url, is_active, created_at, updated_at
+			SELECT id, ultra_id, name, parent_id, sort_order, image_url, is_active, created_at, updated_at
 			FROM categories
 			WHERE id = ANY($1)
 		`
 	case "product":
 		query = `
-			SELECT id, ultra_id, name, code, article, description, brand_ultra_id, category_ultra_id,
-				   parent_ultra_id, main_image_url, images, warranty, barcodes, is_active, is_service,
-				   price_eur, price_usd, price_mdl, in_stock, stock_quantity, created_at, updated_at
+			SELECT id, ultra_id, name, code, article, description, brand_id, category_id,
+				   parent_id, main_image_url, images, warranty, barcodes, is_active, is_service,
+				   price_eur, price_usd, price_mdl, is_in_stock, total_stock, created_at, updated_at
 			FROM products
 			WHERE id = ANY($1)
 		`
@@ -706,13 +706,13 @@ func (r *RollbackRepository) restoreEntityTx(ctx context.Context, tx pgx.Tx, ent
 	case "category":
 		query = `
 			UPDATE categories
-			SET name = $2, parent_ultra_id = $3, sort_order = $4, image_url = $5, is_active = $6, updated_at = $7
+			SET name = $2, parent_id = $3, sort_order = $4, image_url = $5, is_active = $6, updated_at = $7
 			WHERE id = $1
 		`
 		_, err := tx.Exec(ctx, query,
 			entityID,
 			snapshotData["name"],
-			snapshotData["parent_ultra_id"],
+			snapshotData["parent_id"],
 			snapshotData["sort_order"],
 			snapshotData["image_url"],
 			snapshotData["is_active"],
@@ -724,7 +724,7 @@ func (r *RollbackRepository) restoreEntityTx(ctx context.Context, tx pgx.Tx, ent
 		query = `
 			UPDATE products
 			SET name = $2, code = $3, article = $4, description = $5,
-				brand_ultra_id = $6, category_ultra_id = $7, parent_ultra_id = $8,
+				brand_id = $6, category_id = $7, parent_id = $8,
 				main_image_url = $9, images = $10, warranty = $11, barcodes = $12,
 				is_active = $13, is_service = $14, updated_at = $15
 			WHERE id = $1
@@ -740,9 +740,9 @@ func (r *RollbackRepository) restoreEntityTx(ctx context.Context, tx pgx.Tx, ent
 			snapshotData["code"],
 			snapshotData["article"],
 			snapshotData["description"],
-			snapshotData["brand_ultra_id"],
-			snapshotData["category_ultra_id"],
-			snapshotData["parent_ultra_id"],
+			snapshotData["brand_id"],
+			snapshotData["category_id"],
+			snapshotData["parent_id"],
 			snapshotData["main_image_url"],
 			imagesJSON,
 			snapshotData["warranty"],
