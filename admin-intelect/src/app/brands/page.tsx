@@ -27,6 +27,8 @@ import {
   ImageIcon,
   Package,
   Download,
+  Pencil,
+  Image as ImageIconLucide,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,8 +59,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
-import { Brand, BrandFilterOptions } from "@/types";
+import { Brand, BrandFilterOptions, UpdateBrandPayload } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
 /**
@@ -103,6 +114,15 @@ export default function BrandsPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteBrandId, setDeleteBrandId] = useState<string | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editBrand, setEditBrand] = useState<Brand | null>(null);
+  const [editFormState, setEditFormState] = useState({
+    name: "",
+    code: "",
+    logo_url: "",
+    is_active: true,
+  });
+  const [isUploading, setIsUploading] = useState(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -412,6 +432,70 @@ export default function BrandsPage() {
     } catch (error) {
       console.error("Failed to delete brand:", error);
       toast.error("Failed to delete brand");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Edit modal handlers
+  const handleOpenEditDialog = (brand: Brand) => {
+    setEditBrand(brand);
+    setEditFormState({
+      name: brand.name || "",
+      code: brand.code || "",
+      logo_url: brand.logo_url || "",
+      is_active: brand.is_active,
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleEditFormChange = (field: string, value: string | boolean) => {
+    setEditFormState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const response = await api.uploadImage(file);
+      handleEditFormChange("logo_url", response.url);
+      toast.success("Logo uploaded successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to upload logo");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editBrand) return;
+
+    if (!editFormState.name.trim()) {
+      toast.error("Brand name is required");
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const payload: UpdateBrandPayload = {
+        name: editFormState.name.trim(),
+        code: editFormState.code.trim() || null,
+        logo_url: editFormState.logo_url || null,
+        is_active: editFormState.is_active,
+      };
+
+      await api.updateBrand(editBrand.id, payload);
+      toast.success("Brand updated successfully");
+      setShowEditDialog(false);
+      setEditBrand(null);
+      startTransition(() => {
+        fetchBrands();
+      });
+    } catch (error) {
+      console.error("Failed to update brand:", error);
+      toast.error("Failed to update brand");
     } finally {
       setIsProcessing(false);
     }
@@ -1034,6 +1118,13 @@ export default function BrandsPage() {
                               View Details
                             </Link>
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleOpenEditDialog(brand)}
+                            className="cursor-pointer"
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit Brand
+                          </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link href={`/products?brand_id=${brand.id}`} className="cursor-pointer">
                               <ExternalLink className="mr-2 h-4 w-4" />
@@ -1167,6 +1258,115 @@ export default function BrandsPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Brand Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Brand</DialogTitle>
+            <DialogDescription>
+              Make changes to the brand details below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Logo Upload */}
+            <div className="space-y-2">
+              <Label>Brand Logo</Label>
+              <div className="flex items-start gap-4">
+                {editFormState.logo_url ? (
+                  <div className="relative group">
+                    <img
+                      src={editFormState.logo_url}
+                      alt="Brand logo"
+                      className="h-16 w-16 rounded-lg object-cover border shadow-sm"
+                    />
+                    <button
+                      onClick={() => handleEditFormChange("logo_url", "")}
+                      className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-16 w-16 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditImageUpload}
+                      className="hidden"
+                      disabled={isUploading}
+                    />
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                    ) : (
+                      <ImageIconLucide className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </label>
+                )}
+                <Input
+                  placeholder="Or paste logo URL..."
+                  value={editFormState.logo_url}
+                  onChange={(e) => handleEditFormChange("logo_url", e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">
+                Brand Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="edit-name"
+                value={editFormState.name}
+                onChange={(e) => handleEditFormChange("name", e.target.value)}
+                placeholder="Enter brand name"
+              />
+            </div>
+
+            {/* Code */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-code">Brand Code</Label>
+              <Input
+                id="edit-code"
+                value={editFormState.code}
+                onChange={(e) => handleEditFormChange("code", e.target.value)}
+                placeholder="e.g., SAMSUNG, APPLE"
+                className="font-mono"
+              />
+            </div>
+
+            {/* Active Status */}
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+              <div>
+                <Label htmlFor="edit-is_active" className="cursor-pointer">Active Status</Label>
+                <p className="text-xs text-muted-foreground">Active brands are visible in the catalog</p>
+              </div>
+              <Switch
+                id="edit-is_active"
+                checked={editFormState.is_active}
+                onCheckedChange={(checked) => handleEditFormChange("is_active", checked)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isProcessing}>
+              {isProcessing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Brand Dialog */}
       <ConfirmDialog

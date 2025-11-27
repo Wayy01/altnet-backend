@@ -27,6 +27,8 @@ import {
   Package,
   Download,
   Layers,
+  Pencil,
+  Image as ImageIconLucide,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,8 +58,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
-import { Category, CategoryFilterOptions } from "@/types";
+import { Category, CategoryFilterOptions, UpdateCategoryPayload } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
 /**
@@ -136,6 +147,26 @@ export default function CategoriesPage() {
   // Dialogs
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
+
+  // Edit dialog state
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editCategory, setEditCategory] = useState<Category | null>(null);
+  const [editFormState, setEditFormState] = useState<{
+    name: string;
+    code: string;
+    parent_id: string;
+    sort_order: number;
+    image_url: string;
+    is_active: boolean;
+  }>({
+    name: "",
+    code: "",
+    parent_id: "",
+    sort_order: 0,
+    image_url: "",
+    is_active: true,
+  });
+  const [isEditUploading, setIsEditUploading] = useState(false);
 
   // Parse current sort field and direction
   const currentSortField = useMemo((): SortField => {
@@ -556,6 +587,88 @@ export default function CategoriesPage() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Edit category handlers
+  const handleOpenEditDialog = (category: Category) => {
+    setEditCategory(category);
+    setEditFormState({
+      name: category.name || "",
+      code: category.code || "",
+      parent_id: category.parent_id || "",
+      sort_order: category.sort_order || 0,
+      image_url: category.image_url || "",
+      is_active: category.is_active,
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleEditFormChange = (field: string, value: string | boolean | number) => {
+    setEditFormState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsEditUploading(true);
+    try {
+      const response = await api.uploadImage(file);
+      handleEditFormChange("image_url", response.url);
+      toast.success("Image uploaded successfully");
+    } catch (error) {
+      toast.error("Failed to upload image");
+    } finally {
+      setIsEditUploading(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editCategory) return;
+
+    setIsProcessing(true);
+    try {
+      const payload: UpdateCategoryPayload = {
+        name: editFormState.name.trim() || undefined,
+        code: editFormState.code.trim() || null,
+        parent_id: editFormState.parent_id || null,
+        sort_order: editFormState.sort_order,
+        image_url: editFormState.image_url || null,
+        is_active: editFormState.is_active,
+      };
+
+      await api.updateCategory(editCategory.id, payload);
+      toast.success(`Category "${editFormState.name}" updated successfully`);
+      setShowEditDialog(false);
+      setEditCategory(null);
+      startTransition(() => {
+        fetchCategories();
+      });
+    } catch (error) {
+      console.error("Failed to update category:", error);
+      toast.error("Failed to update category");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Build category options for parent selector (excluding current category)
+  const buildParentCategoryOptions = (excludeId?: string) => {
+    const eligibleCategories = categories.filter((c) => c.id !== excludeId);
+    const rootCategories = eligibleCategories.filter((c) => !c.parent_id);
+    const childCategories = eligibleCategories.filter((c) => c.parent_id);
+
+    const options: { id: string; name: string; depth: number }[] = [];
+
+    const addCategory = (category: Category, depth: number) => {
+      options.push({ id: category.id, name: category.name, depth });
+      const children = childCategories.filter((c) => c.parent_id === category.id);
+      children.forEach((child) => addCategory(child, depth + 1));
+    };
+
+    rootCategories.forEach((cat) => addCategory(cat, 0));
+
+    return options;
   };
 
   // Check if any filters are active
@@ -1036,6 +1149,13 @@ export default function CategoriesPage() {
                               View Details
                             </Link>
                           </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleOpenEditDialog(category)}
+                            className="cursor-pointer"
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link href={`/products?category_id=${category.id}`} className="cursor-pointer">
                               <ExternalLink className="mr-2 h-4 w-4" />
@@ -1169,6 +1289,162 @@ export default function CategoriesPage() {
           )}
         </div>
       </div>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Edit Category</DialogTitle>
+            <DialogDescription>
+              Update the category information below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Category Image */}
+            <div className="space-y-2">
+              <Label>Category Image</Label>
+              <div className="flex items-start gap-4">
+                {editFormState.image_url ? (
+                  <div className="relative group">
+                    <img
+                      src={editFormState.image_url}
+                      alt="Category image"
+                      className="h-20 w-20 rounded-lg object-cover border shadow-sm"
+                    />
+                    <button
+                      onClick={() => handleEditFormChange("image_url", "")}
+                      className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center h-20 w-20 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditImageUpload}
+                      className="hidden"
+                      disabled={isEditUploading}
+                    />
+                    {isEditUploading ? (
+                      <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+                    ) : (
+                      <>
+                        <ImageIconLucide className="h-5 w-5 text-muted-foreground mb-1" />
+                        <span className="text-xs text-muted-foreground">Upload</span>
+                      </>
+                    )}
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">
+                Category Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="edit-name"
+                value={editFormState.name}
+                onChange={(e) => handleEditFormChange("name", e.target.value)}
+                placeholder="Enter category name"
+              />
+            </div>
+
+            {/* Code */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-code">Category Code</Label>
+              <Input
+                id="edit-code"
+                value={editFormState.code}
+                onChange={(e) => handleEditFormChange("code", e.target.value)}
+                placeholder="e.g., ELEC, CLOTH"
+                className="font-mono"
+              />
+            </div>
+
+            {/* Parent Category */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-parent">Parent Category</Label>
+              <Select
+                value={editFormState.parent_id || "none"}
+                onValueChange={(value) => handleEditFormChange("parent_id", value === "none" ? "" : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select parent category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No parent (Root category)</SelectItem>
+                  {buildParentCategoryOptions(editCategory?.id).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {"—".repeat(cat.depth)} {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort Order */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-sort">Sort Order</Label>
+              <Input
+                id="edit-sort"
+                type="number"
+                value={editFormState.sort_order}
+                onChange={(e) => handleEditFormChange("sort_order", parseInt(e.target.value) || 0)}
+                placeholder="0"
+                className="w-32"
+              />
+            </div>
+
+            {/* Image URL */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-image-url">Image URL</Label>
+              <Input
+                id="edit-image-url"
+                value={editFormState.image_url}
+                onChange={(e) => handleEditFormChange("image_url", e.target.value)}
+                placeholder="https://example.com/image.png"
+              />
+            </div>
+
+            {/* Active Status */}
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+              <div>
+                <Label htmlFor="edit-active" className="cursor-pointer">Active Status</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Active categories are visible in the catalog
+                </p>
+              </div>
+              <Switch
+                id="edit-active"
+                checked={editFormState.is_active}
+                onCheckedChange={(checked) => handleEditFormChange("is_active", checked)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={isProcessing || !editFormState.name.trim()}
+            >
+              {isProcessing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Category Dialog */}
       <ConfirmDialog
