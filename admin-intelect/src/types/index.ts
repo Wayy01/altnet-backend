@@ -27,6 +27,7 @@ export interface CreateSourceRequest {
 export interface Brand {
   id: string;
   ultra_id: string;
+  code?: string | null;
   name: string;
   slug: string;
   logo_url: string | null;
@@ -534,6 +535,8 @@ export interface SyncProgress {
   estimatedRemainingSeconds?: number;
   lastUpdated: string;
   selectedSteps?: string[];
+  selected_steps?: string[];
+  overall_progress_percentage?: number;
 
   // Detailed counts
   brandsSynced: number;
@@ -984,4 +987,125 @@ export interface ProductFormState {
     parent_id: string | null;
     is_group: boolean;
   };
+}
+
+// ============================================================================
+// TRANSLATION SYSTEM TYPES
+// ============================================================================
+
+// Translation job status
+export type TranslationJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+// Translation log status
+export type TranslationLogStatus = 'success' | 'failed' | 'skipped';
+
+// Target languages
+export type TargetLanguage = 'ru' | 'ro';
+
+// Entity types for translation
+export type TranslationEntityType = 'products' | 'categories' | 'properties';
+
+// Translation job
+export interface TranslationJob {
+  id: string;
+  entity_type: TranslationEntityType;
+  target_language: TargetLanguage;
+  status: TranslationJobStatus;
+  total_items: number;
+  translated_items: number;
+  failed_items: number;
+  skipped_items: number;
+  error_message?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Translation log entry
+export interface TranslationLog {
+  id: string;
+  job_id: string;
+  entity_type: string;
+  entity_id?: string | null;
+  field_name: string;
+  original_value: string;
+  source_text: string;
+  translated_text?: string | null;
+  target_language: TargetLanguage;
+  status: TranslationLogStatus;
+  error_message?: string | null;
+  created_at: string;
+}
+
+// Translation entity stats (for products and categories)
+export interface TranslationEntityStats {
+  total: number;
+  translated_ru: number;
+  translated_ro: number;
+  pending_ru: number;
+  pending_ro: number;
+}
+
+// Translation property stats
+export interface TranslationPropertyStats {
+  total_groups: number;
+  total_names: number;
+  groups_translated_ru: number;
+  groups_translated_ro: number;
+  names_translated_ru: number;
+  names_translated_ro: number;
+  groups_pending_ru: number;
+  groups_pending_ro: number;
+  names_pending_ru: number;
+  names_pending_ro: number;
+}
+
+// Overall translation statistics
+export interface TranslationStats {
+  products: TranslationEntityStats;
+  categories: TranslationEntityStats;
+  properties: TranslationPropertyStats;
+}
+
+// Request to start a translation job
+export interface StartTranslationRequest {
+  entity_type: TranslationEntityType;
+  target_language: TargetLanguage;
+}
+
+// Progress update from SSE
+export interface TranslationProgressUpdate {
+  job_id: string;
+  status: TranslationJobStatus;
+  total_items: number;
+  translated_items: number;
+  failed_items: number;
+  skipped_items: number;
+  current_item?: string;
+  message?: string;
+  timestamp: string;
+}
+
+// API responses
+export interface TranslationJobsResponse {
+  data: TranslationJob[];
+  meta: {
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+
+export interface TranslationLogsResponse {
+  data: TranslationLog[];
+  meta: {
+    total: number;
+    limit: number;
+    offset: number;
+  };
+}
+
+export interface TranslationStatsResponse {
+  data: TranslationStats;
 }

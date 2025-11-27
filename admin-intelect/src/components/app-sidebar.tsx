@@ -16,6 +16,9 @@ import {
   Activity,
   Sparkles,
   PlusCircle,
+  Languages,
+  ListChecks,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -159,6 +162,24 @@ const createMenuItems: NavItem[] = [
 ];
 
 /**
+ * Translation items section
+ */
+const translationMenuItems: NavItem[] = [
+  {
+    title: "Translate",
+    url: "/translate",
+    icon: Languages,
+    description: "Translate content",
+  },
+  {
+    title: "Jobs",
+    url: "/translate/jobs",
+    icon: ListChecks,
+    description: "Translation jobs",
+  },
+];
+
+/**
  * Premium sidebar component with enhanced visual design and interactions
  */
 export function AppSidebar() {
@@ -171,12 +192,13 @@ export function AppSidebar() {
     pathname === "/brands/new" ||
     pathname === "/categories/new"
   );
+  const [translateOpen, setTranslateOpen] = useState(pathname.startsWith("/translate"));
 
   const isCollapsed = state === "collapsed";
 
   /**
    * Checks if a route is currently active
-   * Special handling for sync routes: /sync overview should only be active on exact match
+   * Special handling for routes with sub-pages: exact match required for parent routes
    */
   const isActive = (url: string): boolean => {
     if (url === "/") return pathname === "/";
@@ -185,6 +207,12 @@ export function AppSidebar() {
     // This prevents Overview from being highlighted when on /sync/selective, /sync/configs, etc.
     if (url === "/sync") {
       return pathname === "/sync";
+    }
+
+    // Special case: /translate should only be active on exact match
+    // This prevents Translate from being highlighted when on /translate/jobs
+    if (url === "/translate") {
+      return pathname === "/translate";
     }
 
     // For all other routes, use standard prefix matching
@@ -259,7 +287,10 @@ export function AppSidebar() {
           <Collapsible open={syncOpen} onOpenChange={setSyncOpen}>
             <SidebarGroupLabel asChild className="px-2 mb-1">
               <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-colors group/trigger">
-                <span>Sync Operations</span>
+                <span className="flex items-center gap-2">
+                  <RefreshCw className="h-3.5 w-3.5 text-emerald-500" />
+                  Sync Operations
+                </span>
                 <ChevronRight className={cn(
                   "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200 ease-out group-hover/trigger:text-muted-foreground",
                   syncOpen && "rotate-90"
@@ -317,6 +348,53 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {createMenuItems.map((item, index) => (
+                    <SidebarMenuItem
+                      key={item.title}
+                      className="animate-in fade-in-0 slide-in-from-left-1"
+                      style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'backwards' }}
+                    >
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={isCollapsed ? item.title : undefined}
+                      >
+                        <Link href={item.url} className="group/link">
+                          <item.icon className={cn(
+                            "h-4 w-4 transition-colors duration-200",
+                            isActive(item.url) ? "text-primary" : "text-muted-foreground group-hover/link:text-foreground"
+                          )} />
+                          <span className="font-medium">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
+        <SidebarSeparator className="mx-2 bg-sidebar-border/30" />
+
+        {/* Translations Section - Collapsible */}
+        <SidebarGroup className="py-2">
+          <Collapsible open={translateOpen} onOpenChange={setTranslateOpen}>
+            <SidebarGroupLabel asChild className="px-2 mb-1">
+              <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-colors group/trigger">
+                <span className="flex items-center gap-2">
+                  <Languages className="h-3.5 w-3.5 text-blue-500" />
+                  Translations
+                </span>
+                <ChevronRight className={cn(
+                  "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200 ease-out group-hover/trigger:text-muted-foreground",
+                  translateOpen && "rotate-90"
+                )} />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 duration-200">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {translationMenuItems.map((item, index) => (
                     <SidebarMenuItem
                       key={item.title}
                       className="animate-in fade-in-0 slide-in-from-left-1"

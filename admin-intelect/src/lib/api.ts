@@ -56,6 +56,13 @@ import {
   CreateProductPayload,
   ProductSource,
   CreateSourceRequest,
+  TranslationJob,
+  TranslationLog,
+  TranslationStats,
+  TranslationJobsResponse,
+  TranslationLogsResponse,
+  TranslationEntityType,
+  TargetLanguage,
 } from "@/types";
 import {
   SelectiveSyncRequest,
@@ -222,6 +229,7 @@ class ApiClient {
       brand_id: null,
       category_id: null,
       parent_id: variant.parent_id,
+      source_id: null,
       main_image_url: variant.main_image_url || null,
       images: [],
       videos: [],
@@ -745,6 +753,50 @@ class ApiClient {
     if (filters?.format) params.append("format", filters.format);
 
     const url = `${this.baseUrl}/api/v1/export/products?${params.toString()}`;
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`);
+    }
+
+    return response.blob();
+  }
+
+  // Export brands
+  async exportBrands(filters?: BrandFilterOptions): Promise<Blob> {
+    const params = new URLSearchParams();
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.has_products) params.append("has_products", filters.has_products);
+    if (filters?.is_active) params.append("is_active", filters.is_active);
+
+    const url = `${this.baseUrl}/api/v1/export/brands?${params.toString()}`;
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`);
+    }
+
+    return response.blob();
+  }
+
+  // Export categories
+  async exportCategories(filters?: CategoryFilterOptions): Promise<Blob> {
+    const params = new URLSearchParams();
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.has_products) params.append("has_products", filters.has_products);
+    if (filters?.is_active) params.append("is_active", filters.is_active);
+
+    const url = `${this.baseUrl}/api/v1/export/categories?${params.toString()}`;
     const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
@@ -1490,6 +1542,110 @@ class ApiClient {
     await this.fetch<void>(`/api/v1/sources/${id}`, {
       method: "DELETE",
     });
+  }
+
+  // ============================================================================
+  // TRANSLATION METHODS
+  // ============================================================================
+
+  /**
+   * Start a translation job
+   */
+  async startTranslation(
+    entityType: TranslationEntityType,
+    targetLanguage: TargetLanguage
+  ): Promise<TranslationJob> {
+    const response = await this.fetch<{ data: TranslationJob }>("/api/v1/translate/start", {
+      method: "POST",
+      body: JSON.stringify({
+        entity_type: entityType,
+        target_language: targetLanguage,
+      }),
+    });
+    return response.data;
+  }
+
+  /**
+   * List translation jobs with optional filters
+   */
+  async getTranslationJobs(
+    limit = 50,
+    offset = 0,
+    filters?: {
+      entity_type?: TranslationEntityType;
+      target_language?: TargetLanguage;
+      status?: string;
+    }
+  ): Promise<{ data: TranslationJob[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    if (filters?.entity_type) params.append("entity_type", filters.entity_type);
+    if (filters?.target_language) params.append("target_language", filters.target_language);
+    if (filters?.status) params.append("status", filters.status);
+
+    const response = await this.fetch<TranslationJobsResponse>(
+      `/api/v1/translate/jobs?${params.toString()}`
+    );
+    return { data: response.data, total: response.meta.total };
+  }
+
+  /**
+   * Get a single translation job by ID
+   */
+  async getTranslationJob(id: string): Promise<TranslationJob> {
+    const response = await this.fetch<{ data: TranslationJob }>(`/api/v1/translate/jobs/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Cancel a running translation job
+   */
+  async cancelTranslationJob(id: string): Promise<void> {
+    await this.fetch<void>(`/api/v1/translate/jobs/${id}/cancel`, {
+      method: "POST",
+    });
+  }
+
+  /**
+   * Get logs for a translation job
+   */
+  async getTranslationLogs(
+    jobId: string,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: TranslationLog[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<TranslationLogsResponse>(
+      `/api/v1/translate/jobs/${jobId}/logs?${params.toString()}`
+    );
+    return { data: response.data, total: response.meta.total };
+  }
+
+  /**
+   * Get translation statistics
+   */
+  async getTranslationStats(): Promise<TranslationStats> {
+    const response = await this.fetch<{ data: TranslationStats }>("/api/v1/translate/stats");
+    return response.data;
+  }
+
+  /**
+   * Create an EventSource for real-time translation progress
+   */
+  createTranslationProgressStream(jobId: string): EventSource {
+    return new EventSource(`${this.baseUrl}/api/v1/translate/stream/${jobId}`);
+  }
+
+  /**
+   * Get the SSE URL for translation progress
+   */
+  getTranslationStreamUrl(jobId: string): string {
+    return `${this.baseUrl}/api/v1/translate/stream/${jobId}`;
   }
 }
 
