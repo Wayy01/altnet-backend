@@ -141,8 +141,20 @@ const createMenuItems: NavItem[] = [
   {
     title: "Create Product",
     url: "/products/new",
-    icon: PlusCircle,
+    icon: Package,
     description: "Add new product",
+  },
+  {
+    title: "Create Brand",
+    url: "/brands/new",
+    icon: Building2,
+    description: "Add new brand",
+  },
+  {
+    title: "Create Category",
+    url: "/categories/new",
+    icon: FolderTree,
+    description: "Add new category",
   },
 ];
 
@@ -154,14 +166,28 @@ export function AppSidebar() {
   const { currency, setCurrency } = useCurrency();
   const { state } = useSidebar();
   const [syncOpen, setSyncOpen] = useState(pathname.startsWith("/sync"));
+  const [createOpen, setCreateOpen] = useState(
+    pathname === "/products/new" ||
+    pathname === "/brands/new" ||
+    pathname === "/categories/new"
+  );
 
   const isCollapsed = state === "collapsed";
 
   /**
    * Checks if a route is currently active
+   * Special handling for sync routes: /sync overview should only be active on exact match
    */
   const isActive = (url: string): boolean => {
     if (url === "/") return pathname === "/";
+
+    // Special case: /sync (Overview) should only be active on exact match
+    // This prevents Overview from being highlighted when on /sync/selective, /sync/configs, etc.
+    if (url === "/sync") {
+      return pathname === "/sync";
+    }
+
+    // For all other routes, use standard prefix matching
     return pathname === url || pathname.startsWith(url + "/");
   };
 
@@ -272,37 +298,49 @@ export function AppSidebar() {
 
         <SidebarSeparator className="mx-2 bg-sidebar-border/30" />
 
-        {/* Create New Section */}
+        {/* Create New Section - Collapsible */}
         <SidebarGroup className="py-2">
-          <SidebarGroupLabel className="px-2 mb-1 flex items-center gap-2">
-            <PlusCircle className="h-3.5 w-3.5 text-primary" />
-            New
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {createMenuItems.map((item, index) => (
-                <SidebarMenuItem
-                  key={item.title}
-                  className="animate-in fade-in-0 slide-in-from-left-2"
-                  style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'backwards' }}
-                >
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={isCollapsed ? item.title : undefined}
-                  >
-                    <Link href={item.url} className="group/link">
-                      <item.icon className={cn(
-                        "h-4 w-4 transition-colors duration-200",
-                        isActive(item.url) ? "text-primary" : "text-muted-foreground group-hover/link:text-foreground"
-                      )} />
-                      <span className="font-medium">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <Collapsible open={createOpen} onOpenChange={setCreateOpen}>
+            <SidebarGroupLabel asChild className="px-2 mb-1">
+              <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-colors group/trigger">
+                <span className="flex items-center gap-2">
+                  <PlusCircle className="h-3.5 w-3.5 text-primary" />
+                  New
+                </span>
+                <ChevronRight className={cn(
+                  "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200 ease-out group-hover/trigger:text-muted-foreground",
+                  createOpen && "rotate-90"
+                )} />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 duration-200">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {createMenuItems.map((item, index) => (
+                    <SidebarMenuItem
+                      key={item.title}
+                      className="animate-in fade-in-0 slide-in-from-left-1"
+                      style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'backwards' }}
+                    >
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive(item.url)}
+                        tooltip={isCollapsed ? item.title : undefined}
+                      >
+                        <Link href={item.url} className="group/link">
+                          <item.icon className={cn(
+                            "h-4 w-4 transition-colors duration-200",
+                            isActive(item.url) ? "text-primary" : "text-muted-foreground group-hover/link:text-foreground"
+                          )} />
+                          <span className="font-medium">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
         </SidebarGroup>
       </SidebarContent>
 
