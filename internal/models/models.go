@@ -105,6 +105,10 @@ type Category struct {
 	IsActive      bool       `json:"is_active"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
+
+	// Translation fields
+	NameRU *string `json:"name_ru,omitempty"`
+	NameRO *string `json:"name_ro,omitempty"`
 }
 
 // ============================================================================
@@ -148,6 +152,12 @@ type Product struct {
 	VariantGroupID *uuid.UUID `json:"variant_group_id"`
 	IsGroup        bool       `json:"is_group"`
 
+	// Translation fields
+	NameRU        *string `json:"name_ru,omitempty"`
+	NameRO        *string `json:"name_ro,omitempty"`
+	DescriptionRU *string `json:"description_ru,omitempty"`
+	DescriptionRO *string `json:"description_ro,omitempty"`
+
 	// Denormalized fields for efficient listing (populated via JOIN)
 	BrandName    *string `json:"brand_name,omitempty"`
 	CategoryName *string `json:"category_name,omitempty"`
@@ -174,6 +184,12 @@ type Property struct {
 	IsModification bool       `json:"is_modification"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
+
+	// Translation fields (for group_name and property_name, NOT values)
+	PropertyNameRU *string `json:"property_name_ru,omitempty"`
+	PropertyNameRO *string `json:"property_name_ro,omitempty"`
+	GroupNameRU    *string `json:"group_name_ru,omitempty"`
+	GroupNameRO    *string `json:"group_name_ro,omitempty"`
 }
 
 // ============================================================================
@@ -412,3 +428,92 @@ type ProductSource struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+// ============================================================================
+// TRANSLATION SYSTEM
+// ============================================================================
+
+// TranslationJob represents a translation job for tracking progress
+type TranslationJob struct {
+	ID              uuid.UUID  `json:"id"`
+	EntityType      string     `json:"entity_type"`      // 'products', 'categories', 'properties'
+	TargetLanguage  string     `json:"target_language"`  // 'ru', 'ro'
+	Status          string     `json:"status"`           // 'pending', 'running', 'completed', 'failed', 'cancelled'
+	TotalItems      int        `json:"total_items"`
+	TranslatedItems int        `json:"translated_items"`
+	FailedItems     int        `json:"failed_items"`
+	SkippedItems    int        `json:"skipped_items"`
+	ErrorMessage    *string    `json:"error_message,omitempty"`
+	StartedAt       *time.Time `json:"started_at,omitempty"`
+	CompletedAt     *time.Time `json:"completed_at,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
+// TranslationLog represents a detailed log entry for a translation operation
+type TranslationLog struct {
+	ID             uuid.UUID  `json:"id"`
+	JobID          uuid.UUID  `json:"job_id"`
+	EntityType     string     `json:"entity_type"`
+	EntityID       *uuid.UUID `json:"entity_id,omitempty"` // Can be NULL for property group/name translations
+	FieldName      string     `json:"field_name"`
+	OriginalValue  string     `json:"original_value"`
+	SourceText     string     `json:"source_text"`
+	TranslatedText *string    `json:"translated_text,omitempty"`
+	TargetLanguage string     `json:"target_language"`
+	Status         string     `json:"status"` // 'success', 'failed', 'skipped'
+	ErrorMessage   *string    `json:"error_message,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+// TranslationStats represents translation statistics for the dashboard
+type TranslationStats struct {
+	Products   TranslationEntityStats `json:"products"`
+	Categories TranslationEntityStats `json:"categories"`
+	Properties TranslationPropertyStats `json:"properties"`
+}
+
+// TranslationEntityStats represents translation stats for a single entity type
+type TranslationEntityStats struct {
+	Total        int `json:"total"`
+	TranslatedRU int `json:"translated_ru"`
+	TranslatedRO int `json:"translated_ro"`
+	PendingRU    int `json:"pending_ru"`
+	PendingRO    int `json:"pending_ro"`
+}
+
+// TranslationPropertyStats represents translation stats for properties
+type TranslationPropertyStats struct {
+	TotalGroups         int `json:"total_groups"`
+	TotalNames          int `json:"total_names"`
+	GroupsTranslatedRU  int `json:"groups_translated_ru"`
+	GroupsTranslatedRO  int `json:"groups_translated_ro"`
+	NamesTranslatedRU   int `json:"names_translated_ru"`
+	NamesTranslatedRO   int `json:"names_translated_ro"`
+	GroupsPendingRU     int `json:"groups_pending_ru"`
+	GroupsPendingRO     int `json:"groups_pending_ro"`
+	NamesPendingRU      int `json:"names_pending_ru"`
+	NamesPendingRO      int `json:"names_pending_ro"`
+}
+
+// TranslationJobStatus constants
+const (
+	TranslationStatusPending   = "pending"
+	TranslationStatusRunning   = "running"
+	TranslationStatusCompleted = "completed"
+	TranslationStatusFailed    = "failed"
+	TranslationStatusCancelled = "cancelled"
+)
+
+// TranslationLogStatus constants
+const (
+	TranslationLogSuccess = "success"
+	TranslationLogFailed  = "failed"
+	TranslationLogSkipped = "skipped"
+)
+
+// Target language constants
+const (
+	LangRussian  = "ru"
+	LangRomanian = "ro"
+)

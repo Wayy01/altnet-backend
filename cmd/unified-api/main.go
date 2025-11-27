@@ -58,13 +58,15 @@ func main() {
 	syncConfigRepo := repository.NewSyncConfigRepository(db.Pool)
 	realtimeSyncRepo := repository.NewRealtimeSyncRepository(db.Pool)
 	sourceRepo := repository.NewSourceRepository(db.Pool)
+	translationRepo := repository.NewTranslationRepository(db.Pool)
 	handler := handlers.New(repo, syncConfigRepo, fetcher, syncManager)
 	realtimeSyncHandler := handlers.NewRealtimeSyncHandlers(realtimeSyncRepo, repo)
 	syncControlHandler := handlers.NewSyncControlHandlers(repo, realtimeSyncRepo, syncManager)
 	sourceHandler := handlers.NewSourceHandler(sourceRepo)
+	translationHandler := handlers.NewTranslationHandler(translationRepo)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -125,7 +127,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -301,6 +303,15 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 
 	// Config endpoint
 	api.HandleFunc("/config", handler.GetConfig).Methods("GET", "OPTIONS")
+
+	// Translation endpoints
+	api.HandleFunc("/translate/start", translationHandler.StartTranslation).Methods("POST", "OPTIONS")
+	api.HandleFunc("/translate/jobs", translationHandler.ListTranslationJobs).Methods("GET", "OPTIONS")
+	api.HandleFunc("/translate/jobs/{id}", translationHandler.GetTranslationJob).Methods("GET", "OPTIONS")
+	api.HandleFunc("/translate/jobs/{id}/cancel", translationHandler.CancelTranslationJob).Methods("POST", "OPTIONS")
+	api.HandleFunc("/translate/jobs/{id}/logs", translationHandler.GetTranslationLogs).Methods("GET", "OPTIONS")
+	api.HandleFunc("/translate/stats", translationHandler.GetTranslationStats).Methods("GET", "OPTIONS")
+	api.HandleFunc("/translate/stream/{id}", translationHandler.StreamTranslationProgress).Methods("GET", "OPTIONS")
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
