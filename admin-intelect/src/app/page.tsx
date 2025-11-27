@@ -436,25 +436,20 @@ export default function DashboardPage() {
       {/* Stat Cards - Enhanced with premium styling */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {statCards.map((stat, index) => {
-          const CardWrapper = stat.link ? Link : "div";
-          const cardProps = stat.link ? { href: stat.link } : {};
+          const cardClassName = `
+            block rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-200 ease-out
+            ${stat.link ? "cursor-pointer hover:shadow-md hover:-translate-y-1" : ""}
+            ${stat.variant === "success" ? "border-primary/20 hover:border-primary/40" : ""}
+            ${stat.variant === "warning" ? "border-destructive/20 hover:border-destructive/40" : ""}
+            ${cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+          `;
+          const cardStyle = {
+            transitionDelay: cardsVisible ? `${Math.min(index * 30, 300)}ms` : "0ms",
+          };
 
-          return (
-            <CardWrapper
-              key={stat.title}
-              {...cardProps}
-              className={`
-                block rounded-xl border bg-card shadow-sm overflow-hidden
-                transition-all duration-200 ease-out
-                ${stat.link ? "cursor-pointer hover:shadow-md hover:-translate-y-1" : ""}
-                ${stat.variant === "success" ? "border-primary/20 hover:border-primary/40" : ""}
-                ${stat.variant === "warning" ? "border-destructive/20 hover:border-destructive/40" : ""}
-                ${cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
-              `}
-              style={{
-                transitionDelay: cardsVisible ? `${Math.min(index * 30, 300)}ms` : "0ms",
-              }}
-            >
+          const cardContent = (
+            <>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-muted-foreground">
@@ -482,7 +477,26 @@ export default function DashboardPage() {
                   </span>
                 </div>
               )}
-            </CardWrapper>
+            </>
+          );
+
+          return stat.link ? (
+            <Link
+              key={stat.title}
+              href={stat.link}
+              className={cardClassName}
+              style={cardStyle}
+            >
+              {cardContent}
+            </Link>
+          ) : (
+            <div
+              key={stat.title}
+              className={cardClassName}
+              style={cardStyle}
+            >
+              {cardContent}
+            </div>
           );
         })}
       </div>

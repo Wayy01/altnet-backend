@@ -432,7 +432,7 @@ export default function CharacteristicValuesPage() {
 
   // Check selection states
   const isSomeSelected = selectedIds.size > 0;
-  const isAllOnPageSelected = values && values.length > 0 && selectedIds.size === values.length;
+  const isAllOnPageSelected = values && values.length > 0 && selectedIds.size === values.length ? true : false;
 
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [

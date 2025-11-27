@@ -368,7 +368,7 @@ export default function PropertyValuesPage() {
   // Edit handlers
   const handleEditClick = (value: PropertyValue) => {
     setEditForm({
-      value: value.value,
+      value: value.value || "",
       value_type: value.value_type || "",
       sort_order: value.sort_order,
       is_filter: value.is_filter,
@@ -413,13 +413,13 @@ export default function PropertyValuesPage() {
     if (selectedIds.size === 0) return;
 
     try {
-      const result = await api.bulkUpdatePropertyValues(
+      await api.bulkUpdatePropertyValues(
         groupName,
         propertyName,
         Array.from(selectedIds),
         updates
       );
-      toast.success(`Updated ${result.updated} property values`);
+      toast.success(`Updated ${selectedIds.size} property values`);
       setSelectedIds(new Set());
       fetchValues();
     } catch (error: any) {
@@ -432,12 +432,12 @@ export default function PropertyValuesPage() {
     if (!confirm(`Delete ${selectedIds.size} property values?`)) return;
 
     try {
-      const result = await api.bulkDeletePropertyValues(
+      await api.bulkDeletePropertyValues(
         groupName,
         propertyName,
         Array.from(selectedIds)
       );
-      toast.success(`Deleted ${result.deleted} property values`);
+      toast.success(`Deleted ${selectedIds.size} property values`);
       setSelectedIds(new Set());
       fetchValues();
     } catch (error: any) {
@@ -450,7 +450,7 @@ export default function PropertyValuesPage() {
 
   // Check selection states
   const isSomeSelected = selectedIds.size > 0;
-  const isAllOnPageSelected = values && values.length > 0 && selectedIds.size === values.length;
+  const isAllOnPageSelected = values && values.length > 0 && selectedIds.size === values.length ? true : false;
 
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [

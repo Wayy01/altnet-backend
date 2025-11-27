@@ -170,7 +170,7 @@ export default function CreateProductPage() {
       try {
         // Fetch source product and generate unique code in parallel
         const [product, uniqueCode] = await Promise.all([
-          api.getProduct(duplicateId),
+          api.getProduct(duplicateId as string),
           generateUniqueCode(),
         ]);
 
@@ -211,7 +211,7 @@ export default function CreateProductPage() {
           properties: (product.properties || []).map((prop) => ({
             group_name: prop.group_name || "",
             property_name: prop.property_name || "",
-            property_value: prop.property_value || "",
+            value: prop.value || "",
           })),
           variants: {
             // Auto-link to parent: use source's group if it's already a variant, otherwise use source as parent
