@@ -23,7 +23,9 @@ import {
   SyncLog,
   SyncProgress,
   UpdateProductPayload,
+  CreateBrandPayload,
   UpdateBrandPayload,
+  CreateCategoryPayload,
   UpdateCategoryPayload,
   BulkUpdatePayload,
   BulkDeletePayload,
@@ -757,6 +759,14 @@ class ApiClient {
   }
 
   // Brand mutations
+  async createBrand(payload: CreateBrandPayload): Promise<Brand> {
+    const response = await this.fetch<{ data: Brand }>(`/api/v1/brands`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  }
+
   async updateBrand(
     id: string,
     payload: UpdateBrandPayload
@@ -791,6 +801,14 @@ class ApiClient {
   }
 
   // Category mutations
+  async createCategory(payload: CreateCategoryPayload): Promise<Category> {
+    const response = await this.fetch<{ data: Category }>(`/api/v1/categories`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  }
+
   async updateCategory(
     id: string,
     payload: UpdateCategoryPayload

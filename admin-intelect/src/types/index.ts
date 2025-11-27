@@ -397,14 +397,38 @@ export interface UpdateProductPayload {
   description?: string;
 }
 
+// Create brand request
+export interface CreateBrandPayload {
+  name: string;
+  code?: string | null;
+  logo_url?: string | null;
+  is_active?: boolean;
+}
+
 export interface UpdateBrandPayload {
   is_active?: boolean;
   name?: string;
+  code?: string | null;
+  logo_url?: string | null;
+}
+
+// Create category request
+export interface CreateCategoryPayload {
+  name: string;
+  code?: string | null;
+  parent_id?: string | null;
+  sort_order?: number;
+  image_url?: string | null;
+  is_active?: boolean;
 }
 
 export interface UpdateCategoryPayload {
   is_active?: boolean;
   name?: string;
+  code?: string | null;
+  parent_id?: string | null;
+  sort_order?: number;
+  image_url?: string | null;
 }
 
 export interface BulkUpdatePayload {
