@@ -636,7 +636,7 @@ func (r *Repository) ResolveCategoryParents(ctx context.Context) error {
 func (r *Repository) GetCategory(ctx context.Context, id uuid.UUID) (*models.Category, error) {
 	query := `
 		SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
-		       image_url, product_count, is_active, created_at, updated_at
+		       image_url, product_count, is_active, created_at, updated_at, name_ru, name_ro
 		FROM categories
 		WHERE id = $1
 	`
@@ -646,7 +646,7 @@ func (r *Repository) GetCategory(ctx context.Context, id uuid.UUID) (*models.Cat
 		&category.ID, &category.UltraID, &category.Code, &category.ParentID,
 		&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
 		&category.ImageURL, &category.ProductCount, &category.IsActive,
-		&category.CreatedAt, &category.UpdatedAt,
+		&category.CreatedAt, &category.UpdatedAt, &category.NameRU, &category.NameRO,
 	)
 	if err != nil {
 		return nil, err
@@ -658,7 +658,7 @@ func (r *Repository) GetCategory(ctx context.Context, id uuid.UUID) (*models.Cat
 func (r *Repository) GetCategoryByUltraID(ctx context.Context, ultraID string) (*models.Category, error) {
 	query := `
 		SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
-		       image_url, product_count, is_active, created_at, updated_at
+		       image_url, product_count, is_active, created_at, updated_at, name_ru, name_ro
 		FROM categories
 		WHERE ultra_id = $1
 	`
@@ -668,7 +668,7 @@ func (r *Repository) GetCategoryByUltraID(ctx context.Context, ultraID string) (
 		&category.ID, &category.UltraID, &category.Code, &category.ParentID,
 		&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
 		&category.ImageURL, &category.ProductCount, &category.IsActive,
-		&category.CreatedAt, &category.UpdatedAt,
+		&category.CreatedAt, &category.UpdatedAt, &category.NameRU, &category.NameRO,
 	)
 	if err != nil {
 		return nil, err
@@ -684,12 +684,13 @@ func (r *Repository) ListCategories(ctx context.Context, parentID *uuid.UUID, li
 	if parentID == nil {
 		query = `
 			SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-			       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
+			       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at,
+			       c.name_ru, c.name_ro
 			FROM categories c
 			LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 			WHERE c.parent_id IS NULL AND c.is_active = true
 			GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-			         c.image_url, c.is_active, c.created_at, c.updated_at
+			         c.image_url, c.is_active, c.created_at, c.updated_at, c.name_ru, c.name_ro
 			ORDER BY c.sort_order ASC, c.name ASC
 			LIMIT $1 OFFSET $2
 		`
@@ -697,12 +698,13 @@ func (r *Repository) ListCategories(ctx context.Context, parentID *uuid.UUID, li
 	} else {
 		query = `
 			SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-			       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
+			       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at,
+			       c.name_ru, c.name_ro
 			FROM categories c
 			LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 			WHERE c.parent_id = $1 AND c.is_active = true
 			GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-			         c.image_url, c.is_active, c.created_at, c.updated_at
+			         c.image_url, c.is_active, c.created_at, c.updated_at, c.name_ru, c.name_ro
 			ORDER BY c.sort_order ASC, c.name ASC
 			LIMIT $2 OFFSET $3
 		`
@@ -722,7 +724,7 @@ func (r *Repository) ListCategories(ctx context.Context, parentID *uuid.UUID, li
 			&category.ID, &category.UltraID, &category.Code, &category.ParentID,
 			&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
 			&category.ImageURL, &category.ProductCount, &category.IsActive,
-			&category.CreatedAt, &category.UpdatedAt,
+			&category.CreatedAt, &category.UpdatedAt, &category.NameRU, &category.NameRO,
 		)
 		if err != nil {
 			return nil, err
@@ -818,13 +820,13 @@ func (r *Repository) ListCategoriesWithSearch(ctx context.Context, search string
 	query := fmt.Sprintf(`
 		SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
 		       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at,
-		       COALESCE(p.name, '') as parent_name
+		       COALESCE(p.name, '') as parent_name, c.name_ru, c.name_ro
 		FROM categories c
 		LEFT JOIN categories p ON p.id = c.parent_id
 		LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 		WHERE %s
 		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-		         c.image_url, c.is_active, c.created_at, c.updated_at, p.name
+		         c.image_url, c.is_active, c.created_at, c.updated_at, p.name, c.name_ru, c.name_ro
 		%s
 		ORDER BY %s
 		LIMIT $%d OFFSET $%d
@@ -844,7 +846,7 @@ func (r *Repository) ListCategoriesWithSearch(ctx context.Context, search string
 			&category.ID, &category.UltraID, &category.Code, &category.ParentID,
 			&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
 			&category.ImageURL, &category.ProductCount, &category.IsActive,
-			&category.CreatedAt, &category.UpdatedAt, &parentName,
+			&category.CreatedAt, &category.UpdatedAt, &parentName, &category.NameRU, &category.NameRO,
 		)
 		if err != nil {
 			return nil, err
@@ -1023,13 +1025,14 @@ func (r *Repository) GetCategoryWithStats(ctx context.Context, id uuid.UUID) (*C
 			COUNT(CASE WHEN pr.is_active = true THEN 1 END) as active_products,
 			COUNT(CASE WHEN pr.is_active = true AND pr.total_stock > 0 THEN 1 END) as in_stock_products,
 			COUNT(CASE WHEN pr.is_active = true AND jsonb_array_length(pr.prices) > 0 THEN 1 END) as with_prices_products,
-			(SELECT COUNT(*) FROM categories WHERE parent_id = c.id) as child_count
+			(SELECT COUNT(*) FROM categories WHERE parent_id = c.id) as child_count,
+			c.name_ru, c.name_ro
 		FROM categories c
 		LEFT JOIN categories p ON p.id = c.parent_id
 		LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 		WHERE c.id = $1
 		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-		         c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at, p.name
+		         c.image_url, c.product_count, c.is_active, c.created_at, c.updated_at, p.name, c.name_ru, c.name_ro
 	`
 
 	var category CategoryWithStats
@@ -1039,7 +1042,7 @@ func (r *Repository) GetCategoryWithStats(ctx context.Context, id uuid.UUID) (*C
 		&category.ImageURL, &category.ProductCount, &category.IsActive,
 		&category.CreatedAt, &category.UpdatedAt, &category.ParentName,
 		&category.TotalProducts, &category.ActiveProducts, &category.InStockProducts,
-		&category.WithPricesProducts, &category.ChildCount,
+		&category.WithPricesProducts, &category.ChildCount, &category.NameRU, &category.NameRO,
 	)
 	if err != nil {
 		return nil, err
@@ -1470,6 +1473,7 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
 		       p.is_active, p.is_service, p.created_at, p.updated_at,
 		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
+		       p.name_ru, p.name_ro,
 		       b.name AS brand_name, c.name AS category_name, s.name AS source_name
 		FROM products p
 		LEFT JOIN brands b ON p.brand_id = b.id
@@ -1487,6 +1491,7 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
 		&product.VariantGroupID, &product.IsGroup,
+		&product.NameRU, &product.NameRO,
 		&product.BrandName, &product.CategoryName, &product.SourceName,
 	)
 	if err != nil {
@@ -1502,7 +1507,8 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 		       parent_id, source_id, main_image_url, images, videos, warranty, barcodes,
 		       price_min, price_max, total_stock, is_in_stock,
 		       is_active, is_service, created_at, updated_at,
-		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group,
+		       name_ru, name_ro
 		FROM products
 		WHERE ultra_id = $1
 	`
@@ -1516,6 +1522,7 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
 		&product.VariantGroupID, &product.IsGroup,
+		&product.NameRU, &product.NameRO,
 	)
 	if err != nil {
 		return nil, err
@@ -1595,6 +1602,7 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
 		       p.is_active, p.is_service, p.created_at, p.updated_at,
 		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
+		       p.name_ru, p.name_ro,
 		       b.name as brand_name, c.name as category_name, s.name as source_name
 		FROM products p
 		LEFT JOIN brands b ON p.brand_id = b.id
@@ -1716,6 +1724,7 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
 			&product.VariantGroupID, &product.IsGroup,
+			&product.NameRU, &product.NameRO,
 			&product.BrandName, &product.CategoryName, &product.SourceName,
 		)
 		if err != nil {
@@ -2227,7 +2236,7 @@ func (r *Repository) GetCategoriesByIDs(ctx context.Context, ids []uuid.UUID) ([
 
 	query := fmt.Sprintf(`
 		SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
-		       image_url, product_count, is_active, created_at, updated_at
+		       image_url, product_count, is_active, created_at, updated_at, name_ru, name_ro
 		FROM categories
 		WHERE id IN (%s)
 	`, strings.Join(placeholders, ", "))
@@ -2245,7 +2254,7 @@ func (r *Repository) GetCategoriesByIDs(ctx context.Context, ids []uuid.UUID) ([
 			&category.ID, &category.UltraID, &category.Code, &category.ParentID,
 			&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
 			&category.ImageURL, &category.ProductCount, &category.IsActive,
-			&category.CreatedAt, &category.UpdatedAt,
+			&category.CreatedAt, &category.UpdatedAt, &category.NameRU, &category.NameRO,
 		)
 		if err != nil {
 			return nil, err
@@ -2343,7 +2352,8 @@ func (r *Repository) UpsertProperties(ctx context.Context, productUltraID string
 func (r *Repository) GetProductProperties(ctx context.Context, productID uuid.UUID) ([]*models.Property, error) {
 	query := `
 		SELECT id, product_id, property_uuid, property_name, property_code, value, value_type,
-		       group_uuid, group_name, sort_order, is_filter, is_modification, created_at, updated_at
+		       group_uuid, group_name, sort_order, is_filter, is_modification, created_at, updated_at,
+		       property_name_ru, property_name_ro, group_name_ru, group_name_ro
 		FROM properties
 		WHERE product_id = $1
 		ORDER BY group_name, sort_order, property_name
@@ -2362,6 +2372,7 @@ func (r *Repository) GetProductProperties(ctx context.Context, productID uuid.UU
 			&prop.ID, &prop.ProductID, &prop.PropertyUUID, &prop.PropertyName, &prop.PropertyCode,
 			&prop.Value, &prop.ValueType, &prop.GroupUUID, &prop.GroupName, &prop.SortOrder,
 			&prop.IsFilter, &prop.IsModification, &prop.CreatedAt, &prop.UpdatedAt,
+			&prop.PropertyNameRU, &prop.PropertyNameRO, &prop.GroupNameRU, &prop.GroupNameRO,
 		)
 		if err != nil {
 			return nil, err
@@ -2391,6 +2402,7 @@ func (r *Repository) ListProperties(ctx context.Context, filter *PropertyFilter,
 	query := `
 		SELECT p.id, p.product_id, p.property_uuid, p.property_name, p.property_code, p.value, p.value_type,
 		       p.group_uuid, p.group_name, p.sort_order, p.is_filter, p.is_modification, p.created_at, p.updated_at,
+		       p.property_name_ru, p.property_name_ro, p.group_name_ru, p.group_name_ro,
 		       prod.name as product_name, prod.code as product_code
 		FROM properties p
 		LEFT JOIN products prod ON p.product_id = prod.id
@@ -2502,6 +2514,7 @@ func (r *Repository) ListProperties(ctx context.Context, filter *PropertyFilter,
 			&prop.ID, &prop.ProductID, &prop.PropertyUUID, &prop.PropertyName, &prop.PropertyCode,
 			&prop.Value, &prop.ValueType, &prop.GroupUUID, &prop.GroupName, &prop.SortOrder,
 			&prop.IsFilter, &prop.IsModification, &prop.CreatedAt, &prop.UpdatedAt,
+			&prop.PropertyNameRU, &prop.PropertyNameRO, &prop.GroupNameRU, &prop.GroupNameRO,
 			&productName, &productCode,
 		)
 		if err != nil {
@@ -2597,7 +2610,8 @@ func (r *Repository) CountPropertiesFiltered(ctx context.Context, filter *Proper
 func (r *Repository) GetProperty(ctx context.Context, id uuid.UUID) (*models.Property, error) {
 	query := `
 		SELECT p.id, p.product_id, p.property_uuid, p.property_name, p.property_code, p.value, p.value_type,
-		       p.group_uuid, p.group_name, p.sort_order, p.is_filter, p.is_modification, p.created_at, p.updated_at
+		       p.group_uuid, p.group_name, p.sort_order, p.is_filter, p.is_modification, p.created_at, p.updated_at,
+		       p.property_name_ru, p.property_name_ro, p.group_name_ru, p.group_name_ro
 		FROM properties p
 		WHERE p.id = $1
 	`
@@ -2607,6 +2621,7 @@ func (r *Repository) GetProperty(ctx context.Context, id uuid.UUID) (*models.Pro
 		&prop.ID, &prop.ProductID, &prop.PropertyUUID, &prop.PropertyName, &prop.PropertyCode,
 		&prop.Value, &prop.ValueType, &prop.GroupUUID, &prop.GroupName, &prop.SortOrder,
 		&prop.IsFilter, &prop.IsModification, &prop.CreatedAt, &prop.UpdatedAt,
+		&prop.PropertyNameRU, &prop.PropertyNameRO, &prop.GroupNameRU, &prop.GroupNameRO,
 	)
 
 	if err != nil {
@@ -3093,7 +3108,8 @@ func (r *Repository) GetProductVariants(ctx context.Context, productID uuid.UUID
 		       parent_id, main_image_url, images, videos, warranty, barcodes,
 		       price_min, price_max, total_stock, is_in_stock,
 		       is_active, is_service, created_at, updated_at,
-		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group,
+		       name_ru, name_ro
 		FROM products
 		WHERE variant_group_id = $1
 		ORDER BY name ASC
@@ -3116,6 +3132,7 @@ func (r *Repository) GetProductVariants(ctx context.Context, productID uuid.UUID
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
 			&product.VariantGroupID, &product.IsGroup,
+			&product.NameRU, &product.NameRO,
 		)
 		if err != nil {
 			return nil, err
@@ -4738,12 +4755,13 @@ func (r *Repository) BulkUpdateCategories(ctx context.Context, ids []uuid.UUID, 
 func (r *Repository) ListAllCategories(ctx context.Context) ([]*models.Category, error) {
 	query := `
 		SELECT c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-		       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at
+		       c.image_url, COUNT(pr.id) as actual_product_count, c.is_active, c.created_at, c.updated_at,
+		       c.name_ru, c.name_ro
 		FROM categories c
 		LEFT JOIN products pr ON pr.category_ultra_id = c.ultra_id
 		WHERE c.is_active = true
 		GROUP BY c.id, c.ultra_id, c.code, c.parent_id, c.parent_ultra_id, c.name, c.slug, c.sort_order,
-		         c.image_url, c.is_active, c.created_at, c.updated_at
+		         c.image_url, c.is_active, c.created_at, c.updated_at, c.name_ru, c.name_ro
 		ORDER BY c.sort_order ASC, c.name ASC
 	`
 
@@ -4760,7 +4778,7 @@ func (r *Repository) ListAllCategories(ctx context.Context) ([]*models.Category,
 			&category.ID, &category.UltraID, &category.Code, &category.ParentID,
 			&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
 			&category.ImageURL, &category.ProductCount, &category.IsActive,
-			&category.CreatedAt, &category.UpdatedAt,
+			&category.CreatedAt, &category.UpdatedAt, &category.NameRU, &category.NameRO,
 		)
 		if err != nil {
 			return nil, err

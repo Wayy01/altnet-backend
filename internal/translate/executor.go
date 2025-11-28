@@ -36,6 +36,9 @@ type TranslationRepository interface {
 	GetUntranslatedPropertyNames(ctx context.Context, targetLang string, limit int) ([]string, error)
 	UpdatePropertyGroupTranslation(ctx context.Context, groupName string, translated *string, targetLang string) error
 	UpdatePropertyNameTranslation(ctx context.Context, propertyName string, translated *string, targetLang string) error
+
+	// Property translation propagation (from lookup tables to main properties table)
+	PropagatePropertyTranslations(ctx context.Context, targetLang string) (int64, int64, error)
 }
 
 // Executor handles the execution of translation jobs
@@ -501,6 +504,27 @@ func (e *Executor) executePropertyTranslation(ctx context.Context, job *models.T
 		"property_name",
 	); err != nil {
 		return err
+	}
+
+	// Phase 3: Propagate translations from lookup tables to main properties table
+	log.Printf("Propagating translations to main properties table...")
+	e.broadcastProgress(ProgressUpdate{
+		JobID:           job.ID,
+		Status:          job.Status,
+		TotalItems:      job.TotalItems,
+		TranslatedItems: int(translated),
+		FailedItems:     int(failed),
+		SkippedItems:    int(skipped),
+		Message:         "Propagating translations to properties table...",
+		Timestamp:       time.Now(),
+	})
+
+	namesUpdated, groupsUpdated, err := e.repo.PropagatePropertyTranslations(ctx, job.TargetLanguage)
+	if err != nil {
+		log.Printf("Warning: Failed to propagate property translations: %v", err)
+		// Don't fail the job, just log the warning
+	} else {
+		log.Printf("Propagated translations: %d property names, %d group names", namesUpdated, groupsUpdated)
 	}
 
 	return nil

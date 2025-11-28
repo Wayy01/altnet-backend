@@ -15,18 +15,24 @@ import (
 
 // PropertyGroup represents a group in the property hierarchy
 type PropertyGroup struct {
-	GroupName          string `json:"group_name"`
-	PropertyCount      int    `json:"property_count"`       // Number of unique property names
-	ValueCount         int    `json:"value_count"`          // Total property records
-	ProductsUsing      int    `json:"products_using"`       // Number of products using this group
-	CommonIsFilter     bool   `json:"common_is_filter"`     // Most common is_filter value
-	CommonIsModification bool `json:"common_is_modification"` // Most common is_modification value
+	GroupName            string  `json:"group_name"`
+	GroupNameRU          *string `json:"group_name_ru"`
+	GroupNameRO          *string `json:"group_name_ro"`
+	PropertyCount        int     `json:"property_count"`        // Number of unique property names
+	ValueCount           int     `json:"value_count"`           // Total property records
+	ProductsUsing        int     `json:"products_using"`        // Number of products using this group
+	CommonIsFilter       bool    `json:"common_is_filter"`      // Most common is_filter value
+	CommonIsModification bool    `json:"common_is_modification"` // Most common is_modification value
 }
 
 // PropertyName represents a property name within a group
 type PropertyName struct {
 	GroupName            string  `json:"group_name"`
+	GroupNameRU          *string `json:"group_name_ru"`
+	GroupNameRO          *string `json:"group_name_ro"`
 	PropertyName         string  `json:"property_name"`
+	PropertyNameRU       *string `json:"property_name_ru"`
+	PropertyNameRO       *string `json:"property_name_ro"`
 	PropertyCode         *string `json:"property_code"`
 	ValueCount           int     `json:"value_count"`            // Total property records
 	UniqueValueCount     int     `json:"unique_value_count"`     // Number of unique values
@@ -94,6 +100,8 @@ func (r *Repository) ListPropertyGroups(ctx context.Context, limit, offset int, 
 	query := fmt.Sprintf(`
 		SELECT
 			group_name,
+			MODE() WITHIN GROUP (ORDER BY group_name_ru) as group_name_ru,
+			MODE() WITHIN GROUP (ORDER BY group_name_ro) as group_name_ro,
 			COUNT(DISTINCT property_name) as property_count,
 			COUNT(*) as value_count,
 			COUNT(DISTINCT product_id) as products_using,
@@ -117,6 +125,8 @@ func (r *Repository) ListPropertyGroups(ctx context.Context, limit, offset int, 
 		var group PropertyGroup
 		err := rows.Scan(
 			&group.GroupName,
+			&group.GroupNameRU,
+			&group.GroupNameRO,
 			&group.PropertyCount,
 			&group.ValueCount,
 			&group.ProductsUsing,
@@ -143,6 +153,8 @@ func (r *Repository) GetPropertyGroupByName(ctx context.Context, groupName strin
 	query := `
 		SELECT
 			group_name,
+			MODE() WITHIN GROUP (ORDER BY group_name_ru) as group_name_ru,
+			MODE() WITHIN GROUP (ORDER BY group_name_ro) as group_name_ro,
 			COUNT(DISTINCT property_name) as property_count,
 			COUNT(*) as value_count,
 			COUNT(DISTINCT product_id) as products_using,
@@ -156,6 +168,8 @@ func (r *Repository) GetPropertyGroupByName(ctx context.Context, groupName strin
 	var group PropertyGroup
 	err = r.pool.QueryRow(ctx, query, decodedName).Scan(
 		&group.GroupName,
+		&group.GroupNameRU,
+		&group.GroupNameRO,
 		&group.PropertyCount,
 		&group.ValueCount,
 		&group.ProductsUsing,
@@ -253,7 +267,11 @@ func (r *Repository) ListPropertyNames(ctx context.Context, groupName string, li
 	query := fmt.Sprintf(`
 		SELECT
 			group_name,
+			MODE() WITHIN GROUP (ORDER BY group_name_ru) as group_name_ru,
+			MODE() WITHIN GROUP (ORDER BY group_name_ro) as group_name_ro,
 			property_name,
+			MODE() WITHIN GROUP (ORDER BY property_name_ru) as property_name_ru,
+			MODE() WITHIN GROUP (ORDER BY property_name_ro) as property_name_ro,
 			MODE() WITHIN GROUP (ORDER BY property_code) as property_code,
 			COUNT(*) as value_count,
 			COUNT(DISTINCT value) as unique_value_count,
@@ -279,7 +297,11 @@ func (r *Repository) ListPropertyNames(ctx context.Context, groupName string, li
 		var name PropertyName
 		err := rows.Scan(
 			&name.GroupName,
+			&name.GroupNameRU,
+			&name.GroupNameRO,
 			&name.PropertyName,
+			&name.PropertyNameRU,
+			&name.PropertyNameRO,
 			&name.PropertyCode,
 			&name.ValueCount,
 			&name.UniqueValueCount,
@@ -312,7 +334,11 @@ func (r *Repository) GetPropertyNameByName(ctx context.Context, groupName, prope
 	query := `
 		SELECT
 			group_name,
+			MODE() WITHIN GROUP (ORDER BY group_name_ru) as group_name_ru,
+			MODE() WITHIN GROUP (ORDER BY group_name_ro) as group_name_ro,
 			property_name,
+			MODE() WITHIN GROUP (ORDER BY property_name_ru) as property_name_ru,
+			MODE() WITHIN GROUP (ORDER BY property_name_ro) as property_name_ro,
 			MODE() WITHIN GROUP (ORDER BY property_code) as property_code,
 			COUNT(*) as value_count,
 			COUNT(DISTINCT value) as unique_value_count,
@@ -328,7 +354,11 @@ func (r *Repository) GetPropertyNameByName(ctx context.Context, groupName, prope
 	var name PropertyName
 	err = r.pool.QueryRow(ctx, query, decodedGroupName, decodedPropertyName).Scan(
 		&name.GroupName,
+		&name.GroupNameRU,
+		&name.GroupNameRO,
 		&name.PropertyName,
+		&name.PropertyNameRU,
+		&name.PropertyNameRO,
 		&name.PropertyCode,
 		&name.ValueCount,
 		&name.UniqueValueCount,

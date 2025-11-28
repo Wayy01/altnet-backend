@@ -626,3 +626,65 @@ func (r *TranslationRepository) GetUntranslatedPropertyCount(ctx context.Context
 	err := r.pool.QueryRow(ctx, query).Scan(&count)
 	return count, err
 }
+
+// ============================================================================
+// PROPERTY TRANSLATION PROPAGATION
+// ============================================================================
+
+// PropagatePropertyTranslations copies translations from lookup tables to main properties table
+// This should be called after a property translation job completes
+func (r *TranslationRepository) PropagatePropertyTranslations(ctx context.Context, targetLang string) (int64, int64, error) {
+	var nameQuery, groupQuery string
+
+	if targetLang == "ru" {
+		nameQuery = `
+			UPDATE properties p
+			SET property_name_ru = pnt.name_ru
+			FROM property_name_translations pnt
+			WHERE p.property_name = pnt.property_name
+			  AND pnt.name_ru IS NOT NULL
+			  AND (p.property_name_ru IS NULL OR p.property_name_ru != pnt.name_ru)
+		`
+		groupQuery = `
+			UPDATE properties p
+			SET group_name_ru = pgt.name_ru
+			FROM property_group_translations pgt
+			WHERE p.group_name = pgt.group_name
+			  AND pgt.name_ru IS NOT NULL
+			  AND (p.group_name_ru IS NULL OR p.group_name_ru != pgt.name_ru)
+		`
+	} else {
+		nameQuery = `
+			UPDATE properties p
+			SET property_name_ro = pnt.name_ro
+			FROM property_name_translations pnt
+			WHERE p.property_name = pnt.property_name
+			  AND pnt.name_ro IS NOT NULL
+			  AND (p.property_name_ro IS NULL OR p.property_name_ro != pnt.name_ro)
+		`
+		groupQuery = `
+			UPDATE properties p
+			SET group_name_ro = pgt.name_ro
+			FROM property_group_translations pgt
+			WHERE p.group_name = pgt.group_name
+			  AND pgt.name_ro IS NOT NULL
+			  AND (p.group_name_ro IS NULL OR p.group_name_ro != pgt.name_ro)
+		`
+	}
+
+	// Propagate property names
+	nameResult, err := r.pool.Exec(ctx, nameQuery)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to propagate property names: %w", err)
+	}
+	namesUpdated := nameResult.RowsAffected()
+
+	// Propagate group names
+	groupResult, err := r.pool.Exec(ctx, groupQuery)
+	if err != nil {
+		return namesUpdated, 0, fmt.Errorf("failed to propagate group names: %w", err)
+	}
+	groupsUpdated := groupResult.RowsAffected()
+
+	return namesUpdated, groupsUpdated, nil
+}
