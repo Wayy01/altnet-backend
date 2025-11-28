@@ -47,58 +47,72 @@ export default function JobDetailPage() {
   const [logsPage, setLogsPage] = useState(0);
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const lastJobRef = useRef<string | null>(null);
+  const lastLogsRef = useRef<string | null>(null);
+  const isPollingRef = useRef(false);
 
   const PAGE_SIZE = 50;
 
-  // Load job details
-  const loadJob = useCallback(async () => {
+  // Load job details - only update state if data changed
+  const loadJob = useCallback(async (isPolling = false) => {
     try {
       const data = await api.getTranslationJob(jobId);
-      setJob(data);
+      const dataKey = `${data.status}-${data.translated_items}-${data.failed_items}-${data.skipped_items}`;
+      if (lastJobRef.current !== dataKey) {
+        lastJobRef.current = dataKey;
+        setJob(data);
+      }
     } catch (error) {
-      console.error("Failed to load job:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load job details",
-        variant: "destructive",
-      });
+      if (!isPolling) {
+        console.error("Failed to load job:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load job details",
+          variant: "destructive",
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!isPolling) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
-  // Load logs
-  const loadLogs = useCallback(async (page: number = 0, append: boolean = false) => {
-    setLogsLoading(true);
+  // Load logs - only update state if data changed
+  const loadLogs = useCallback(async (page: number = 0, append: boolean = false, isPolling = false) => {
+    // Don't show loading spinner during background polling
+    if (!append && !isPolling) setLogsLoading(true);
     try {
       const { data, total } = await api.getTranslationLogs(jobId, PAGE_SIZE, page * PAGE_SIZE);
+      const logsKey = `${total}-${data.length > 0 ? data[0]?.id : "empty"}`;
       if (append) {
         setLogs(prev => [...prev, ...data]);
-      } else {
+        lastLogsRef.current = null;
+      } else if (lastLogsRef.current !== logsKey) {
+        lastLogsRef.current = logsKey;
         setLogs(data);
+        setLogsTotal(total);
       }
-      setLogsTotal(total);
     } catch (error) {
-      console.error("Failed to load logs:", error);
+      if (!isPolling) console.error("Failed to load logs:", error);
     } finally {
-      setLogsLoading(false);
+      if (!isPolling) setLogsLoading(false);
     }
   }, [jobId]);
 
   // Initial load
   useEffect(() => {
-    loadJob();
-    loadLogs(0);
+    loadJob(false);
+    loadLogs(0, false, false);
   }, [loadJob, loadLogs]);
 
-  // Auto-refresh for running jobs
+  // Auto-refresh for running jobs - poll silently in background
   useEffect(() => {
     if (job && (job.status === "running" || job.status === "pending")) {
       const interval = setInterval(() => {
-        loadJob();
-        loadLogs(0);
-      }, 1500);
+        // Silent background polling - no loading states
+        loadJob(true);
+        loadLogs(0, false, true);
+      }, 10000); // Poll every 10 seconds - much less intrusive
 
       return () => clearInterval(interval);
     }
@@ -373,8 +387,8 @@ export default function JobDetailPage() {
 
       {/* Stats Row - Premium */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="group border-0 shadow-lg bg-gradient-to-br from-card to-card/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+        <Card className="group border-0 shadow-lg bg-gradient-to-br from-card to-card/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none" />
           <CardContent className="py-5">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/10 flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
@@ -388,8 +402,8 @@ export default function JobDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="group border-0 shadow-lg bg-gradient-to-br from-card to-card/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+        <Card className="group border-0 shadow-lg bg-gradient-to-br from-card to-card/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none" />
           <CardContent className="py-5">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
@@ -403,8 +417,8 @@ export default function JobDetailPage() {
           </CardContent>
         </Card>
 
-        <Card className="group border-0 shadow-lg bg-gradient-to-br from-card to-card/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+        <Card className="group border-0 shadow-lg bg-gradient-to-br from-card to-card/80 transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none" />
           <CardContent className="py-5">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/10 flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
@@ -489,7 +503,7 @@ export default function JobDetailPage() {
               <div className="divide-y divide-border/50">
                 {logs.map((log, index) => (
                   <div
-                    key={log.id}
+                    key={`${log.id}-${index}`}
                     className={cn(
                       "px-5 py-4 transition-all duration-300",
                       "hover:bg-gradient-to-r hover:from-muted/30 hover:to-transparent",

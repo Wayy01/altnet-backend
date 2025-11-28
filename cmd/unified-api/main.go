@@ -63,7 +63,7 @@ func main() {
 	realtimeSyncHandler := handlers.NewRealtimeSyncHandlers(realtimeSyncRepo, repo)
 	syncControlHandler := handlers.NewSyncControlHandlers(repo, realtimeSyncRepo, syncManager)
 	sourceHandler := handlers.NewSourceHandler(sourceRepo)
-	translationHandler := handlers.NewTranslationHandler(translationRepo)
+	translationHandler := handlers.NewTranslationHandler(translationRepo, cfg.LibreTranslate.URL)
 
 	// Setup router
 	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler)

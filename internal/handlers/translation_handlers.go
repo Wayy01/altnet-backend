@@ -25,8 +25,9 @@ type TranslationHandler struct {
 }
 
 // NewTranslationHandler creates a new translation handler
-func NewTranslationHandler(repo *repository.TranslationRepository) *TranslationHandler {
-	translator := translate.NewTranslationService()
+// libreTranslateURL should be the URL of the LibreTranslate server (e.g., http://localhost:5000)
+func NewTranslationHandler(repo *repository.TranslationRepository, libreTranslateURL string) *TranslationHandler {
+	translator := translate.NewTranslationService(libreTranslateURL)
 	jobManager := translate.NewJobManager()
 	executor := translate.NewExecutor(repo, translator, jobManager)
 

@@ -10,10 +10,15 @@ import (
 )
 
 type Config struct {
-	Database DatabaseConfig
-	Ultra    UltraConfig
-	Server   ServerConfig
-	Logging  LoggingConfig
+	Database      DatabaseConfig
+	Ultra         UltraConfig
+	Server        ServerConfig
+	Logging       LoggingConfig
+	LibreTranslate LibreTranslateConfig
+}
+
+type LibreTranslateConfig struct {
+	URL string
 }
 
 type DatabaseConfig struct {
@@ -78,6 +83,9 @@ func Load() (*Config, error) {
 		Logging: LoggingConfig{
 			Level:  getEnv("LOG_LEVEL", "info"),
 			Format: getEnv("LOG_FORMAT", "json"),
+		},
+		LibreTranslate: LibreTranslateConfig{
+			URL: getEnv("LIBRETRANSLATE_URL", "http://localhost:5000"),
 		},
 	}
 

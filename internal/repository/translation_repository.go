@@ -323,15 +323,15 @@ func (r *TranslationRepository) GetTranslationStats(ctx context.Context) (*model
 		return nil, fmt.Errorf("failed to get category stats: %w", err)
 	}
 
-	// Property stats - unique groups and names
+	// Property stats - from lookup tables for fast queries
 	err = r.pool.QueryRow(ctx, `
 		SELECT
-			(SELECT COUNT(DISTINCT group_name) FROM properties WHERE group_name IS NOT NULL) as total_groups,
-			(SELECT COUNT(DISTINCT property_name) FROM properties) as total_names,
-			(SELECT COUNT(DISTINCT group_name) FROM properties WHERE group_name IS NOT NULL AND group_name_ru IS NOT NULL) as groups_translated_ru,
-			(SELECT COUNT(DISTINCT group_name) FROM properties WHERE group_name IS NOT NULL AND group_name_ro IS NOT NULL) as groups_translated_ro,
-			(SELECT COUNT(DISTINCT property_name) FROM properties WHERE property_name_ru IS NOT NULL) as names_translated_ru,
-			(SELECT COUNT(DISTINCT property_name) FROM properties WHERE property_name_ro IS NOT NULL) as names_translated_ro
+			(SELECT COUNT(*) FROM property_group_translations) as total_groups,
+			(SELECT COUNT(*) FROM property_name_translations) as total_names,
+			(SELECT COUNT(*) FROM property_group_translations WHERE name_ru IS NOT NULL) as groups_translated_ru,
+			(SELECT COUNT(*) FROM property_group_translations WHERE name_ro IS NOT NULL) as groups_translated_ro,
+			(SELECT COUNT(*) FROM property_name_translations WHERE name_ru IS NOT NULL) as names_translated_ru,
+			(SELECT COUNT(*) FROM property_name_translations WHERE name_ro IS NOT NULL) as names_translated_ro
 	`).Scan(
 		&stats.Properties.TotalGroups,
 		&stats.Properties.TotalNames,
@@ -470,21 +470,22 @@ func (r *TranslationRepository) UpdateCategoryTranslation(ctx context.Context, i
 // ============================================================================
 
 // GetUntranslatedPropertyGroups returns unique group names that need translation
+// Uses the property_group_translations lookup table for fast queries
 func (r *TranslationRepository) GetUntranslatedPropertyGroups(ctx context.Context, targetLang string, limit int) ([]string, error) {
 	var query string
 	if targetLang == "ru" {
 		query = `
-			SELECT DISTINCT group_name
-			FROM properties
-			WHERE group_name IS NOT NULL AND group_name_ru IS NULL
+			SELECT group_name
+			FROM property_group_translations
+			WHERE name_ru IS NULL
 			ORDER BY group_name
 			LIMIT $1
 		`
 	} else {
 		query = `
-			SELECT DISTINCT group_name
-			FROM properties
-			WHERE group_name IS NOT NULL AND group_name_ro IS NULL
+			SELECT group_name
+			FROM property_group_translations
+			WHERE name_ro IS NULL
 			ORDER BY group_name
 			LIMIT $1
 		`
@@ -510,21 +511,22 @@ func (r *TranslationRepository) GetUntranslatedPropertyGroups(ctx context.Contex
 }
 
 // GetUntranslatedPropertyNames returns unique property names that need translation
+// Uses the property_name_translations lookup table for fast queries
 func (r *TranslationRepository) GetUntranslatedPropertyNames(ctx context.Context, targetLang string, limit int) ([]string, error) {
 	var query string
 	if targetLang == "ru" {
 		query = `
-			SELECT DISTINCT property_name
-			FROM properties
-			WHERE property_name_ru IS NULL
+			SELECT property_name
+			FROM property_name_translations
+			WHERE name_ru IS NULL
 			ORDER BY property_name
 			LIMIT $1
 		`
 	} else {
 		query = `
-			SELECT DISTINCT property_name
-			FROM properties
-			WHERE property_name_ro IS NULL
+			SELECT property_name
+			FROM property_name_translations
+			WHERE name_ro IS NULL
 			ORDER BY property_name
 			LIMIT $1
 		`
@@ -549,25 +551,25 @@ func (r *TranslationRepository) GetUntranslatedPropertyNames(ctx context.Context
 	return names, nil
 }
 
-// UpdatePropertyGroupTranslation updates all properties with the given group name
+// UpdatePropertyGroupTranslation updates the translation in the lookup table (1 row)
 func (r *TranslationRepository) UpdatePropertyGroupTranslation(ctx context.Context, groupName string, translated *string, targetLang string) error {
 	var query string
 	if targetLang == "ru" {
-		query = `UPDATE properties SET group_name_ru = $2, updated_at = NOW() WHERE group_name = $1`
+		query = `UPDATE property_group_translations SET name_ru = $2, updated_at = NOW() WHERE group_name = $1`
 	} else {
-		query = `UPDATE properties SET group_name_ro = $2, updated_at = NOW() WHERE group_name = $1`
+		query = `UPDATE property_group_translations SET name_ro = $2, updated_at = NOW() WHERE group_name = $1`
 	}
 	_, err := r.pool.Exec(ctx, query, groupName, translated)
 	return err
 }
 
-// UpdatePropertyNameTranslation updates all properties with the given property name
+// UpdatePropertyNameTranslation updates the translation in the lookup table (1 row)
 func (r *TranslationRepository) UpdatePropertyNameTranslation(ctx context.Context, propertyName string, translated *string, targetLang string) error {
 	var query string
 	if targetLang == "ru" {
-		query = `UPDATE properties SET property_name_ru = $2, updated_at = NOW() WHERE property_name = $1`
+		query = `UPDATE property_name_translations SET name_ru = $2, updated_at = NOW() WHERE property_name = $1`
 	} else {
-		query = `UPDATE properties SET property_name_ro = $2, updated_at = NOW() WHERE property_name = $1`
+		query = `UPDATE property_name_translations SET name_ro = $2, updated_at = NOW() WHERE property_name = $1`
 	}
 	_, err := r.pool.Exec(ctx, query, propertyName, translated)
 	return err
@@ -604,19 +606,20 @@ func (r *TranslationRepository) GetUntranslatedCategoryCount(ctx context.Context
 }
 
 // GetUntranslatedPropertyCount returns count of unique property groups and names needing translation
+// Uses the lookup tables for fast counts
 func (r *TranslationRepository) GetUntranslatedPropertyCount(ctx context.Context, targetLang string) (int, error) {
 	var query string
 	if targetLang == "ru" {
 		query = `
 			SELECT
-				(SELECT COUNT(DISTINCT group_name) FROM properties WHERE group_name IS NOT NULL AND group_name_ru IS NULL) +
-				(SELECT COUNT(DISTINCT property_name) FROM properties WHERE property_name_ru IS NULL)
+				(SELECT COUNT(*) FROM property_group_translations WHERE name_ru IS NULL) +
+				(SELECT COUNT(*) FROM property_name_translations WHERE name_ru IS NULL)
 		`
 	} else {
 		query = `
 			SELECT
-				(SELECT COUNT(DISTINCT group_name) FROM properties WHERE group_name IS NOT NULL AND group_name_ro IS NULL) +
-				(SELECT COUNT(DISTINCT property_name) FROM properties WHERE property_name_ro IS NULL)
+				(SELECT COUNT(*) FROM property_group_translations WHERE name_ro IS NULL) +
+				(SELECT COUNT(*) FROM property_name_translations WHERE name_ro IS NULL)
 		`
 	}
 	var count int
