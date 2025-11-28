@@ -51,7 +51,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useCurrency, CURRENCY_OPTIONS } from "@/contexts/currency-context";
+import { useLanguage, LANGUAGES } from "@/contexts/language-context";
 import { CurrencyCode } from "@/types";
+import { LanguageCode } from "@/contexts/language-context";
 import { cn } from "@/lib/utils";
 
 /**
@@ -185,6 +187,7 @@ const translationMenuItems: NavItem[] = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { currency, setCurrency } = useCurrency();
+  const { language, setLanguage, currentLanguage } = useLanguage();
   const { state } = useSidebar();
   const [syncOpen, setSyncOpen] = useState(pathname.startsWith("/sync"));
   const [createOpen, setCreateOpen] = useState(
@@ -425,37 +428,122 @@ export function AppSidebar() {
       {/* Premium Footer */}
       <SidebarFooter className="border-t border-sidebar-border/50 bg-gradient-to-t from-sidebar to-sidebar/95">
         <SidebarMenu>
-          {/* Currency Selector */}
-          <SidebarMenuItem>
-            <div className={cn(
-              "flex items-center gap-2 px-2 py-2 rounded-lg transition-colors hover:bg-sidebar-accent/50",
-              isCollapsed && "justify-center px-0"
-            )}>
-              <Coins className="h-4 w-4 text-muted-foreground shrink-0" />
-              {!isCollapsed && (
+          {/* Language and Currency Selectors - Premium Full Width Design */}
+          {!isCollapsed && (
+            <div className="px-2 py-3 space-y-2.5">
+              {/* Language Selector */}
+              <div className="group/selector">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-1.5 px-1 transition-colors group-hover/selector:text-muted-foreground/80">
+                  Language
+                </label>
                 <Select
-                  value={currency}
-                  onValueChange={(value) => setCurrency(value as CurrencyCode)}
+                  value={language}
+                  onValueChange={(value) => setLanguage(value as LanguageCode)}
                 >
-                  <SelectTrigger className="h-7 w-[90px] text-xs border-sidebar-border/50 bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors">
-                    <SelectValue placeholder="Currency" />
+                  <SelectTrigger className="w-full h-10 px-3 text-sm font-medium border-sidebar-border/40 bg-sidebar-accent/20 hover:bg-sidebar-accent/40 hover:border-sidebar-border/60 focus:bg-sidebar-accent/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-200 rounded-lg shadow-sm hover:shadow">
+                    <div className="flex items-center gap-2.5 w-full">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20">
+                        <Languages className="h-3.5 w-3.5 text-blue-400" />
+                      </div>
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="font-semibold text-foreground">{currentLanguage.code.toUpperCase()}</span>
+                        <span className="text-muted-foreground/70 text-xs font-normal">{currentLanguage.nativeLabel}</span>
+                      </div>
+                    </div>
                   </SelectTrigger>
-                  <SelectContent align="start">
-                    {CURRENCY_OPTIONS.map((option) => (
+                  <SelectContent align="start" className="w-[var(--radix-select-trigger-width)]">
+                    {LANGUAGES.map((option) => (
                       <SelectItem
                         key={option.code}
                         value={option.code}
-                        className="text-xs"
+                        className="py-2.5 px-3 cursor-pointer"
                       >
-                        <span className="font-medium">{option.code}</span>
-                        <span className="ml-1.5 text-muted-foreground">{option.symbol}</span>
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gradient-to-br from-blue-500/15 to-blue-600/5 border border-blue-500/15">
+                            <span className="text-[10px] font-bold text-blue-400">{option.code.toUpperCase()}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm">{option.label}</span>
+                            <span className="text-[11px] text-muted-foreground/70">{option.nativeLabel}</span>
+                          </div>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              )}
+              </div>
+
+              {/* Currency Selector */}
+              <div className="group/selector">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-1.5 px-1 transition-colors group-hover/selector:text-muted-foreground/80">
+                  Currency
+                </label>
+                <Select
+                  value={currency}
+                  onValueChange={(value) => setCurrency(value as CurrencyCode)}
+                >
+                  <SelectTrigger className="w-full h-10 px-3 text-sm font-medium border-sidebar-border/40 bg-sidebar-accent/20 hover:bg-sidebar-accent/40 hover:border-sidebar-border/60 focus:bg-sidebar-accent/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-200 rounded-lg shadow-sm hover:shadow">
+                    <div className="flex items-center gap-2.5 w-full">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20">
+                        <Coins className="h-3.5 w-3.5 text-amber-400" />
+                      </div>
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="font-semibold text-foreground">{currency}</span>
+                        <span className="text-muted-foreground/70 text-xs font-normal">{CURRENCY_OPTIONS.find(c => c.code === currency)?.symbol}</span>
+                      </div>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent align="start" className="w-[var(--radix-select-trigger-width)]">
+                    {CURRENCY_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.code}
+                        value={option.code}
+                        className="py-2.5 px-3 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-gradient-to-br from-amber-500/15 to-amber-600/5 border border-amber-500/15">
+                            <span className="text-xs font-bold text-amber-400">{option.symbol}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm">{option.code}</span>
+                            <span className="text-[11px] text-muted-foreground/70">{option.label}</span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </SidebarMenuItem>
+          )}
+
+          {/* Collapsed state: Show icons only with tooltips */}
+          {isCollapsed && (
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip={`Language: ${currentLanguage.label}`}
+                  className="flex items-center justify-center"
+                >
+                  <div className="flex items-center justify-center w-7 h-7 rounded-md bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 transition-all duration-200 hover:from-blue-500/30 hover:to-blue-600/15">
+                    <Languages className="h-4 w-4 text-blue-400" />
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip={`Currency: ${currency}`}
+                  className="flex items-center justify-center"
+                >
+                  <div className="flex items-center justify-center w-7 h-7 rounded-md bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 transition-all duration-200 hover:from-amber-500/30 hover:to-amber-600/15">
+                    <Coins className="h-4 w-4 text-amber-400" />
+                  </div>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </>
+          )}
+
+          <SidebarSeparator className="mx-2 my-2 bg-sidebar-border/30" />
 
           {/* Settings Link */}
           <SidebarMenuItem>
