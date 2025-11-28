@@ -45,6 +45,13 @@ brands (1,112) --> products (47,227) <-- categories (418)
 - GET/POST/DELETE `/api/v1/sources[/{id}]`
 - GET `/api/v1/sources/default`
 
+### Translation
+- GET `/api/v1/translate/stats` - Translation statistics
+- GET `/api/v1/translate/jobs` - List translation jobs
+- POST `/api/v1/translate/start` - Start translation job
+- POST `/api/v1/translate/cancel/{id}` - Cancel job
+- GET `/api/v1/translate/progress/{id}` - SSE progress stream
+
 ### Other
 - GET `/api/v1/search?q=`
 - GET `/api/v1/dashboard/stats`
@@ -58,6 +65,7 @@ brands (1,112) --> products (47,227) <-- categories (418)
 - `internal/ultra` - SOAP client/parser
 - `internal/handlers` - REST handlers
 - `internal/sync` - Selective sync engine
+- `internal/translate` - LibreTranslate integration
 
 ## Dashboard Pages
 - `/` - Dashboard statistics
