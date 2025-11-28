@@ -34,6 +34,7 @@ import {
   StockSummaryItem,
   PriceSummary,
 } from "@/types";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 interface DashboardData {
   stats: DashboardStats;
@@ -142,6 +143,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [cardsVisible, setCardsVisible] = useState(false);
+  const { localize } = useLocalizedValue();
 
   async function fetchDashboardData(): Promise<DashboardData> {
     const [
@@ -659,7 +661,7 @@ export default function DashboardPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium line-clamp-1">
-                        {product.name}
+                        {localize(product, "name")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {product.code}
@@ -733,7 +735,7 @@ export default function DashboardPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium line-clamp-1">
-                        {category.name}
+                        {localize(category, "name")}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {category.product_count} products | Avg:{" "}

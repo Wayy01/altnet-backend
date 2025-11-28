@@ -58,6 +58,7 @@ import {
   PowerOff,
 } from "lucide-react";
 import { PropertyBreadcrumb } from "@/components/properties/PropertyBreadcrumb";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -92,6 +93,7 @@ export default function PropertyValuesPage() {
   const searchParams = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { localize } = useLocalizedValue();
 
   const groupName = decodeURIComponent(params.group_name as string);
   const propertyName = decodeURIComponent(params.property_name as string);
@@ -821,7 +823,7 @@ export default function PropertyValuesPage() {
                     </TableCell>
                     <TableCell className="font-medium max-w-xs">
                       <span className="hover:text-primary transition-colors cursor-default truncate block">
-                        {value.value}
+                        {localize(value, "value")}
                       </span>
                     </TableCell>
                     <TableCell className="max-w-xs truncate">

@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { GroupingBreadcrumb } from "@/components/groupings/GroupingBreadcrumb";
 import { DeleteConfirmDialog } from "@/components/properties/DeleteConfirmDialog";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -79,6 +80,7 @@ export default function ProductGroupingsPage() {
   const searchParams = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { localize } = useLocalizedValue();
 
   // Get initial values from URL params
   const initialSearch = searchParams.get("search") || "";
@@ -338,11 +340,12 @@ export default function ProductGroupingsPage() {
   };
 
   // Handle delete
-  const handleDeleteClick = async (groupId: string, groupName: string) => {
+  const handleDeleteClick = async (group: ProductGrouping) => {
+    const groupName = localize(group, "name");
     try {
-      setDeleteDialog({ open: true, groupId, groupName, loading: true });
-      const impact = await api.getProductGroupingDeletionImpact(groupId);
-      setDeleteDialog({ open: true, groupId, groupName, impact, loading: false });
+      setDeleteDialog({ open: true, groupId: group.id, groupName, loading: true });
+      const impact = await api.getProductGroupingDeletionImpact(group.id);
+      setDeleteDialog({ open: true, groupId: group.id, groupName, impact, loading: false });
     } catch (error: any) {
       toast.error(error.message || "Failed to get deletion impact");
       setDeleteDialog({ open: false, groupId: "", groupName: "", loading: false });
@@ -657,8 +660,8 @@ export default function ProductGroupingsPage() {
                     }}
                   >
                     <TableCell className="font-medium max-w-0">
-                      <span className="hover:text-primary transition-colors cursor-default block truncate" title={group.name}>
-                        {group.name}
+                      <span className="hover:text-primary transition-colors cursor-default block truncate" title={localize(group, "name")}>
+                        {localize(group, "name")}
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground truncate max-w-0" title={group.brand_name || "-"}>
@@ -715,7 +718,7 @@ export default function ProductGroupingsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteClick(group.id, group.name)}
+                          onClick={() => handleDeleteClick(group)}
                           className="h-8 w-8 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
                           title="Delete"
                         >

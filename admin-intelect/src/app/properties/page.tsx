@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { PropertyBreadcrumb } from "@/components/properties/PropertyBreadcrumb";
 import { DeleteConfirmDialog } from "@/components/properties/DeleteConfirmDialog";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -78,6 +79,7 @@ export default function PropertiesPage() {
   const searchParams = useSearchParams();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { localizeGroupName } = useLocalizedValue();
 
   // Get initial values from URL params
   const initialSearch = searchParams.get("search") || "";
@@ -663,7 +665,7 @@ export default function PropertiesPage() {
                   >
                     <TableCell className="font-medium">
                       <span className="hover:text-primary transition-colors cursor-default">
-                        {group.group_name}
+                        {localizeGroupName(group)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

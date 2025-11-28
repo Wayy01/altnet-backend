@@ -47,6 +47,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { DeleteConfirmDialog } from "@/components/properties/DeleteConfirmDialog";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -63,6 +64,7 @@ export default function ProductGroupingDetailPage() {
   const params = useParams();
   const router = useRouter();
   const groupId = params.id as string;
+  const { localize } = useLocalizedValue();
 
   // State
   const [group, setGroup] = useState<ProductGrouping | null>(null);
@@ -186,8 +188,9 @@ export default function ProductGroupingDetailPage() {
   };
 
   // Handle delete
-  const handleDeleteClick = async (variantId: string, variantName: string) => {
-    setDeleteDialog({ open: true, variantId, variantName, loading: false });
+  const handleDeleteClick = async (variant: ProductVariant) => {
+    const variantName = localize(variant, "name");
+    setDeleteDialog({ open: true, variantId: variant.id, variantName, loading: false });
   };
 
   const handleDeleteConfirm = async () => {
@@ -275,7 +278,7 @@ export default function ProductGroupingDetailPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{group.name}</BreadcrumbPage>
+            <BreadcrumbPage>{localize(group, "name")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -295,7 +298,7 @@ export default function ProductGroupingDetailPage() {
           </Button>
           <div className="space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-3xl font-bold tracking-tight">{group.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight">{localize(group, "name")}</h1>
               <Badge
                 variant={group.is_active ? "default" : "secondary"}
                 className={`transition-colors ${
@@ -502,7 +505,7 @@ export default function ProductGroupingDetailPage() {
                         href={`/products/${variant.id}`}
                         className="hover:text-primary hover:underline underline-offset-4 transition-colors truncate block"
                       >
-                        {variant.name}
+                        {localize(variant, "name")}
                       </Link>
                     </TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">
@@ -557,7 +560,7 @@ export default function ProductGroupingDetailPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDeleteClick(variant.id, variant.name)}
+                        onClick={() => handleDeleteClick(variant)}
                         className="h-8 w-8 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />

@@ -71,6 +71,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { Brand, BrandFilterOptions, UpdateBrandPayload } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -103,6 +104,7 @@ export default function BrandsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const { localize } = useLocalizedValue();
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [total, setTotal] = useState(0);
@@ -1064,7 +1066,7 @@ export default function BrandsPage() {
                         href={`/brands/${brand.id}`}
                         className="hover:text-primary hover:underline underline-offset-4 transition-colors"
                       >
-                        {brand.name}
+                        {localize(brand, "name")}
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

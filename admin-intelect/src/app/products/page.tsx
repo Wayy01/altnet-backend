@@ -62,6 +62,7 @@ import {
 import { api } from "@/lib/api";
 import { Product, Brand, Category, ProductFilters, ProductSource } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -94,6 +95,7 @@ export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const { localize } = useLocalizedValue();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
@@ -1184,7 +1186,7 @@ export default function ProductsPage() {
                         href={`/products/${product.id}`}
                         className="hover:text-primary hover:underline underline-offset-4 transition-colors"
                       >
-                        {product.name}
+                        {localize(product, "name")}
                       </Link>
                     </TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">

@@ -79,6 +79,7 @@ import { api } from "@/lib/api";
 import { BrandWithStats, BrandProduct, ProductSource } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCurrency } from "@/contexts/currency-context";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 interface BrandDetailPageProps {
   params: Promise<{
@@ -375,6 +376,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
   const [productToDelete, setProductToDelete] = useState<BrandProduct | null>(null);
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
   const { formatPrice } = useCurrency();
+  const { localize } = useLocalizedValue();
 
   // Animation states
   const [contentVisible, setContentVisible] = useState(false);
@@ -882,7 +884,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage className="max-w-[200px] truncate">{brand.name}</BreadcrumbPage>
+            <BreadcrumbPage className="max-w-[200px] truncate">{localize(brand, "name")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -917,7 +919,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
             </Avatar>
             <div className="space-y-1.5">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-3xl font-bold tracking-tight">{brand.name}</h1>
+                <h1 className="text-3xl font-bold tracking-tight">{localize(brand, "name")}</h1>
                 <Badge
                   variant={brand.is_active ? "default" : "secondary"}
                   className={`
@@ -1410,9 +1412,9 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                           href={`/products/${product.id}`}
                           className="hover:underline hover:text-primary truncate block transition-colors duration-200"
                         >
-                          {product.name.length > 50
-                            ? `${product.name.substring(0, 50)}...`
-                            : product.name}
+                          {localize(product, "name").length > 50
+                            ? `${localize(product, "name").substring(0, 50)}...`
+                            : localize(product, "name")}
                         </Link>
                       </TableCell>
                       <TableCell className="font-mono text-sm text-muted-foreground">
@@ -1587,7 +1589,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         title="Delete Brand"
-        description={`Are you sure you want to delete "${brand.name}"? This action cannot be undone and may affect ${(brand.total_products ?? 0).toLocaleString()} associated products.`}
+        description={`Are you sure you want to delete "${localize(brand, "name")}"? This action cannot be undone and may affect ${(brand.total_products ?? 0).toLocaleString()} associated products.`}
         confirmLabel="Delete"
         onConfirm={handleDeleteBrand}
         variant="destructive"
@@ -1599,7 +1601,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         open={showBulkActivateDialog}
         onOpenChange={setShowBulkActivateDialog}
         title="Activate All Products"
-        description={`Are you sure you want to activate all ${(brand.total_products ?? 0).toLocaleString()} products from "${brand.name}"?`}
+        description={`Are you sure you want to activate all ${(brand.total_products ?? 0).toLocaleString()} products from "${localize(brand, "name")}"?`}
         confirmLabel="Activate All"
         onConfirm={handleBulkActivateProducts}
         isLoading={isProcessing}
@@ -1610,7 +1612,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         open={showBulkDeactivateDialog}
         onOpenChange={setShowBulkDeactivateDialog}
         title="Deactivate All Products"
-        description={`Are you sure you want to deactivate all ${(brand.total_products ?? 0).toLocaleString()} products from "${brand.name}"?`}
+        description={`Are you sure you want to deactivate all ${(brand.total_products ?? 0).toLocaleString()} products from "${localize(brand, "name")}"?`}
         confirmLabel="Deactivate All"
         onConfirm={handleBulkDeactivateProducts}
         variant="destructive"
@@ -1622,7 +1624,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         open={showDeleteProductDialog}
         onOpenChange={setShowDeleteProductDialog}
         title="Delete Product"
-        description={`Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${productToDelete ? localize(productToDelete, "name") : ""}"? This action cannot be undone.`}
         confirmLabel="Delete"
         onConfirm={handleDeleteProduct}
         variant="destructive"

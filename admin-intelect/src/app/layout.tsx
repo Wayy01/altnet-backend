@@ -9,6 +9,7 @@ import { Header } from "@/components/header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { CurrencyProvider } from "@/contexts/currency-context";
+import { LanguageProvider } from "@/contexts/language-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,18 +42,20 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <CurrencyProvider>
-            <TooltipProvider>
-              <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                  <Header />
-                  <main className="flex-1 overflow-auto p-6">{children}</main>
-                </SidebarInset>
-              </SidebarProvider>
-            </TooltipProvider>
-            <Toaster richColors position="top-right" />
-          </CurrencyProvider>
+          <LanguageProvider>
+            <CurrencyProvider>
+              <TooltipProvider>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <Header />
+                    <main className="flex-1 overflow-auto p-6">{children}</main>
+                  </SidebarInset>
+                </SidebarProvider>
+              </TooltipProvider>
+              <Toaster richColors position="top-right" />
+            </CurrencyProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

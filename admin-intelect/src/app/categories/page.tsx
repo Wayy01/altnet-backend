@@ -70,6 +70,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { Category, CategoryFilterOptions, UpdateCategoryPayload } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useLocalizedValue } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -104,6 +105,7 @@ export default function CategoriesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { localize } = useLocalizedValue();
 
   // Get initial values from URL params
   const initialSearch = searchParams.get("search") || "";
@@ -1096,7 +1098,7 @@ export default function CategoriesPage() {
                         href={`/categories/${category.id}`}
                         className="hover:text-primary hover:underline underline-offset-4 transition-colors"
                       >
-                        {category.name}
+                        {localize(category, "name")}
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

@@ -74,6 +74,7 @@ import {
 import { api } from "@/lib/api";
 import { Property, Characteristic, ProductDetail, ImageEntry, Product } from "@/types";
 import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
+import { useLocalizedValue } from "@/contexts/language-context";
 import { VariantSelector } from "@/components/variant-selector";
 
 interface ProductDetailPageProps {
@@ -457,6 +458,7 @@ export default function ProductDetailPage({
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [mainImageFailed, setMainImageFailed] = useState(false);
   const { currency, formatPrice } = useCurrency();
+  const { localize, localizePropertyName, localizeGroupName } = useLocalizedValue();
 
   // Memoized computations
   const groupedProperties = useMemo(() =>
@@ -679,7 +681,7 @@ export default function ProductDetailPage({
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbPage className="max-w-[200px] truncate">
-              {product.name}
+              {localize(product, "name")}
             </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
@@ -704,7 +706,7 @@ export default function ProductDetailPage({
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-bold tracking-tight">{product.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{localize(product, "name")}</h1>
             <Badge
               variant={product.is_active ? "default" : "secondary"}
               className={`
@@ -809,7 +811,7 @@ export default function ProductDetailPage({
           },
           {
             title: "Brand",
-            value: product.brand?.name || product.brand_name || "No brand",
+            value: product.brand ? localize(product.brand, "name") : (product.brand_name || "No brand"),
             badge: product.brand?.slug,
             badgeVariant: "muted",
             icon: Building2,
@@ -817,7 +819,7 @@ export default function ProductDetailPage({
           },
           {
             title: "Category",
-            value: product.category?.name || product.category_name || "No category",
+            value: product.category ? localize(product.category, "name") : (product.category_name || "No category"),
             badge: product.category?.product_count !== undefined
               ? `${(product.category.product_count ?? 0).toLocaleString()} products`
               : undefined,
@@ -1471,7 +1473,7 @@ export default function ProductDetailPage({
                     value={group}
                     className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200 rounded-lg"
                   >
-                    {group} ({groupedProperties[group].length})
+                    {localizeGroupName(groupedProperties[group][0])} ({groupedProperties[group].length})
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -1499,9 +1501,9 @@ export default function ProductDetailPage({
                             style={{ transitionDelay: rowsVisible ? `${Math.min(index * 20, 200)}ms` : "0ms" }}
                           >
                             <TableCell className="font-medium">
-                              {prop.property_name}
+                              {localizePropertyName(prop)}
                             </TableCell>
-                            <TableCell>{prop.value || <span className="text-muted-foreground">-</span>}</TableCell>
+                            <TableCell>{localize(prop, "value") || <span className="text-muted-foreground">-</span>}</TableCell>
                             <TableCell>
                               {prop.value_type && (
                                 <Badge variant="outline" className="text-xs transition-colors hover:bg-muted">
