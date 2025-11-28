@@ -35,6 +35,9 @@ export interface Brand {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Translation fields (future support)
+  name_ro?: string | null;
+  name_ru?: string | null;
 }
 
 // Category types
@@ -53,6 +56,9 @@ export interface Category {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Translation fields
+  name_ro?: string | null;
+  name_ru?: string | null;
 }
 
 // Category with statistics for category details page
@@ -162,6 +168,11 @@ export interface Property {
   is_modification: boolean;
   created_at: string;
   updated_at: string;
+  // Translation fields
+  property_name_ro?: string | null;
+  property_name_ru?: string | null;
+  group_name_ro?: string | null;
+  group_name_ru?: string | null;
 }
 
 // Property management types
@@ -269,6 +280,11 @@ export interface Product {
   variant_group_id: string | null;
   created_at: string;
   updated_at: string;
+  // Translation fields
+  name_ro?: string | null;
+  name_ru?: string | null;
+  description_ro?: string | null;
+  description_ru?: string | null;
 }
 
 // Currency types
