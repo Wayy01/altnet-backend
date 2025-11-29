@@ -1,0 +1,151 @@
+{
+  "page": {
+    "title": "Translations",
+    "description": "Translate products, categories, and properties",
+    "jobsTitle": "Translation Jobs",
+    "jobsDescription": "View and manage all translation jobs",
+    "jobDetailTitle": "Job Details",
+    "jobDetailDescription": "View detailed progress and results"
+  },
+  "breadcrumb": {
+    "dashboard": "Dashboard",
+    "translations": "Translations",
+    "jobs": "Jobs"
+  },
+  "stats": {
+    "totalJobs": "Total Jobs",
+    "running": "Running",
+    "completed": "Completed",
+    "failed": "Failed",
+    "total": "Total",
+    "translated": "Translated",
+    "skipped": "Skipped"
+  },
+  "form": {
+    "startTranslation": "Start Translation",
+    "configureAndLaunch": "Configure and launch a new translation job",
+    "entityType": "Entity Type",
+    "products": "Products",
+    "productsDescription": "Names & descriptions",
+    "categories": "Categories",
+    "categoriesDescription": "Category names",
+    "properties": "Properties",
+    "propertiesDescription": "Groups & names",
+    "targetLanguage": "Target Language",
+    "russian": "Russian",
+    "romanian": "Romanian",
+    "itemsPending": "Items Pending",
+    "allTranslated": "All Translated",
+    "to": "to"
+  },
+  "languages": {
+    "ru": "Russian",
+    "ro": "Romanian"
+  },
+  "actions": {
+    "refresh": "Refresh",
+    "viewAllJobs": "View All Jobs",
+    "back": "Back",
+    "startTranslation": "Start Translation",
+    "startingTranslation": "Starting Translation...",
+    "translationInProgress": "Translation in Progress",
+    "allItemsTranslated": "All Items Translated",
+    "newTranslation": "New Translation",
+    "backToTranslations": "Back to Translations",
+    "cancelJob": "Cancel Job"
+  },
+  "activeJob": {
+    "title": "Active Job",
+    "progress": "Progress",
+    "translated": "Translated",
+    "failed": "Failed",
+    "skipped": "Skipped",
+    "recentActivity": "Recent Activity",
+    "cancel": "Cancel"
+  },
+  "tips": {
+    "title": "Tips & Guidelines",
+    "entitySelection": "Entity Selection",
+    "entitySelectionDescription": "Choose what type of content to translate",
+    "languageTarget": "Language Target",
+    "languageTargetDescription": "Select Russian or Romanian as the target language",
+    "batchProcessing": "Batch Processing",
+    "batchProcessingDescription": "Items are translated in batches for efficiency",
+    "progressTracking": "Progress Tracking",
+    "progressTrackingDescription": "Monitor progress in real-time during translation"
+  },
+  "recentJobs": {
+    "title": "Recent Jobs",
+    "description": "Last 5 translation jobs",
+    "viewAll": "View All",
+    "noJobs": "No translation jobs yet",
+    "items": "items"
+  },
+  "confirm": {
+    "title": "Start Translation Job?",
+    "description": "This will translate",
+    "to": "to",
+    "duration": "Duration depends on the number of items to process.",
+    "cancel": "Cancel",
+    "start": "Start Translation"
+  },
+  "jobs": {
+    "title": "Jobs",
+    "totalJobs": "total jobs",
+    "filters": "Filters",
+    "allEntities": "All Entities",
+    "allLanguages": "All Languages",
+    "allStatuses": "All Statuses",
+    "clear": "Clear",
+    "noJobsFound": "No translation jobs found",
+    "adjustFilters": "Try adjusting your filters",
+    "startFirst": "Start a new translation to see jobs here",
+    "startTranslation": "Start a Translation",
+    "live": "Live",
+    "created": "Created",
+    "duration": "Duration",
+    "page": "Page",
+    "previous": "Previous",
+    "next": "Next",
+    "loading": "Loading jobs..."
+  },
+  "jobStatus": {
+    "title": "Job Status Guide",
+    "running": "Running",
+    "runningDescription": "Job is currently processing items",
+    "pending": "Pending",
+    "pendingDescription": "Job is queued and waiting to start",
+    "completed": "Completed",
+    "completedDescription": "Job finished successfully",
+    "failed": "Failed",
+    "failedDescription": "Job encountered an error and stopped",
+    "cancelled": "Cancelled",
+    "cancelledDescription": "Job was manually cancelled"
+  },
+  "jobDetail": {
+    "notFound": "Job not found",
+    "notFoundDescription": "The translation job you are looking for does not exist.",
+    "backToJobs": "Back to Jobs",
+    "refresh": "Refresh",
+    "started": "Started",
+    "notYet": "Not yet",
+    "estimatedTime": "Estimated Time",
+    "progress": "Progress",
+    "overallProgress": "Overall Progress",
+    "duration": "Duration",
+    "successRate": "Success Rate",
+    "speed": "Speed",
+    "perMin": "/min",
+    "errorMessage": "Error Message",
+    "translationLogs": "Translation Logs",
+    "autoScrollOn": "Auto-scroll ON",
+    "autoScrollOff": "Auto-scroll OFF",
+    "loadingLogs": "Loading logs...",
+    "noLogsYet": "No logs available yet",
+    "logsWillAppear": "Logs will appear here as translations are processed",
+    "loadMore": "Load More",
+    "remaining": "remaining",
+    "calculating": "Calculating...",
+    "almostDone": "Almost done"
+  }
+}

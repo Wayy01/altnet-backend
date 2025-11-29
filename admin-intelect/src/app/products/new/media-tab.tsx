@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { ProductFormState, CreateImageData, CreateVideoData } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/language-context";
 
 interface MediaTabProps {
   data: ProductFormState["media"];
@@ -36,6 +37,7 @@ interface MediaTabProps {
  */
 export function MediaTab({ data, onChange }: MediaTabProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("products");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [sectionsVisible, setSectionsVisible] = useState(false);
@@ -73,14 +75,14 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
         }
 
         toast({
-          title: "Images Uploaded",
-          description: `${newImages.length} image(s) uploaded successfully.`,
+          title: t("toast.imagesUploaded"),
+          description: t("toast.imagesUploadedDesc", { count: newImages.length }),
         });
       } catch (error) {
         toast({
-          title: "Upload Failed",
+          title: t("toast.uploadFailed"),
           description:
-            error instanceof Error ? error.message : "Failed to upload images",
+            error instanceof Error ? error.message : t("toast.uploadFailed"),
           variant: "destructive",
         });
       } finally {
@@ -129,14 +131,14 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
         onChange({ videos: [...data.videos, ...newVideos] });
 
         toast({
-          title: "Videos Uploaded",
-          description: `${newVideos.length} video(s) uploaded successfully.`,
+          title: t("toast.videosUploaded"),
+          description: t("toast.videosUploadedDesc", { count: newVideos.length }),
         });
       } catch (error) {
         toast({
-          title: "Upload Failed",
+          title: t("toast.uploadFailed"),
           description:
-            error instanceof Error ? error.message : "Failed to upload videos",
+            error instanceof Error ? error.message : t("toast.uploadFailed"),
           variant: "destructive",
         });
       } finally {
@@ -234,15 +236,15 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                 <ImagePlus className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <Label className="text-base font-semibold">Product Images</Label>
+                <Label className="text-base font-semibold">{t("media.productImages")}</Label>
                 <p className="text-sm text-muted-foreground">
-                  JPEG, PNG, GIF, or WebP (max 10MB each)
+                  {t("media.imageFormats")}
                 </p>
               </div>
             </div>
             {data.images.length > 0 && (
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                {data.images.length} image{data.images.length !== 1 ? "s" : ""}
+                {data.images.length !== 1 ? t("media.imagesCountPlural", { count: data.images.length }) : t("media.imagesCount", { count: data.images.length })}
               </Badge>
             )}
           </div>
@@ -267,9 +269,9 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                     <Loader2 className="h-7 w-7 animate-spin text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Uploading images...</p>
+                    <p className="font-medium">{t("media.uploadingImages")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Please wait while your images are being processed
+                      {t("media.uploadingImagesHint")}
                     </p>
                   </div>
                 </>
@@ -295,11 +297,11 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                   <div>
                     <p className="font-medium">
                       {isImageDragActive
-                        ? "Drop images here..."
-                        : "Drag & drop images here"}
+                        ? t("media.dropImagesHere")
+                        : t("media.dragDropImages")}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      or click to browse your files
+                      {t("media.orClickBrowse")}
                     </p>
                   </div>
                 </>
@@ -345,7 +347,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                           isMain && "bg-yellow-500/90 hover:bg-yellow-500 text-white"
                         )}
                         onClick={() => setAsMainImage(image.url)}
-                        title={isMain ? "Main image" : "Set as main image"}
+                        title={isMain ? t("media.mainImage") : t("media.setAsMain")}
                       >
                         <Star
                           className={cn(
@@ -360,7 +362,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                         size="icon"
                         className="h-8 w-8 rounded-lg backdrop-blur-sm bg-white/90 hover:bg-destructive hover:text-white shadow-sm transition-all duration-200"
                         onClick={() => removeImage(index)}
-                        title="Remove image"
+                        title={t("media.removeImage")}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -370,7 +372,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                       <div className="absolute bottom-0 left-0 right-0 bg-primary px-2 py-1.5 text-center">
                         <span className="text-xs font-medium text-primary-foreground flex items-center justify-center gap-1">
                           <Star className="h-3 w-3 fill-current" />
-                          Main Image
+                          {t("media.mainImage")}
                         </span>
                       </div>
                     )}
@@ -392,15 +394,15 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                 <VideoIcon className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <Label className="text-base font-semibold">Product Videos</Label>
+                <Label className="text-base font-semibold">{t("media.productVideos")}</Label>
                 <p className="text-sm text-muted-foreground">
-                  MP4, WebM, or MOV (max 100MB each)
+                  {t("media.videoFormats")}
                 </p>
               </div>
             </div>
             {data.videos.length > 0 && (
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                {data.videos.length} video{data.videos.length !== 1 ? "s" : ""}
+                {data.videos.length !== 1 ? t("media.videosCountPlural", { count: data.videos.length }) : t("media.videosCount", { count: data.videos.length })}
               </Badge>
             )}
           </div>
@@ -425,9 +427,9 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                     <Loader2 className="h-7 w-7 animate-spin text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Uploading videos...</p>
+                    <p className="font-medium">{t("media.uploadingVideos")}</p>
                     <p className="text-sm text-muted-foreground">
-                      Please wait while your videos are being processed
+                      {t("media.uploadingVideosHint")}
                     </p>
                   </div>
                 </>
@@ -453,11 +455,11 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                   <div>
                     <p className="font-medium">
                       {isVideoDragActive
-                        ? "Drop videos here..."
-                        : "Drag & drop videos here"}
+                        ? t("media.dropVideosHere")
+                        : t("media.dragDropVideos")}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      or click to browse your files
+                      {t("media.orClickBrowse")}
                     </p>
                   </div>
                 </>
@@ -494,7 +496,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                         };
                         onChange({ videos: updatedVideos });
                       }}
-                      placeholder="Video title"
+                      placeholder={t("media.videoTitle")}
                       className={cn(
                         "h-9 rounded-lg transition-all duration-200",
                         "focus:ring-2 focus:ring-primary/20 focus:border-primary",
@@ -511,7 +513,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                         };
                         onChange({ videos: updatedVideos });
                       }}
-                      placeholder="Video description (optional)"
+                      placeholder={t("media.videoDescription")}
                       className={cn(
                         "h-9 rounded-lg text-sm transition-all duration-200",
                         "focus:ring-2 focus:ring-primary/20 focus:border-primary",
@@ -548,17 +550,17 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
             </div>
             <div>
               <Label htmlFor="main_image_url" className="text-sm font-medium">
-                Main Image URL
+                {t("media.mainImageUrl")}
               </Label>
               <p className="text-xs text-muted-foreground">
-                Override with an external URL or select from uploads
+                {t("media.mainImageUrlHint")}
               </p>
             </div>
           </div>
           <div className="flex gap-2">
             <Input
               id="main_image_url"
-              placeholder="https://example.com/image.jpg"
+              placeholder={t("media.mainImageUrlPlaceholder")}
               value={data.main_image_url}
               onChange={(e) => onChange({ main_image_url: e.target.value })}
               className={cn(
@@ -590,17 +592,17 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="space-y-1">
                 <p className="text-2xl font-bold tabular-nums">{data.images.length}</p>
-                <p className="text-xs text-muted-foreground">Images</p>
+                <p className="text-xs text-muted-foreground">{t("media.images")}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-2xl font-bold tabular-nums">{data.videos.length}</p>
-                <p className="text-xs text-muted-foreground">Videos</p>
+                <p className="text-xs text-muted-foreground">{t("media.videos")}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-2xl font-bold tabular-nums">
                   {data.images.length + data.videos.length}
                 </p>
-                <p className="text-xs text-muted-foreground">Total Media</p>
+                <p className="text-xs text-muted-foreground">{t("media.totalMedia")}</p>
               </div>
             </div>
           </div>

@@ -29,6 +29,7 @@ import {
   ProductDetail,
 } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/language-context";
 
 import { BasicInfoTab } from "./basic-info-tab";
 import { MediaTab } from "./media-tab";
@@ -107,35 +108,35 @@ const initialFormState: ProductFormState = {
  */
 interface TabConfig {
   id: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
-  description: string;
+  descriptionKey: string;
 }
 
-const tabs: TabConfig[] = [
+const tabConfigs: TabConfig[] = [
   {
     id: "basic",
-    label: "Basic Info",
+    labelKey: "tabs.basicInfo",
     icon: <FileText className="h-4 w-4" />,
-    description: "Name, code, pricing, and classification",
+    descriptionKey: "navigation.basicInfoDesc",
   },
   {
     id: "media",
-    label: "Media",
+    labelKey: "tabs.media",
     icon: <ImageIcon className="h-4 w-4" />,
-    description: "Images and videos",
+    descriptionKey: "navigation.mediaDesc",
   },
   {
     id: "properties",
-    label: "Properties",
+    labelKey: "tabs.properties",
     icon: <Settings2 className="h-4 w-4" />,
-    description: "Specifications and attributes",
+    descriptionKey: "navigation.propertiesDesc",
   },
   {
     id: "variants",
-    label: "Variants",
+    labelKey: "tabs.variants",
     icon: <GitBranch className="h-4 w-4" />,
-    description: "Product groupings",
+    descriptionKey: "navigation.variantsDesc",
   },
 ];
 
@@ -143,6 +144,7 @@ export default function CreateProductPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { t } = useTranslation("products");
   const [activeTab, setActiveTab] = useState("basic");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formState, setFormState] = useState<ProductFormState>(initialFormState);
@@ -277,7 +279,7 @@ export default function CreateProductPage() {
   // Validation
   const validateForm = (): string | null => {
     if (!formState.basicInfo.name.trim()) {
-      return "Product name is required";
+      return t("basicInfo.title") + " " + t("basicInfo.required");
     }
     return null;
   };
@@ -325,7 +327,7 @@ export default function CreateProductPage() {
     const validationError = validateForm();
     if (validationError) {
       toast({
-        title: "Validation Error",
+        title: t("toast.validationError"),
         description: validationError,
         variant: "destructive",
       });
@@ -366,16 +368,16 @@ export default function CreateProductPage() {
       const product = await api.createProduct(payload);
 
       toast({
-        title: "Product Created",
-        description: `"${product.name}" has been created successfully.`,
+        title: t("toast.productCreated"),
+        description: t("toast.productCreatedDesc", { name: product.name }),
       });
 
       router.push(`/products/${product.id}`);
     } catch (error) {
       toast({
-        title: "Error",
+        title: t("toast.updateFailed"),
         description:
-          error instanceof Error ? error.message : "Failed to create product",
+          error instanceof Error ? error.message : t("toast.deleteFailed"),
         variant: "destructive",
       });
     } finally {
@@ -385,9 +387,9 @@ export default function CreateProductPage() {
 
   // Navigate to next tab
   const goToNextTab = () => {
-    const currentIndex = tabs.findIndex((t) => t.id === activeTab);
-    if (currentIndex < tabs.length - 1) {
-      setActiveTab(tabs[currentIndex + 1].id);
+    const currentIndex = tabConfigs.findIndex((tab) => tab.id === activeTab);
+    if (currentIndex < tabConfigs.length - 1) {
+      setActiveTab(tabConfigs[currentIndex + 1].id);
     }
   };
 
@@ -404,7 +406,7 @@ export default function CreateProductPage() {
           href="/products"
           className="hover:text-foreground transition-colors"
         >
-          Products
+          {t("page.title")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
         {sourceProduct && (
@@ -419,7 +421,7 @@ export default function CreateProductPage() {
           </>
         )}
         <span className="text-foreground font-medium">
-          {duplicateId ? "New Variant" : "New Product"}
+          {duplicateId ? t("page.newVariant") : t("page.newProduct")}
         </span>
       </nav>
 
@@ -449,12 +451,12 @@ export default function CreateProductPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
-                {duplicateId ? "Create Variant" : "Create Product"}
+                {duplicateId ? t("page.createVariant") : t("page.newTitle")}
               </h1>
               <p className="text-sm text-muted-foreground">
                 {duplicateId && sourceProduct
-                  ? `Creating variant of "${sourceProduct.name}"`
-                  : "Add a new product to your catalog"}
+                  ? t("page.creatingVariantOf", { name: sourceProduct.name })
+                  : t("page.newDescription")}
               </p>
             </div>
           </div>
@@ -469,7 +471,7 @@ export default function CreateProductPage() {
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}
-          {duplicateId ? "Create Variant" : "Create Product"}
+          {duplicateId ? t("page.createVariant") : t("page.newTitle")}
         </Button>
       </div>
 
@@ -480,7 +482,7 @@ export default function CreateProductPage() {
             {/* Premium Tab Navigation */}
             <div className="border-b border-border/50 bg-gradient-to-r from-muted/30 to-muted/10">
               <TabsList className="h-auto w-full justify-start gap-0 rounded-none bg-transparent p-0">
-                {tabs.map((tab, index) => {
+                {tabConfigs.map((tab, index) => {
                   const isActive = activeTab === tab.id;
                   const isCompleted = getTabStatus(tab.id);
                   const count = getTabCount(tab.id);
@@ -508,7 +510,7 @@ export default function CreateProductPage() {
                       >
                         {tab.icon}
                       </span>
-                      <span className="font-medium">{tab.label}</span>
+                      <span className="font-medium">{t(tab.labelKey)}</span>
                       {count !== null && count > 0 && (
                         <Badge
                           variant="secondary"
@@ -618,21 +620,21 @@ export default function CreateProductPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>
-                    Step {tabs.findIndex((t) => t.id === activeTab) + 1} of {tabs.length}
+                    {t("navigation.step", { current: tabConfigs.findIndex((tab) => tab.id === activeTab) + 1, total: tabConfigs.length })}
                   </span>
                   <span className="text-border">|</span>
                   <span className="text-foreground font-medium">
-                    {tabs.find((t) => t.id === activeTab)?.description}
+                    {t(tabConfigs.find((tab) => tab.id === activeTab)?.descriptionKey || "")}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  {activeTab !== tabs[tabs.length - 1].id && (
+                  {activeTab !== tabConfigs[tabConfigs.length - 1].id && (
                     <Button
                       variant="outline"
                       onClick={goToNextTab}
                       className="transition-all duration-200 hover:bg-muted"
                     >
-                      Continue
+                      {t("navigation.continue")}
                       <ChevronRight className="ml-1 h-4 w-4" />
                     </Button>
                   )}
@@ -646,7 +648,7 @@ export default function CreateProductPage() {
                     ) : (
                       <Save className="mr-2 h-4 w-4" />
                     )}
-                    {duplicateId ? "Create Variant" : "Create Product"}
+                    {duplicateId ? t("page.createVariant") : t("page.newTitle")}
                   </Button>
                 </div>
               </div>

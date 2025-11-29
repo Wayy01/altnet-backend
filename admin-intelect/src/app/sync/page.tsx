@@ -75,6 +75,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { SyncLog, SyncProgress } from "@/types";
+import { useTranslation } from "@/contexts/language-context";
 
 function formatDuration(seconds: number | null): string {
   if (seconds === null || seconds === 0) return "N/A";
@@ -178,6 +179,8 @@ export default function SyncPage() {
   const [jumpToPage, setJumpToPage] = useState("");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
+  const { t } = useTranslation('sync');
+  const { t: tCommon } = useTranslation('common');
 
   // Animation states
   const [contentVisible, setContentVisible] = useState(false);
@@ -462,9 +465,9 @@ export default function SyncPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Sync Status</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('page.title')}</h1>
           <p className="text-muted-foreground">
-            Real-time synchronization progress and history
+            {t('page.description')}
           </p>
         </div>
         <SyncPageSkeleton />
@@ -483,9 +486,9 @@ export default function SyncPage() {
         `}
       >
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Sync Status</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('page.title')}</h1>
           <p className="text-muted-foreground">
-            Real-time synchronization progress and history
+            {t('page.description')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -497,7 +500,7 @@ export default function SyncPage() {
           >
             <Link href="/sync/selective">
               <Zap className="h-4 w-4 mr-2" />
-              Selective Sync
+              {t('actions.selectiveSync')}
             </Link>
           </Button>
           <Button
@@ -508,7 +511,7 @@ export default function SyncPage() {
           >
             <Link href="/sync/monitor">
               <Activity className="h-4 w-4 mr-2" />
-              Real-Time Monitor
+              {t('actions.realTimeMonitor')}
             </Link>
           </Button>
           <Button
@@ -522,12 +525,12 @@ export default function SyncPage() {
             {autoRefresh ? (
               <>
                 <Pause className="h-4 w-4 mr-2" />
-                Pause
+                {t('actions.pause')}
               </>
             ) : (
               <>
                 <Play className="h-4 w-4 mr-2" />
-                Resume
+                {t('actions.resume')}
               </>
             )}
           </Button>
@@ -537,7 +540,7 @@ export default function SyncPage() {
             className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
           >
             <RefreshCw className={`mr-2 h-4 w-4 transition-transform duration-500 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh
+            {t('actions.refresh')}
           </Button>
         </div>
       </div>
@@ -552,11 +555,11 @@ export default function SyncPage() {
         style={{ transitionDelay: "50ms" }}
       >
         <div className={`h-2 w-2 rounded-full transition-all duration-300 ${autoRefresh ? "bg-primary animate-pulse shadow-lg shadow-primary/50" : "bg-muted-foreground"}`} />
-        <span className="font-medium">Last updated: {lastUpdated.toLocaleTimeString()}</span>
+        <span className="font-medium">{t('lastUpdated')}: {lastUpdated.toLocaleTimeString()}</span>
         {syncProgress?.isRunning && autoRefresh && (
           <Badge variant="secondary" className="ml-2 text-xs bg-primary/10 text-primary border-primary/20 animate-in fade-in slide-in-from-left-2 duration-300">
             <Activity className="h-3 w-3 mr-1" />
-            Live
+            {t('status.live')}
           </Badge>
         )}
       </div>
@@ -615,20 +618,20 @@ export default function SyncPage() {
                       <div>
                         <CardTitle className="text-xl font-bold">
                           {syncProgress.isRunning
-                            ? "Sync in Progress"
+                            ? t('status.syncInProgress')
                             : syncLogs.length > 0
                               ? syncLogs[0].status === "completed"
-                                ? "Last Sync Completed"
+                                ? t('status.lastSyncCompleted')
                                 : syncLogs[0].status === "failed"
-                                  ? "Last Sync Failed"
+                                  ? t('status.lastSyncFailed')
                                   : syncLogs[0].status === "cancelled"
-                                    ? "Last Sync Cancelled"
-                                    : "No Active Sync"
-                              : "No Active Sync"}
+                                    ? t('status.lastSyncCancelled')
+                                    : t('status.noActiveSync')
+                              : t('status.noActiveSync')}
                         </CardTitle>
                         {syncProgress.isRunning && (
                           <CardDescription className="mt-0.5 text-sm">
-                            Processing step {currentRelative} of {totalRelative}
+                            {t('progress.processingStep')} {currentRelative} {t('progress.of')} {totalRelative}
                           </CardDescription>
                         )}
                       </div>
@@ -650,7 +653,7 @@ export default function SyncPage() {
                   {syncProgress.isRunning && (
                     <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground font-medium">Overall Progress</span>
+                        <span className="text-muted-foreground font-medium">{t('progress.overallProgress')}</span>
                         <span className="font-semibold tabular-nums text-blue-600">
                           {progressPercentage}%
                         </span>
@@ -671,7 +674,7 @@ export default function SyncPage() {
                         <Timer className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Elapsed</p>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('progress.elapsed')}</p>
                         <p className="text-lg font-bold tabular-nums truncate">
                           {formatDuration(syncProgress.elapsedSeconds)}
                         </p>
@@ -684,7 +687,7 @@ export default function SyncPage() {
                           <Clock className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Remaining</p>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('progress.remaining')}</p>
                           <p className="text-lg font-bold tabular-nums truncate">
                             {formatDuration(syncProgress.estimatedRemainingSeconds)}
                           </p>
@@ -698,7 +701,7 @@ export default function SyncPage() {
                           <CalendarClock className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Started</p>
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t('progress.started')}</p>
                           <p className="text-sm font-semibold truncate">
                             {formatDate(syncProgress.startedAt)}
                           </p>

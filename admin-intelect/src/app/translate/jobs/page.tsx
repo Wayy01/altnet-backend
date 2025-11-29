@@ -41,12 +41,15 @@ import {
   TranslationJobStatus,
 } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/language-context";
 
 const PAGE_SIZE = 20;
 
 export default function TranslationJobsPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation('translate');
+  const { t: tCommon } = useTranslation('common');
 
   // State
   const [jobs, setJobs] = useState<TranslationJob[]>([]);
@@ -190,17 +193,17 @@ export default function TranslationJobsPage() {
             href="/"
             className="hover:text-foreground transition-colors duration-200 hover:underline underline-offset-4"
           >
-            Dashboard
+            {t('breadcrumb.dashboard')}
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
           <Link
             href="/translate"
             className="hover:text-foreground transition-colors duration-200 hover:underline underline-offset-4"
           >
-            Translations
+            {t('breadcrumb.translations')}
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-foreground font-medium">Jobs</span>
+          <span className="text-foreground font-medium">{t('breadcrumb.jobs')}</span>
         </nav>
 
         {/* Page Header */}
@@ -226,9 +229,9 @@ export default function TranslationJobsPage() {
                 )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Translation Jobs</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{t('page.jobsTitle')}</h1>
                 <p className="text-sm text-muted-foreground">
-                  View and manage all translation jobs
+                  {t('page.jobsDescription')}
                 </p>
               </div>
             </div>
@@ -240,7 +243,7 @@ export default function TranslationJobsPage() {
               className="gap-2 transition-all duration-200 hover:bg-muted"
             >
               <Languages className="h-4 w-4" />
-              New Translation
+              {t('actions.newTranslation')}
             </Button>
             <Button
               variant="outline"
@@ -249,7 +252,7 @@ export default function TranslationJobsPage() {
               className="gap-2 transition-all duration-200 hover:bg-muted"
             >
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-              Refresh
+              {t('actions.refresh')}
             </Button>
           </div>
         </div>
@@ -270,7 +273,7 @@ export default function TranslationJobsPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{total}</div>
-                  <div className="text-xs text-muted-foreground">Total Jobs</div>
+                  <div className="text-xs text-muted-foreground">{t('stats.totalJobs')}</div>
                 </div>
               </div>
             </CardContent>
@@ -284,7 +287,7 @@ export default function TranslationJobsPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-blue-600">{runningCount}</div>
-                  <div className="text-xs text-muted-foreground">Running</div>
+                  <div className="text-xs text-muted-foreground">{t('stats.running')}</div>
                 </div>
               </div>
             </CardContent>
@@ -298,7 +301,7 @@ export default function TranslationJobsPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-emerald-600">{completedCount}</div>
-                  <div className="text-xs text-muted-foreground">Completed</div>
+                  <div className="text-xs text-muted-foreground">{t('stats.completed')}</div>
                 </div>
               </div>
             </CardContent>
@@ -312,7 +315,7 @@ export default function TranslationJobsPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-red-600">{failedCount}</div>
-                  <div className="text-xs text-muted-foreground">Failed</div>
+                  <div className="text-xs text-muted-foreground">{t('stats.failed')}</div>
                 </div>
               </div>
             </CardContent>
@@ -337,8 +340,8 @@ export default function TranslationJobsPage() {
                       <ListChecks className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg font-semibold">Jobs</CardTitle>
-                      <CardDescription>{total} total jobs</CardDescription>
+                      <CardTitle className="text-lg font-semibold">{t('jobs.title')}</CardTitle>
+                      <CardDescription>{total} {t('jobs.totalJobs')}</CardDescription>
                     </div>
                   </div>
                 </div>
@@ -348,43 +351,43 @@ export default function TranslationJobsPage() {
               <div className="p-4 border-b border-border/50 bg-muted/10">
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Label className="text-sm text-muted-foreground">Filters:</Label>
+                    <Label className="text-sm text-muted-foreground">{t('jobs.filters')}:</Label>
                   </div>
 
                   <Select value={entityFilter || "all"} onValueChange={(v) => { setEntityFilter(v === "all" ? "" : v as TranslationEntityType); setPage(0); }}>
                     <SelectTrigger className="w-[140px] h-9 rounded-lg border-border/50">
-                      <SelectValue placeholder="All Entities" />
+                      <SelectValue placeholder={t('jobs.allEntities')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Entities</SelectItem>
-                      <SelectItem value="products">Products</SelectItem>
-                      <SelectItem value="categories">Categories</SelectItem>
-                      <SelectItem value="properties">Properties</SelectItem>
+                      <SelectItem value="all">{t('jobs.allEntities')}</SelectItem>
+                      <SelectItem value="products">{t('form.products')}</SelectItem>
+                      <SelectItem value="categories">{t('form.categories')}</SelectItem>
+                      <SelectItem value="properties">{t('form.properties')}</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <Select value={languageFilter || "all"} onValueChange={(v) => { setLanguageFilter(v === "all" ? "" : v as TargetLanguage); setPage(0); }}>
                     <SelectTrigger className="w-[140px] h-9 rounded-lg border-border/50">
-                      <SelectValue placeholder="All Languages" />
+                      <SelectValue placeholder={t('jobs.allLanguages')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Languages</SelectItem>
-                      <SelectItem value="ru">Russian</SelectItem>
-                      <SelectItem value="ro">Romanian</SelectItem>
+                      <SelectItem value="all">{t('jobs.allLanguages')}</SelectItem>
+                      <SelectItem value="ru">{t('languages.ru')}</SelectItem>
+                      <SelectItem value="ro">{t('languages.ro')}</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <Select value={statusFilter || "all"} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v as TranslationJobStatus); setPage(0); }}>
                     <SelectTrigger className="w-[140px] h-9 rounded-lg border-border/50">
-                      <SelectValue placeholder="All Statuses" />
+                      <SelectValue placeholder={t('jobs.allStatuses')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="running">Running</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="failed">Failed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="all">{t('jobs.allStatuses')}</SelectItem>
+                      <SelectItem value="pending">{t('jobStatus.pending')}</SelectItem>
+                      <SelectItem value="running">{t('jobStatus.running')}</SelectItem>
+                      <SelectItem value="completed">{t('jobStatus.completed')}</SelectItem>
+                      <SelectItem value="failed">{t('jobStatus.failed')}</SelectItem>
+                      <SelectItem value="cancelled">{t('jobStatus.cancelled')}</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -401,7 +404,7 @@ export default function TranslationJobsPage() {
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                      Clear
+                      {t('jobs.clear')}
                     </Button>
                   )}
                 </div>
@@ -412,7 +415,7 @@ export default function TranslationJobsPage() {
                   <div className="flex items-center justify-center py-16">
                     <div className="flex flex-col items-center gap-4">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground">Loading jobs...</p>
+                      <p className="text-sm text-muted-foreground">{t('jobs.loading')}</p>
                     </div>
                   </div>
                 ) : jobs.length === 0 ? (
@@ -420,9 +423,9 @@ export default function TranslationJobsPage() {
                     <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
                       <ListChecks className="h-6 w-6 text-muted-foreground/30" />
                     </div>
-                    <p className="text-lg font-medium text-muted-foreground mb-2">No translation jobs found</p>
+                    <p className="text-lg font-medium text-muted-foreground mb-2">{t('jobs.noJobsFound')}</p>
                     <p className="text-sm text-muted-foreground/70 mb-4">
-                      {hasActiveFilters ? "Try adjusting your filters" : "Start a new translation to see jobs here"}
+                      {hasActiveFilters ? t('jobs.adjustFilters') : t('jobs.startFirst')}
                     </p>
                     <Button
                       variant="outline"
@@ -430,7 +433,7 @@ export default function TranslationJobsPage() {
                       className="rounded-xl"
                     >
                       <Languages className="h-4 w-4 mr-2" />
-                      Start a Translation
+                      {t('jobs.startTranslation')}
                     </Button>
                   </div>
                 ) : (
@@ -472,7 +475,7 @@ export default function TranslationJobsPage() {
                                 {job.status === "running" && (
                                   <Badge className="bg-blue-500 text-white text-xs px-2">
                                     <Activity className="h-3 w-3 mr-1" />
-                                    Live
+                                    {t('jobs.live')}
                                   </Badge>
                                 )}
                               </div>
@@ -498,7 +501,7 @@ export default function TranslationJobsPage() {
                             {/* Duration */}
                             <div className="text-right hidden lg:block w-20">
                               <div className="font-mono text-sm font-medium">{formatDuration(job)}</div>
-                              <div className="text-xs text-muted-foreground">Duration</div>
+                              <div className="text-xs text-muted-foreground">{t('jobs.duration')}</div>
                             </div>
 
                             {/* Actions */}
@@ -526,7 +529,7 @@ export default function TranslationJobsPage() {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-4 border-t border-border/50 bg-muted/10">
                     <div className="text-sm text-muted-foreground">
-                      Page <span className="font-semibold text-foreground">{page + 1}</span> of <span className="font-semibold text-foreground">{totalPages}</span>
+                      {t('jobs.page')} <span className="font-semibold text-foreground">{page + 1}</span> of <span className="font-semibold text-foreground">{totalPages}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -537,7 +540,7 @@ export default function TranslationJobsPage() {
                         className="gap-1.5 rounded-lg"
                       >
                         <ChevronLeft className="h-4 w-4" />
-                        Previous
+                        {t('jobs.previous')}
                       </Button>
                       <Button
                         variant="outline"
@@ -546,7 +549,7 @@ export default function TranslationJobsPage() {
                         disabled={page >= totalPages - 1}
                         className="gap-1.5 rounded-lg"
                       >
-                        Next
+                        {t('jobs.next')}
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -571,7 +574,7 @@ export default function TranslationJobsPage() {
                     <Info className="h-4 w-4 text-blue-600" />
                   </div>
                   <CardTitle className="text-sm font-semibold text-blue-700 dark:text-blue-400">
-                    Job Status Guide
+                    {t('jobStatus.title')}
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -651,14 +654,14 @@ export default function TranslationJobsPage() {
             className="transition-all duration-200 hover:bg-muted"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Translations
+            {t('actions.backToTranslations')}
           </Button>
           <Button
             onClick={() => router.push("/translate")}
             className="gap-2 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-95"
           >
             <Languages className="h-4 w-4" />
-            New Translation
+            {t('actions.newTranslation')}
           </Button>
         </div>
       </div>

@@ -33,6 +33,7 @@ import { ChangeLogViewer } from "@/components/sync/change-log-viewer";
 import { SyncLog } from "@/types";
 import { api } from "@/lib/api";
 import { handleSyncError } from "@/lib/sync-utils";
+import { useTranslation } from "@/contexts/language-context";
 
 /**
  * Format duration in human-readable format
@@ -62,6 +63,8 @@ function formatNumber(num: number | undefined | null): string {
 function ChangesPageContent() {
   const searchParams = useSearchParams();
   const logId = searchParams.get("log");
+  const { t } = useTranslation('sync');
+  const { t: tCommon } = useTranslation('common');
 
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -147,9 +150,9 @@ function ChangesPageContent() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Change History</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t('page.changesTitle')}</h1>
             <p className="text-muted-foreground">
-              View detailed field-level changes from sync operations
+              {t('page.changesDescription')}
             </p>
           </div>
         </div>
@@ -161,7 +164,7 @@ function ChangesPageContent() {
           className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-          Refresh
+          {t('actions.refresh')}
         </Button>
       </div>
 

@@ -1,0 +1,74 @@
+{
+  "menu": {
+    "dashboard": "Panou de control",
+    "products": "Produse",
+    "properties": "Proprietati",
+    "groupings": "Grupari",
+    "brands": "Marci",
+    "categories": "Categorii",
+    "settings": "Setari"
+  },
+  "sections": {
+    "navigation": "Navigare",
+    "syncOperations": "Operatiuni de sincronizare",
+    "createNew": "Nou",
+    "translations": "Traduceri"
+  },
+  "sync": {
+    "overview": "Prezentare generala",
+    "selectiveSync": "Sincronizare selectiva",
+    "configurations": "Configuratii",
+    "changeHistory": "Istoric modificari"
+  },
+  "create": {
+    "product": "Creeaza produs",
+    "brand": "Creeaza marca",
+    "category": "Creeaza categorie"
+  },
+  "translate": {
+    "translate": "Traducere",
+    "jobs": "Sarcini"
+  },
+  "descriptions": {
+    "dashboard": "Prezentare generala si statistici",
+    "products": "Gestioneaza catalogul de produse",
+    "properties": "Proprietati produse",
+    "groupings": "Grupari produse",
+    "brands": "Gestionare marci",
+    "categories": "Ierarhie categorii",
+    "syncOverview": "Stare sincronizare si jurnale",
+    "selectiveSync": "Operatiuni de sincronizare personalizate",
+    "configurations": "Sabloane de sincronizare",
+    "changeHistory": "Urmareste modificarile",
+    "createProduct": "Adauga produs nou",
+    "createBrand": "Adauga marca noua",
+    "createCategory": "Adauga categorie noua",
+    "translate": "Traducere continut",
+    "jobs": "Sarcini de traducere"
+  },
+  "breadcrumbs": {
+    "dashboard": "Panou de control",
+    "products": "Produse",
+    "brands": "Marci",
+    "categories": "Categorii",
+    "sync": "Stare sincronizare",
+    "settings": "Setari",
+    "properties": "Proprietati",
+    "groupings": "Grupari",
+    "translate": "Traducere",
+    "new": "Nou",
+    "edit": "Editeaza",
+    "selective": "Selectiv",
+    "configs": "Configuratii",
+    "changes": "Modificari",
+    "jobs": "Sarcini",
+    "monitor": "Monitor",
+    "groups": "Grupuri"
+  },
+  "sidebar": {
+    "language": "Limba",
+    "currency": "Moneda",
+    "appName": "Admin Intelect",
+    "appSubtitle": "Manager Ultra B2B"
+  }
+}

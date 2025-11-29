@@ -1,0 +1,33 @@
+{
+  "page": {
+    "title": "Setari",
+    "description": "Configuratia aplicatiei si informatii"
+  },
+  "sections": {
+    "apiConfiguration": "Configuratie API",
+    "apiDescription": "Setari conexiune API backend",
+    "database": "Baza de date",
+    "databaseDescription": "Informatii baza de date PostgreSQL",
+    "appearance": "Aspect",
+    "appearanceDescription": "Setari tema si afisare",
+    "about": "Despre",
+    "aboutDescription": "Informatii aplicatie"
+  },
+  "api": {
+    "url": "URL API",
+    "status": "Stare"
+  },
+  "database": {
+    "name": "Nume baza de date",
+    "tables": "Tabele"
+  },
+  "appearance": {
+    "themeHint": "Folositi comutatorul de tema din antet pentru a schimba intre tema luminoasa, intunecata si sistem."
+  },
+  "about": {
+    "application": "Aplicatie",
+    "purpose": "Scop",
+    "purposeDescription": "Panou CMS pentru gestionarea datelor produselor Ultra B2B",
+    "stack": "Tehnologii"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "page": {
+    "title": "Свойства",
+    "description": "Просмотр и управление свойствами товаров, организованными по группам",
+    "groupTitle": "Группа свойств",
+    "propertyTitle": "Значения свойства"
+  },
+  "stats": {
+    "totalGroups": "Всего групп",
+    "totalProperties": "Всего свойств",
+    "totalValues": "Всего значений",
+    "uniqueValues": "Уникальных значений",
+    "filtered": "отфильтровано"
+  },
+  "table": {
+    "groupName": "Название группы",
+    "propertyName": "Название свойства",
+    "propertyCount": "Кол-во свойств",
+    "valueCount": "Кол-во значений",
+    "value": "Значение",
+    "products": "Товары"
+  },
+  "filters": {
+    "searchGroups": "Поиск групп...",
+    "searchProperties": "Поиск свойств...",
+    "searchValues": "Поиск значений...",
+    "sortBy": "Сортировать по",
+    "nameAZ": "Название А-Я",
+    "nameZA": "Название Я-А",
+    "mostProperties": "Больше всего свойств",
+    "leastProperties": "Меньше всего свойств",
+    "mostValues": "Больше всего значений",
+    "leastValues": "Меньше всего значений"
+  },
+  "empty": {
+    "noGroups": "Группы свойств не найдены",
+    "noProperties": "В этой группе свойства не найдены",
+    "noValues": "Значения для этого свойства не найдены",
+    "adjustFilters": "Попробуйте изменить фильтры"
+  },
+  "breadcrumbs": {
+    "properties": "Свойства",
+    "groups": "Группы"
+  },
+  "hierarchy": {
+    "level1": "Группы свойств",
+    "level2": "Свойства",
+    "level3": "Значения"
+  }
+}

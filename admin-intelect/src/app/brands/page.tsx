@@ -71,7 +71,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { Brand, BrandFilterOptions, UpdateBrandPayload } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -105,6 +105,8 @@ export default function BrandsPage() {
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const { localize } = useLocalizedValue();
+  const { t } = useTranslation("brands");
+  const { t: tCommon } = useTranslation("common");
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [total, setTotal] = useState(0);
@@ -175,7 +177,7 @@ export default function BrandsPage() {
     if (debouncedSearch) {
       filters.push({
         key: "search",
-        label: "Search",
+        label: tCommon("actions.search"),
         value: debouncedSearch,
         displayValue: `"${debouncedSearch}"`,
       });
@@ -184,37 +186,37 @@ export default function BrandsPage() {
     if (hasProductsFilter) {
       filters.push({
         key: "has_products",
-        label: "Products",
+        label: t("table.products"),
         value: hasProductsFilter,
-        displayValue: hasProductsFilter === "true" ? "With Products" : "Without Products",
+        displayValue: hasProductsFilter === "true" ? t("filters.withProducts") : t("filters.withoutProducts"),
       });
     }
 
     if (isActiveFilter) {
       filters.push({
         key: "is_active",
-        label: "Status",
+        label: t("filters.status"),
         value: isActiveFilter,
-        displayValue: isActiveFilter === "true" ? "Active" : "Inactive",
+        displayValue: isActiveFilter === "true" ? t("filters.active") : t("filters.inactive"),
       });
     }
 
     if (sortBy && sortBy !== "name_asc") {
       const sortLabels: Record<string, string> = {
-        name_desc: "Name Z-A",
-        products_desc: "Most Products",
-        products_asc: "Least Products",
+        name_desc: t("filters.nameZA"),
+        products_desc: t("filters.mostProducts"),
+        products_asc: t("filters.leastProducts"),
       };
       filters.push({
         key: "sort_by",
-        label: "Sort",
+        label: t("filters.sortBy"),
         value: sortBy,
         displayValue: sortLabels[sortBy] || sortBy,
       });
     }
 
     return filters;
-  }, [debouncedSearch, hasProductsFilter, isActiveFilter, sortBy]);
+  }, [debouncedSearch, hasProductsFilter, isActiveFilter, sortBy, t, tCommon]);
 
   const fetchBrands = useCallback(async () => {
     try {
@@ -407,13 +409,13 @@ export default function BrandsPage() {
     setIsProcessing(true);
     try {
       await api.updateBrand(brandId, { is_active: isActive });
-      toast.success(`Brand ${isActive ? "activated" : "deactivated"}`);
+      toast.success(isActive ? t("toast.activated") : t("toast.deactivated"));
       startTransition(() => {
         fetchBrands();
       });
     } catch (error) {
       console.error("Failed to update brand:", error);
-      toast.error("Failed to update brand status");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -425,7 +427,7 @@ export default function BrandsPage() {
     setIsProcessing(true);
     try {
       await api.deleteBrand(deleteBrandId);
-      toast.success("Brand deleted successfully");
+      toast.success(t("toast.deleted"));
       setShowDeleteDialog(false);
       setDeleteBrandId(null);
       startTransition(() => {
@@ -433,7 +435,7 @@ export default function BrandsPage() {
       });
     } catch (error) {
       console.error("Failed to delete brand:", error);
-      toast.error("Failed to delete brand");
+      toast.error(t("toast.deleteFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -463,9 +465,9 @@ export default function BrandsPage() {
     try {
       const response = await api.uploadImage(file);
       handleEditFormChange("logo_url", response.url);
-      toast.success("Logo uploaded successfully");
+      toast.success(t("toast.logoUploaded"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to upload logo");
+      toast.error(error instanceof Error ? error.message : t("toast.logoUploadFailed"));
     } finally {
       setIsUploading(false);
     }
@@ -475,7 +477,7 @@ export default function BrandsPage() {
     if (!editBrand) return;
 
     if (!editFormState.name.trim()) {
-      toast.error("Brand name is required");
+      toast.error(t("validation.nameRequired"));
       return;
     }
 
@@ -489,7 +491,7 @@ export default function BrandsPage() {
       };
 
       await api.updateBrand(editBrand.id, payload);
-      toast.success("Brand updated successfully");
+      toast.success(t("toast.updated"));
       setShowEditDialog(false);
       setEditBrand(null);
       startTransition(() => {
@@ -497,7 +499,7 @@ export default function BrandsPage() {
       });
     } catch (error) {
       console.error("Failed to update brand:", error);
-      toast.error("Failed to update brand");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -567,9 +569,11 @@ export default function BrandsPage() {
         });
       }
       if (result.updated === 0) {
-        toast.info("No brands were updated (may already be active)");
+        toast.info(t("toast.noBrandsUpdated"));
       } else {
-        toast.success(`Successfully activated ${result.updated} brand${result.updated === 1 ? "" : "s"}`);
+        toast.success(result.updated === 1
+          ? t("toast.bulkActivated", { count: result.updated })
+          : t("toast.bulkActivatedPlural", { count: result.updated }));
       }
       handleClearSelection();
       startTransition(() => {
@@ -577,7 +581,7 @@ export default function BrandsPage() {
       });
     } catch (error) {
       console.error("Failed to bulk activate brands:", error);
-      toast.error("Failed to activate brands");
+      toast.error(t("toast.bulkFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -605,9 +609,11 @@ export default function BrandsPage() {
         });
       }
       if (result.updated === 0) {
-        toast.info("No brands were updated (may already be inactive)");
+        toast.info(t("toast.noBrandsUpdated"));
       } else {
-        toast.success(`Successfully deactivated ${result.updated} brand${result.updated === 1 ? "" : "s"}`);
+        toast.success(result.updated === 1
+          ? t("toast.bulkDeactivated", { count: result.updated })
+          : t("toast.bulkDeactivatedPlural", { count: result.updated }));
       }
       handleClearSelection();
       startTransition(() => {
@@ -615,7 +621,7 @@ export default function BrandsPage() {
       });
     } catch (error) {
       console.error("Failed to bulk deactivate brands:", error);
-      toast.error("Failed to deactivate brands");
+      toast.error(t("toast.bulkFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -634,10 +640,10 @@ export default function BrandsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success("Brands exported successfully");
+      toast.success(t("toast.exportSuccess"));
     } catch (error) {
       console.error("Failed to export brands:", error);
-      toast.error("Failed to export brands");
+      toast.error(t("toast.exportFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -649,29 +655,29 @@ export default function BrandsPage() {
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [
     {
-      label: "Total",
+      label: t("stats.total"),
       value: (total ?? 0).toLocaleString(),
-      suffix: hasActiveFilters ? "filtered" : undefined,
+      suffix: hasActiveFilters ? t("stats.filtered") : undefined,
       variant: "default",
     },
     {
-      label: "With Logos",
+      label: t("stats.withLogos"),
       value: brandsWithLogos,
-      suffix: "on page",
+      suffix: t("stats.onPage"),
       icon: <ImageIcon className="h-3.5 w-3.5" />,
       variant: brandsWithLogos > 0 ? "success" : "muted",
     },
     {
-      label: "Active",
+      label: t("stats.active"),
       value: activeBrandsOnPage,
-      suffix: "on page",
+      suffix: t("stats.onPage"),
       icon: <Power className="h-3.5 w-3.5" />,
       variant: activeBrandsOnPage > 0 ? "success" : "warning",
     },
     {
-      label: "Products",
+      label: t("table.products"),
       value: totalProductsOnPage.toLocaleString(),
-      suffix: "on page",
+      suffix: t("stats.onPage"),
       icon: <Package className="h-3.5 w-3.5" />,
       variant: "muted",
     },
@@ -681,9 +687,9 @@ export default function BrandsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Brands</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
           <p className="text-muted-foreground">
-            View and manage all brands in the catalog
+            {t("page.description")}
           </p>
         </div>
         <BrandsPageSkeleton />
@@ -695,9 +701,9 @@ export default function BrandsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Brands</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
           <p className="text-muted-foreground">
-            View and manage all brands in the catalog
+            {t("page.description")}
           </p>
         </div>
         <div className="flex flex-col items-center justify-center py-12 rounded-xl border bg-card shadow-sm">
@@ -710,7 +716,7 @@ export default function BrandsPage() {
             className="mt-4 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
             onClick={() => window.location.reload()}
           >
-            Try Again
+            {tCommon("actions.tryAgain")}
           </Button>
         </div>
       </div>
@@ -721,9 +727,9 @@ export default function BrandsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Brands</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
         <p className="text-muted-foreground">
-          View and manage all brands in the catalog
+          {t("page.description")}
         </p>
       </div>
 
@@ -771,7 +777,7 @@ export default function BrandsPage() {
             className="ml-auto transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
           >
             <Download className="h-4 w-4 mr-1.5" />
-            Export CSV
+            {t("actions.exportCSV")}
           </Button>
         </div>
 
@@ -783,7 +789,7 @@ export default function BrandsPage() {
             <Input
               ref={searchInputRef}
               name="search"
-              placeholder="Search brands..."
+              placeholder={t("filters.searchBrands")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-[250px] pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
@@ -808,12 +814,12 @@ export default function BrandsPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
             <Select value={hasProductsFilter || "all"} onValueChange={handleHasProductsChange}>
               <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder="Product count" />
+                <SelectValue placeholder={t("filters.productCount")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All brands</SelectItem>
-                <SelectItem value="true">With products</SelectItem>
-                <SelectItem value="false">Without products</SelectItem>
+                <SelectItem value="all">{t("filters.allBrands")}</SelectItem>
+                <SelectItem value="true">{t("filters.withProducts")}</SelectItem>
+                <SelectItem value="false">{t("filters.withoutProducts")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -823,12 +829,12 @@ export default function BrandsPage() {
             <Power className="h-4 w-4 text-muted-foreground" />
             <Select value={isActiveFilter || "all"} onValueChange={handleIsActiveChange}>
               <SelectTrigger className="w-[140px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t("filters.status")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="true">Active</SelectItem>
-                <SelectItem value="false">Inactive</SelectItem>
+                <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
+                <SelectItem value="true">{t("filters.active")}</SelectItem>
+                <SelectItem value="false">{t("filters.inactive")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -837,13 +843,13 @@ export default function BrandsPage() {
           <Select value={sortBy} onValueChange={handleSortByChange}>
             <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
               <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder={t("filters.sortBy")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name_asc">Name A-Z</SelectItem>
-              <SelectItem value="name_desc">Name Z-A</SelectItem>
-              <SelectItem value="products_desc">Most products</SelectItem>
-              <SelectItem value="products_asc">Least products</SelectItem>
+              <SelectItem value="name_asc">{t("filters.nameAZ")}</SelectItem>
+              <SelectItem value="name_desc">{t("filters.nameZA")}</SelectItem>
+              <SelectItem value="products_desc">{t("filters.mostProducts")}</SelectItem>
+              <SelectItem value="products_asc">{t("filters.leastProducts")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -884,7 +890,7 @@ export default function BrandsPage() {
               onClick={handleClearFilters}
               className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              Clear all
+              {tCommon("actions.clearAll")}
             </Button>
           </div>
         )}
@@ -898,8 +904,10 @@ export default function BrandsPage() {
               </div>
               <span className="text-sm font-medium text-foreground">
                 {selectAllMode
-                  ? `All ${total} matching brands selected`
-                  : `${selectedIds.size} brand${selectedIds.size !== 1 ? "s" : ""} selected`
+                  ? t("bulk.allMatching", { count: total })
+                  : selectedIds.size === 1
+                    ? t("bulk.selected", { count: selectedIds.size })
+                    : t("bulk.selectedPlural", { count: selectedIds.size })
                 }
               </span>
             </div>
@@ -911,7 +919,7 @@ export default function BrandsPage() {
                 className="text-primary p-0 h-auto"
                 onClick={handleSelectAllMatching}
               >
-                Select all {total} matching brands
+                {t("bulk.selectAllMatching", { count: total })}
               </Button>
             )}
 
@@ -924,7 +932,7 @@ export default function BrandsPage() {
                 className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
               >
                 <Power className="h-4 w-4 mr-1.5" />
-                Activate
+                {t("actions.activate")}
               </Button>
               <Button
                 variant="outline"
@@ -934,7 +942,7 @@ export default function BrandsPage() {
                 className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
               >
                 <PowerOff className="h-4 w-4 mr-1.5" />
-                Deactivate
+                {t("actions.deactivate")}
               </Button>
               <Button
                 variant="ghost"
@@ -943,7 +951,7 @@ export default function BrandsPage() {
                 disabled={isProcessing || isPending}
               >
                 <X className="h-4 w-4 mr-1" />
-                Clear
+                {tCommon("actions.clear")}
               </Button>
             </div>
           </div>
@@ -962,13 +970,13 @@ export default function BrandsPage() {
                     className="transition-transform duration-200 hover:scale-110"
                   />
                 </TableHead>
-                <TableHead className="w-[60px]">Logo</TableHead>
+                <TableHead className="w-[60px]">{t("table.logo")}</TableHead>
                 <TableHead>
                   <button
                     onClick={() => handleColumnSort("name")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
                   >
-                    Name
+                    {t("table.name")}
                     <span className={`transition-all duration-200 ${currentSortField === "name" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "name" && currentSortDirection === "asc" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -978,14 +986,14 @@ export default function BrandsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Ultra ID</TableHead>
+                <TableHead>{t("table.slug")}</TableHead>
+                <TableHead>{t("table.ultraId")}</TableHead>
                 <TableHead className="text-right">
                   <button
                     onClick={() => handleColumnSort("products")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Products
+                    {t("table.products")}
                     <span className={`transition-all duration-200 ${currentSortField === "products" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "products" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -995,8 +1003,8 @@ export default function BrandsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead className="w-[80px]">Active</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead className="w-[80px]">{t("table.active")}</TableHead>
+                <TableHead className="w-[100px]">{t("table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1008,11 +1016,11 @@ export default function BrandsPage() {
                         <Building2 className="h-10 w-10 text-muted-foreground/50" />
                       </div>
                       <div className="text-center">
-                        <p className="font-medium text-foreground">No brands found</p>
+                        <p className="font-medium text-foreground">{t("empty.title")}</p>
                         <p className="text-sm text-muted-foreground mt-1">
                           {hasActiveFilters
-                            ? "Try adjusting your filters to find what you're looking for"
-                            : "Get started by adding your first brand"
+                            ? t("empty.withFilters")
+                            : t("empty.noFilters")
                           }
                         </p>
                       </div>
@@ -1024,7 +1032,7 @@ export default function BrandsPage() {
                           className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                         >
                           <X className="h-4 w-4 mr-1.5" />
-                          Clear all filters
+                          {t("empty.clearFilters")}
                         </Button>
                       )}
                     </div>
@@ -1117,7 +1125,7 @@ export default function BrandsPage() {
                           <DropdownMenuItem asChild>
                             <Link href={`/brands/${brand.id}`} className="cursor-pointer">
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {t("actions.viewDetails")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
@@ -1125,12 +1133,12 @@ export default function BrandsPage() {
                             className="cursor-pointer"
                           >
                             <Pencil className="mr-2 h-4 w-4" />
-                            Edit Brand
+                            {t("actions.editBrand")}
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link href={`/products?brand_id=${brand.id}`} className="cursor-pointer">
                               <ExternalLink className="mr-2 h-4 w-4" />
-                              View Products
+                              {t("actions.viewProducts")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -1141,7 +1149,7 @@ export default function BrandsPage() {
                             className="cursor-pointer"
                           >
                             <Power className="mr-2 h-4 w-4" />
-                            {brand.is_active ? "Deactivate" : "Activate"}
+                            {brand.is_active ? t("actions.deactivate") : t("actions.activate")}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive cursor-pointer focus:text-destructive"
@@ -1151,7 +1159,7 @@ export default function BrandsPage() {
                             }}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            {t("actions.delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1167,12 +1175,12 @@ export default function BrandsPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <p>
-              Showing <span className="font-medium text-foreground">{filteredBrands.length}</span> of{" "}
-              <span className="font-medium text-foreground">{total}</span> brands
+              {tCommon("pagination.showing")} <span className="font-medium text-foreground">{filteredBrands.length}</span> {tCommon("pagination.of")}{" "}
+              <span className="font-medium text-foreground">{total}</span> {tCommon("pagination.items")}
             </p>
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-2">
-              <span>Rows per page:</span>
+              <span>{tCommon("pagination.rowsPerPage")}:</span>
               <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
                 <SelectTrigger className="w-[70px] h-8">
                   <SelectValue />
@@ -1195,7 +1203,7 @@ export default function BrandsPage() {
                 onClick={() => handlePageChange(1)}
                 disabled={currentPage === 1}
                 className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                title="First page"
+                title={tCommon("pagination.firstPage")}
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -1209,12 +1217,12 @@ export default function BrandsPage() {
                 className="transition-all duration-200 hover:bg-muted"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
+                {tCommon("actions.previous")}
               </Button>
 
               {/* Page Info & Jump */}
               <div className="flex items-center gap-2 px-2">
-                <span className="text-sm text-muted-foreground">Page</span>
+                <span className="text-sm text-muted-foreground">{tCommon("pagination.page")}</span>
                 <Input
                   type="number"
                   min={1}
@@ -1241,7 +1249,7 @@ export default function BrandsPage() {
                 disabled={currentPage === totalPages}
                 className="transition-all duration-200 hover:bg-muted"
               >
-                Next
+                {tCommon("actions.next")}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
 
@@ -1252,7 +1260,7 @@ export default function BrandsPage() {
                 onClick={() => handlePageChange(totalPages)}
                 disabled={currentPage === totalPages}
                 className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                title="Last page"
+                title={tCommon("pagination.lastPage")}
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>
@@ -1265,21 +1273,21 @@ export default function BrandsPage() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Edit Brand</DialogTitle>
+            <DialogTitle>{t("dialogs.editTitle")}</DialogTitle>
             <DialogDescription>
-              Make changes to the brand details below.
+              {t("dialogs.editDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Logo Upload */}
             <div className="space-y-2">
-              <Label>Brand Logo</Label>
+              <Label>{t("form.brandLogo")}</Label>
               <div className="flex items-start gap-4">
                 {editFormState.logo_url ? (
                   <div className="relative group">
                     <img
                       src={editFormState.logo_url}
-                      alt="Brand logo"
+                      alt={t("form.brandLogoAlt")}
                       className="h-16 w-16 rounded-lg object-cover border shadow-sm"
                     />
                     <button
@@ -1306,7 +1314,7 @@ export default function BrandsPage() {
                   </label>
                 )}
                 <Input
-                  placeholder="Or paste logo URL..."
+                  placeholder={t("form.logoUrlPlaceholder")}
                   value={editFormState.logo_url}
                   onChange={(e) => handleEditFormChange("logo_url", e.target.value)}
                   className="flex-1"
@@ -1317,24 +1325,24 @@ export default function BrandsPage() {
             {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="edit-name">
-                Brand Name <span className="text-destructive">*</span>
+                {t("form.brandName")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="edit-name"
                 value={editFormState.name}
                 onChange={(e) => handleEditFormChange("name", e.target.value)}
-                placeholder="Enter brand name"
+                placeholder={t("form.brandNamePlaceholder")}
               />
             </div>
 
             {/* Code */}
             <div className="space-y-2">
-              <Label htmlFor="edit-code">Brand Code</Label>
+              <Label htmlFor="edit-code">{t("form.brandCode")}</Label>
               <Input
                 id="edit-code"
                 value={editFormState.code}
                 onChange={(e) => handleEditFormChange("code", e.target.value)}
-                placeholder="e.g., SAMSUNG, APPLE"
+                placeholder={t("form.brandCodePlaceholder")}
                 className="font-mono"
               />
             </div>
@@ -1342,8 +1350,8 @@ export default function BrandsPage() {
             {/* Active Status */}
             <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
               <div>
-                <Label htmlFor="edit-is_active" className="cursor-pointer">Active Status</Label>
-                <p className="text-xs text-muted-foreground">Active brands are visible in the catalog</p>
+                <Label htmlFor="edit-is_active" className="cursor-pointer">{t("form.activeStatus")}</Label>
+                <p className="text-xs text-muted-foreground">{t("form.activeStatusDescription")}</p>
               </div>
               <Switch
                 id="edit-is_active"
@@ -1358,13 +1366,13 @@ export default function BrandsPage() {
               onClick={() => setShowEditDialog(false)}
               disabled={isProcessing}
             >
-              Cancel
+              {tCommon("actions.cancel")}
             </Button>
             <Button onClick={handleSaveEdit} disabled={isProcessing}>
               {isProcessing ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
-              Save Changes
+              {tCommon("actions.saveChanges")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1374,9 +1382,9 @@ export default function BrandsPage() {
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        title="Delete Brand"
-        description="Are you sure you want to delete this brand? This action cannot be undone and may affect associated products."
-        confirmLabel="Delete"
+        title={t("dialogs.deleteTitle")}
+        description={t("dialogs.deleteDescription")}
+        confirmLabel={tCommon("actions.delete")}
         onConfirm={handleDeleteBrand}
         variant="destructive"
         isLoading={isProcessing}

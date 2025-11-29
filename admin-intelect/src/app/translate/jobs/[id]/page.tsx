@@ -31,11 +31,14 @@ import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { TranslationJob, TranslationLog } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/language-context";
 
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation('translate');
+  const { t: tCommon } = useTranslation('common');
   const jobId = params.id as string;
 
   // State
@@ -203,15 +206,15 @@ export default function JobDetailPage() {
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="h-8 w-8 text-muted-foreground/30" />
             </div>
-            <p className="text-lg font-medium mb-2">Job not found</p>
-            <p className="text-sm text-muted-foreground mb-4">The translation job you are looking for does not exist.</p>
+            <p className="text-lg font-medium mb-2">{t('jobDetail.notFound')}</p>
+            <p className="text-sm text-muted-foreground mb-4">{t('jobDetail.notFoundDescription')}</p>
             <Button
               variant="outline"
               onClick={() => router.push("/translate/jobs")}
               className="transition-all duration-200 hover:shadow-md active:scale-95"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Jobs
+              {t('jobDetail.backToJobs')}
             </Button>
           </CardContent>
         </Card>
@@ -261,7 +264,7 @@ export default function JobDetailPage() {
               className="gap-2 shadow-lg shadow-destructive/25 transition-all duration-200 hover:shadow-xl active:scale-95"
             >
               <Pause className="h-4 w-4" />
-              Cancel Job
+              {t('actions.cancelJob')}
             </Button>
           )}
           <Button
@@ -270,7 +273,7 @@ export default function JobDetailPage() {
             className="gap-2 transition-all duration-200 hover:shadow-md active:scale-95"
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            Refresh
+            {t('jobDetail.refresh')}
           </Button>
         </div>
       </div>

@@ -47,7 +47,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { DeleteConfirmDialog } from "@/components/properties/DeleteConfirmDialog";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -65,6 +65,8 @@ export default function ProductGroupingDetailPage() {
   const router = useRouter();
   const groupId = params.id as string;
   const { localize } = useLocalizedValue();
+  const { t } = useTranslation('groupings');
+  const { t: tCommon } = useTranslation('common');
 
   // State
   const [group, setGroup] = useState<ProductGrouping | null>(null);
@@ -225,25 +227,25 @@ export default function ProductGroupingDetailPage() {
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [
     {
-      label: "Total Variants",
+      label: t('stats.totalVariants'),
       value: stats.totalVariants.toLocaleString(),
       icon: <Layers className="h-3.5 w-3.5" />,
       variant: "default",
     },
     {
-      label: "Active",
+      label: t('stats.active'),
       value: stats.activeVariants,
       icon: <CheckCircle2 className="h-3.5 w-3.5" />,
       variant: stats.activeVariants > 0 ? "success" : "muted",
     },
     {
-      label: "Total Stock",
+      label: t('stats.totalStock'),
       value: stats.totalStock.toLocaleString(),
       icon: <Warehouse className="h-3.5 w-3.5" />,
       variant: stats.totalStock > 0 ? "success" : "warning",
     },
     {
-      label: "Price Range",
+      label: t('stats.priceRange'),
       value: stats.priceRange,
       icon: <DollarSign className="h-3.5 w-3.5" />,
       variant: "muted",
@@ -273,7 +275,7 @@ export default function ProductGroupingDetailPage() {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/groupings">Groupings</Link>
+              <Link href="/groupings">{tCommon('navigation.groupings')}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -307,11 +309,11 @@ export default function ProductGroupingDetailPage() {
                     : ""
                 }`}
               >
-                {group.is_active ? "Active" : "Inactive"}
+                {group.is_active ? t('badges.active') : t('badges.inactive')}
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              Product variants for this grouping
+              {t('page.detailDescription')}
             </p>
           </div>
         </div>
@@ -321,26 +323,26 @@ export default function ProductGroupingDetailPage() {
       <div className="rounded-xl border bg-card shadow-sm p-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Code</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('detail.code')}</p>
             <p className="font-medium">{group.code || group.article || "-"}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Brand</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('detail.brand')}</p>
             <p className="font-medium">{group.brand_name || "-"}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Category</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('detail.category')}</p>
             <p className="font-medium">{group.category_name || "-"}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('detail.status')}</p>
             <div className="flex items-center gap-2">
               {group.is_active ? (
                 <CheckCircle2 className="h-4 w-4 text-primary" />
               ) : (
                 <XCircle className="h-4 w-4 text-destructive" />
               )}
-              <span className="font-medium">{group.is_active ? "Active" : "Inactive"}</span>
+              <span className="font-medium">{group.is_active ? t('badges.active') : t('badges.inactive')}</span>
             </div>
           </div>
         </div>
@@ -387,7 +389,7 @@ export default function ProductGroupingDetailPage() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search variants..."
+              placeholder={t('filters.searchVariants')}
               className="pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -409,7 +411,7 @@ export default function ProductGroupingDetailPage() {
             onClick={handleSearch}
             className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
           >
-            Search
+            {tCommon('actions.search')}
           </Button>
           {search && (
             <Badge
@@ -420,7 +422,7 @@ export default function ProductGroupingDetailPage() {
                 hover:bg-primary/15 transition-all duration-200
               "
             >
-              <span className="text-xs font-normal text-primary/70">Search:</span>
+              <span className="text-xs font-normal text-primary/70">{tCommon('actions.search')}:</span>
               <span className="text-xs font-medium max-w-[150px] truncate">"{search}"</span>
               <button
                 onClick={handleClearSearch}
@@ -442,9 +444,9 @@ export default function ProductGroupingDetailPage() {
                 <Layers className="h-10 w-10 text-muted-foreground/50" />
               </div>
               <div className="text-center">
-                <p className="font-medium text-foreground">No variants found</p>
+                <p className="font-medium text-foreground">{t('empty.noVariants')}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {search ? "Try adjusting your search to find what you're looking for" : "No variants available for this group"}
+                  {search ? t('empty.withFilters') : t('empty.noVariantsForGroup')}
                 </p>
               </div>
               {search && (
@@ -455,7 +457,7 @@ export default function ProductGroupingDetailPage() {
                   className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                 >
                   <X className="h-4 w-4 mr-1.5" />
-                  Clear search
+                  {t('actions.clearSearch')}
                 </Button>
               )}
             </div>
@@ -463,13 +465,13 @@ export default function ProductGroupingDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="w-[60px]">Image</TableHead>
-                  <TableHead>Variant Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead className="text-right">Price (MDL)</TableHead>
-                  <TableHead className="text-right">Stock</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right w-[80px]">Actions</TableHead>
+                  <TableHead className="w-[60px]">{t('table.image')}</TableHead>
+                  <TableHead>{t('table.variantName')}</TableHead>
+                  <TableHead>{t('table.code')}</TableHead>
+                  <TableHead className="text-right">{t('table.priceMDL')}</TableHead>
+                  <TableHead className="text-right">{t('table.stock')}</TableHead>
+                  <TableHead className="text-center">{t('table.status')}</TableHead>
+                  <TableHead className="text-right w-[80px]">{t('table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -518,7 +520,7 @@ export default function ProductGroupingDetailPage() {
                         </span>
                       ) : (
                         <Badge variant="outline" className="font-normal text-muted-foreground">
-                          No price
+                          {t('badges.noPrice')}
                         </Badge>
                       )}
                     </TableCell>
@@ -530,14 +532,14 @@ export default function ProductGroupingDetailPage() {
                             variant="default"
                             className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors text-xs"
                           >
-                            In Stock
+                            {t('badges.inStock')}
                           </Badge>
                         ) : (
                           <Badge
                             variant="destructive"
                             className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 transition-colors text-xs"
                           >
-                            Out
+                            {t('badges.outOfStock')}
                           </Badge>
                         )}
                       </div>
@@ -548,11 +550,11 @@ export default function ProductGroupingDetailPage() {
                           variant="default"
                           className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors"
                         >
-                          Active
+                          {t('badges.active')}
                         </Badge>
                       ) : (
                         <Badge variant="secondary">
-                          Inactive
+                          {t('badges.inactive')}
                         </Badge>
                       )}
                     </TableCell>
@@ -578,8 +580,8 @@ export default function ProductGroupingDetailPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <p>
-                Showing <span className="font-medium text-foreground">{variants.length}</span> of{" "}
-                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> variants
+                {t('pagination.showing')} <span className="font-medium text-foreground">{variants.length}</span> {t('pagination.of')}{" "}
+                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> {t('pagination.variants')}
               </p>
             </div>
 
@@ -592,7 +594,7 @@ export default function ProductGroupingDetailPage() {
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage === 1}
                   className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                  title="First page"
+                  title={t('pagination.firstPage')}
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
@@ -606,12 +608,12 @@ export default function ProductGroupingDetailPage() {
                   className="transition-all duration-200 hover:bg-muted"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  {t('pagination.previous')}
                 </Button>
 
                 {/* Page Info & Jump */}
                 <div className="flex items-center gap-2 px-2">
-                  <span className="text-sm text-muted-foreground">Page</span>
+                  <span className="text-sm text-muted-foreground">{t('pagination.page')}</span>
                   <Input
                     type="number"
                     min={1}
@@ -638,7 +640,7 @@ export default function ProductGroupingDetailPage() {
                   disabled={currentPage === totalPages}
                   className="transition-all duration-200 hover:bg-muted"
                 >
-                  Next
+                  {t('pagination.next')}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
 
@@ -649,7 +651,7 @@ export default function ProductGroupingDetailPage() {
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage === totalPages}
                   className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                  title="Last page"
+                  title={t('pagination.lastPage')}
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
@@ -664,8 +666,8 @@ export default function ProductGroupingDetailPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, variantId: "", variantName: "", loading: false })}
         onConfirm={handleDeleteConfirm}
-        title="Unlink Product Variant"
-        description={`Are you sure you want to unlink "${deleteDialog.variantName}" from this group?`}
+        title={t('delete.variantTitle')}
+        description={t('delete.variantDescription').replace('{{name}}', deleteDialog.variantName)}
         impactData={{ records_to_delete: 0, products_affected: 1 }}
         isLoading={deleteDialog.loading}
       />

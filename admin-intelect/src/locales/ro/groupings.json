@@ -1,0 +1,92 @@
+{
+  "page": {
+    "title": "Grupari de Produse",
+    "description": "Gestioneaza produsele parinte si relatiile de variante",
+    "detailTitle": "Detalii Grupare",
+    "detailDescription": "Variante de produs pentru aceasta grupare"
+  },
+  "stats": {
+    "totalGroups": "Total Grupuri",
+    "totalVariants": "Variante",
+    "totalStock": "Stoc Total",
+    "avgPrice": "Pret Mediu",
+    "active": "Active",
+    "priceRange": "Interval de Pret",
+    "onPage": "pe pagina",
+    "filtered": "filtrate"
+  },
+  "table": {
+    "productName": "Nume Produs",
+    "code": "Cod",
+    "brand": "Marca",
+    "category": "Categorie",
+    "variants": "Variante",
+    "priceRange": "Interval de Pret",
+    "stock": "Stoc",
+    "status": "Stare",
+    "actions": "Actiuni",
+    "variantName": "Nume Varianta",
+    "priceMDL": "Pret (MDL)",
+    "image": "Imagine"
+  },
+  "filters": {
+    "searchGroupings": "Cauta grupuri de produse...",
+    "searchVariants": "Cauta variante...",
+    "sortBy": "Sorteaza dupa",
+    "nameAZ": "Nume A-Z",
+    "nameZA": "Nume Z-A",
+    "mostVariants": "Cele mai multe variante",
+    "leastVariants": "Cele mai putine variante",
+    "mostStock": "Cel mai mult stoc",
+    "leastStock": "Cel mai putin stoc"
+  },
+  "empty": {
+    "title": "Nu s-au gasit grupuri de produse",
+    "withFilters": "Incercati sa ajustati filtrele pentru a gasi ceea ce cautati",
+    "noFilters": "Nu sunt grupuri disponibile",
+    "noVariants": "Nu s-au gasit variante",
+    "noVariantsForGroup": "Nu sunt variante disponibile pentru acest grup"
+  },
+  "badges": {
+    "active": "Activ",
+    "inactive": "Inactiv",
+    "inStock": "In Stoc",
+    "outOfStock": "Epuizat",
+    "noPrice": "Fara pret"
+  },
+  "actions": {
+    "viewVariants": "Vezi Variante",
+    "delete": "Sterge",
+    "clearAllFilters": "Sterge toate filtrele",
+    "clearSearch": "Sterge cautarea"
+  },
+  "delete": {
+    "groupTitle": "Sterge Grupul de Produse",
+    "groupDescription": "Sunteti sigur ca doriti sa stergeti \"{{name}}\" si sa deconectati toate variantele sale?",
+    "variantTitle": "Deconecteaza Varianta Produsului",
+    "variantDescription": "Sunteti sigur ca doriti sa deconectati \"{{name}}\" de la acest grup?"
+  },
+  "pagination": {
+    "showing": "Afisare",
+    "of": "din",
+    "groups": "grupuri",
+    "variants": "variante",
+    "rowsPerPage": "Randuri pe pagina",
+    "page": "Pagina",
+    "firstPage": "Prima pagina",
+    "lastPage": "Ultima pagina",
+    "previous": "Anterior",
+    "next": "Urmator"
+  },
+  "detail": {
+    "code": "Cod",
+    "brand": "Marca",
+    "category": "Categorie",
+    "status": "Stare"
+  },
+  "loading": {
+    "groups": "Se incarca grupurile...",
+    "variants": "Se incarca variantele..."
+  },
+  "activeFilters": "filtre active"
+}

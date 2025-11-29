@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { loadAllTranslations, translate, TranslationNamespace } from "@/lib/i18n";
 
 // Supported languages
 export type LanguageCode = "en" | "ro" | "ru";
@@ -26,6 +27,8 @@ interface LanguageContextType {
   setLanguage: (lang: LanguageCode) => void;
   languages: LanguageOption[];
   currentLanguage: LanguageOption;
+  translations: Record<string, Record<string, unknown>>;
+  isLoadingTranslations: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -118,6 +121,21 @@ export function getLocalizedGroupName<T extends Record<string, unknown>>(
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<LanguageCode>(DEFAULT_LANGUAGE);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [translations, setTranslations] = useState<Record<string, Record<string, unknown>>>({});
+  const [isLoadingTranslations, setIsLoadingTranslations] = useState(true);
+
+  // Load translations when language changes
+  const loadTranslations = useCallback(async (lang: LanguageCode) => {
+    setIsLoadingTranslations(true);
+    try {
+      const loaded = await loadAllTranslations(lang);
+      setTranslations(loaded);
+    } catch (error) {
+      console.error("Failed to load translations:", error);
+    } finally {
+      setIsLoadingTranslations(false);
+    }
+  }, []);
 
   // Load language from localStorage on mount
   useEffect(() => {
@@ -129,6 +147,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       setIsInitialized(true);
     }
   }, []);
+
+  // Load translations when language changes or on init
+  useEffect(() => {
+    if (isInitialized) {
+      loadTranslations(language);
+    }
+  }, [language, isInitialized, loadTranslations]);
 
   // Save language to localStorage when it changes
   const setLanguage = useCallback((lang: LanguageCode) => {
@@ -149,8 +174,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       setLanguage,
       languages: LANGUAGES,
       currentLanguage,
+      translations,
+      isLoadingTranslations,
     }),
-    [language, setLanguage, currentLanguage]
+    [language, setLanguage, currentLanguage, translations, isLoadingTranslations]
   );
 
   // Prevent hydration mismatch by not rendering until initialized
@@ -171,6 +198,23 @@ export function useLanguage() {
     throw new Error("useLanguage must be used within a LanguageProvider");
   }
   return context;
+}
+
+/**
+ * Hook for UI translations
+ * Returns a t() function that translates keys from the specified namespace
+ */
+export function useTranslation(namespace: TranslationNamespace = "common") {
+  const { language, translations } = useLanguage();
+
+  const t = useCallback(
+    (key: string, variables?: Record<string, string | number>): string => {
+      return translate(translations, namespace, key, variables);
+    },
+    [translations, namespace]
+  );
+
+  return { t, language };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

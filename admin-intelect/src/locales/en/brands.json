@@ -1,0 +1,98 @@
+{
+  "page": {
+    "title": "Brands",
+    "description": "View and manage all brands in the catalog",
+    "newTitle": "Create Brand",
+    "newDescription": "Add a new brand to the catalog",
+    "editTitle": "Edit Brand",
+    "editDescription": "Update brand information"
+  },
+  "stats": {
+    "total": "Total",
+    "withLogos": "With Logos",
+    "active": "Active",
+    "products": "Products",
+    "filtered": "filtered",
+    "onPage": "on page"
+  },
+  "table": {
+    "logo": "Logo",
+    "name": "Name",
+    "slug": "Slug",
+    "ultraId": "Ultra ID",
+    "products": "Products",
+    "active": "Active",
+    "actions": "Actions"
+  },
+  "filters": {
+    "searchBrands": "Search brands...",
+    "productCount": "Product count",
+    "allBrands": "All brands",
+    "withProducts": "With products",
+    "withoutProducts": "Without products",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "sortBy": "Sort by",
+    "nameAZ": "Name A-Z",
+    "nameZA": "Name Z-A",
+    "mostProducts": "Most products",
+    "leastProducts": "Least products"
+  },
+  "empty": {
+    "title": "No brands found",
+    "withFilters": "Try adjusting your filters to find what you're looking for",
+    "noFilters": "Get started by adding your first brand",
+    "clearFilters": "Clear all filters"
+  },
+  "bulk": {
+    "selected": "{{count}} brand selected",
+    "selectedPlural": "{{count}} brands selected",
+    "allMatching": "All {{count}} matching brands selected",
+    "selectAllMatching": "Select all {{count}} matching brands"
+  },
+  "actions": {
+    "exportCSV": "Export CSV",
+    "viewDetails": "View Details",
+    "editBrand": "Edit Brand",
+    "viewProducts": "View Products",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "delete": "Delete"
+  },
+  "dialogs": {
+    "editTitle": "Edit Brand",
+    "editDescription": "Make changes to the brand details below.",
+    "deleteTitle": "Delete Brand",
+    "deleteDescription": "Are you sure you want to delete this brand? This action cannot be undone and may affect associated products."
+  },
+  "form": {
+    "brandLogo": "Brand Logo",
+    "brandName": "Brand Name",
+    "brandNamePlaceholder": "Enter brand name",
+    "brandCode": "Brand Code",
+    "brandCodePlaceholder": "e.g., SAMSUNG, APPLE",
+    "activeStatus": "Active Status",
+    "activeDescription": "Active brands are visible in the catalog",
+    "pasteLogoUrl": "Or paste logo URL..."
+  },
+  "toast": {
+    "activated": "Brand activated",
+    "deactivated": "Brand deactivated",
+    "deleted": "Brand deleted successfully",
+    "created": "Brand created successfully",
+    "updated": "Brand updated successfully",
+    "logoUploaded": "Logo uploaded successfully",
+    "logoUploadFailed": "Failed to upload logo",
+    "bulkActivated": "Successfully activated {{count}} brand",
+    "bulkActivatedPlural": "Successfully activated {{count}} brands",
+    "bulkDeactivated": "Successfully deactivated {{count}} brand",
+    "bulkDeactivatedPlural": "Successfully deactivated {{count}} brands",
+    "noBrandsUpdated": "No brands were updated (may already be active)",
+    "exportSuccess": "Brands exported successfully",
+    "exportFailed": "Failed to export brands",
+    "updateFailed": "Failed to update brand status",
+    "deleteFailed": "Failed to delete brand",
+    "nameRequired": "Brand name is required"
+  }
+}

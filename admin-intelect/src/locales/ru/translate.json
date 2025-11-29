@@ -1,0 +1,199 @@
+{
+  "page": {
+    "title": "Переводы",
+    "description": "Перевод товаров, категорий и свойств",
+    "jobsTitle": "Задачи перевода",
+    "jobsDescription": "Просмотр и управление всеми задачами перевода",
+    "jobDetailTitle": "Детали задачи",
+    "jobDetailDescription": "Просмотр детального прогресса и результатов"
+  },
+  "breadcrumb": {
+    "dashboard": "Панель управления",
+    "translations": "Переводы",
+    "jobs": "Задачи"
+  },
+  "stats": {
+    "totalJobs": "Всего задач",
+    "running": "Выполняются",
+    "completed": "Завершено",
+    "failed": "Неудачно",
+    "total": "Всего",
+    "translated": "Переведено",
+    "skipped": "Пропущено"
+  },
+  "form": {
+    "startTranslation": "Начать перевод",
+    "configureAndLaunch": "Настройте и запустите новую задачу перевода",
+    "entityType": "Тип сущности",
+    "products": "Товары",
+    "productsDescription": "Названия и описания",
+    "categories": "Категории",
+    "categoriesDescription": "Названия категорий",
+    "properties": "Свойства",
+    "propertiesDescription": "Группы и названия",
+    "targetLanguage": "Целевой язык",
+    "russian": "Русский",
+    "romanian": "Румынский",
+    "itemsPending": "Элементов в ожидании",
+    "allTranslated": "Все переведено",
+    "to": "на"
+  },
+  "languages": {
+    "ru": "Русский",
+    "ro": "Румынский"
+  },
+  "actions": {
+    "refresh": "Обновить",
+    "viewAllJobs": "Все задачи",
+    "back": "Назад",
+    "startTranslation": "Начать перевод",
+    "startingTranslation": "Запуск перевода...",
+    "translationInProgress": "Перевод в процессе",
+    "allItemsTranslated": "Все элементы переведены",
+    "newTranslation": "Новый перевод",
+    "backToTranslations": "К переводам",
+    "cancelJob": "Отменить задачу"
+  },
+  "activeJob": {
+    "title": "Активная задача",
+    "progress": "Прогресс",
+    "translated": "Переведено",
+    "failed": "Неудачно",
+    "skipped": "Пропущено",
+    "recentActivity": "Последняя активность",
+    "cancel": "Отмена"
+  },
+  "tips": {
+    "title": "Советы и руководства",
+    "entitySelection": "Выбор сущности",
+    "entitySelectionDescription": "Выберите тип контента для перевода",
+    "languageTarget": "Целевой язык",
+    "languageTargetDescription": "Выберите русский или румынский как целевой язык",
+    "batchProcessing": "Пакетная обработка",
+    "batchProcessingDescription": "Элементы переводятся пакетами для эффективности",
+    "progressTracking": "Отслеживание прогресса",
+    "progressTrackingDescription": "Отслеживайте прогресс в реальном времени во время перевода"
+  },
+  "recentJobs": {
+    "title": "Последние задачи",
+    "description": "Последние 5 задач перевода",
+    "viewAll": "Все",
+    "noJobs": "Пока нет задач перевода",
+    "items": "элементов"
+  },
+  "confirm": {
+    "title": "Начать задачу перевода?",
+    "description": "Это переведет",
+    "to": "на",
+    "duration": "Длительность зависит от количества элементов для обработки.",
+    "cancel": "Отмена",
+    "start": "Начать перевод"
+  },
+  "jobs": {
+    "title": "Задачи",
+    "totalJobs": "всего задач",
+    "filters": "Фильтры",
+    "allEntities": "Все сущности",
+    "allLanguages": "Все языки",
+    "allStatuses": "Все статусы",
+    "clear": "Очистить",
+    "noJobsFound": "Задачи перевода не найдены",
+    "adjustFilters": "Попробуйте изменить фильтры",
+    "startFirst": "Начните новый перевод, чтобы увидеть задачи здесь",
+    "startTranslation": "Начать перевод",
+    "live": "Live",
+    "created": "Создано",
+    "duration": "Длительность",
+    "page": "Страница",
+    "previous": "Назад",
+    "next": "Вперед",
+    "loading": "Загрузка задач..."
+  },
+  "jobStatus": {
+    "title": "Справка по статусам",
+    "running": "Выполняется",
+    "runningDescription": "Задача сейчас обрабатывает элементы",
+    "pending": "В ожидании",
+    "pendingDescription": "Задача в очереди и ждет начала",
+    "completed": "Завершено",
+    "completedDescription": "Задача успешно завершена",
+    "failed": "Неудачно",
+    "failedDescription": "Задача столкнулась с ошибкой и остановилась",
+    "cancelled": "Отменено",
+    "cancelledDescription": "Задача была отменена вручную"
+  },
+  "jobDetail": {
+    "notFound": "Задача не найдена",
+    "notFoundDescription": "Задача перевода, которую вы ищете, не существует.",
+    "backToJobs": "К задачам",
+    "refresh": "Обновить",
+    "started": "Начало",
+    "notYet": "Еще нет",
+    "estimatedTime": "Примерное время",
+    "progress": "Прогресс",
+    "overallProgress": "Общий прогресс",
+    "duration": "Длительность",
+    "successRate": "Успешность",
+    "speed": "Скорость",
+    "perMin": "/мин",
+    "errorMessage": "Сообщение об ошибке",
+    "translationLogs": "Журналы перевода",
+    "autoScrollOn": "Автопрокрутка ВКЛ",
+    "autoScrollOff": "Автопрокрутка ВЫКЛ",
+    "loadingLogs": "Загрузка журналов...",
+    "noLogsYet": "Пока нет доступных журналов",
+    "logsWillAppear": "Журналы появятся здесь по мере обработки переводов",
+    "loadMore": "Загрузить еще",
+    "remaining": "осталось",
+    "calculating": "Расчет...",
+    "almostDone": "Почти готово"
+  },
+  "table": {
+    "jobId": "ID задачи",
+    "entityType": "Тип сущности",
+    "languages": "Языки",
+    "status": "Статус",
+    "progress": "Прогресс",
+    "startedAt": "Начало",
+    "completedAt": "Завершение",
+    "duration": "Длительность",
+    "actions": "Действия"
+  },
+  "status": {
+    "pending": "В ожидании",
+    "running": "Выполняется",
+    "completed": "Завершено",
+    "failed": "Ошибка",
+    "cancelled": "Отменено"
+  },
+  "progress": {
+    "translating": "Перевод...",
+    "processed": "Обработано",
+    "of": "из",
+    "items": "элементов",
+    "errors": "Ошибки",
+    "currentItem": "Текущий элемент"
+  },
+  "empty": {
+    "noJobs": "Задачи перевода не найдены",
+    "startFirst": "Начните первую задачу перевода выше"
+  },
+  "toast": {
+    "jobStarted": "Задача перевода начата",
+    "jobCompleted": "Задача перевода успешно завершена",
+    "jobFailed": "Ошибка задачи перевода",
+    "jobCancelled": "Задача перевода отменена",
+    "selectEntityType": "Пожалуйста, выберите тип сущности",
+    "selectLanguage": "Пожалуйста, выберите хотя бы один целевой язык",
+    "selectField": "Пожалуйста, выберите хотя бы одно поле для перевода"
+  },
+  "details": {
+    "jobInformation": "Информация о задаче",
+    "configuration": "Конфигурация",
+    "results": "Результаты",
+    "errors": "Ошибки",
+    "translatedCount": "Переведено",
+    "skippedCount": "Пропущено",
+    "errorCount": "Ошибки"
+  }
+}

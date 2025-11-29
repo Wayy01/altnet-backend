@@ -1,0 +1,114 @@
+{
+  "page": {
+    "title": "Товары",
+    "description": "Управление и просмотр всех товаров в каталоге",
+    "newTitle": "Создать товар",
+    "newDescription": "Добавить новый товар в каталог",
+    "editTitle": "Редактировать товар",
+    "editDescription": "Обновить информацию о товаре"
+  },
+  "stats": {
+    "total": "Всего",
+    "withPrices": "С ценами",
+    "inStock": "В наличии",
+    "showing": "Показано",
+    "filtered": "отфильтровано",
+    "onPage": "на странице"
+  },
+  "table": {
+    "name": "Название",
+    "code": "Код",
+    "brand": "Бренд",
+    "category": "Категория",
+    "source": "Источник",
+    "priceMDL": "Цена (MDL)",
+    "stock": "Остаток",
+    "active": "Активен",
+    "actions": "Действия"
+  },
+  "filters": {
+    "searchProducts": "Поиск товаров...",
+    "allBrands": "Все бренды",
+    "allCategories": "Все категории",
+    "allSources": "Все источники",
+    "price": "Цена",
+    "withPrice": "С ценой",
+    "noPrice": "Без цены",
+    "stock": "Остаток",
+    "inStock": "В наличии",
+    "outOfStock": "Нет в наличии",
+    "status": "Статус",
+    "active": "Активен",
+    "inactive": "Неактивен",
+    "sortBy": "Сортировать по",
+    "nameAZ": "Название А-Я",
+    "nameZA": "Название Я-А",
+    "highestPrice": "Самая высокая цена",
+    "lowestPrice": "Самая низкая цена",
+    "mostStock": "Больше всего на складе",
+    "leastStock": "Меньше всего на складе"
+  },
+  "empty": {
+    "title": "Товары не найдены",
+    "withFilters": "Попробуйте изменить фильтры, чтобы найти то, что вы ищете",
+    "noFilters": "Начните с добавления первого товара",
+    "clearFilters": "Очистить все фильтры"
+  },
+  "bulk": {
+    "selected": "{{count}} товар выбран",
+    "selectedPlural": "{{count}} товаров выбрано",
+    "allMatching": "Все {{count}} подходящих товаров выбрано",
+    "selectAllMatching": "Выбрать все {{count}} подходящих товаров"
+  },
+  "badges": {
+    "noPrice": "Без цены",
+    "outOfStock": "Нет в наличии"
+  },
+  "actions": {
+    "exportCSV": "Экспорт CSV",
+    "viewDetails": "Подробнее",
+    "addVariant": "Добавить вариант",
+    "activate": "Активировать",
+    "deactivate": "Деактивировать",
+    "delete": "Удалить"
+  },
+  "dialogs": {
+    "deleteTitle": "Удалить товар",
+    "deleteDescription": "Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить."
+  },
+  "tabs": {
+    "basicInfo": "Основная информация",
+    "properties": "Свойства",
+    "media": "Медиа",
+    "variants": "Варианты"
+  },
+  "form": {
+    "productName": "Название товара",
+    "productNamePlaceholder": "Введите название товара",
+    "productCode": "Код товара",
+    "productCodePlaceholder": "напр., SKU-12345",
+    "description": "Описание",
+    "descriptionPlaceholder": "Введите описание товара",
+    "selectBrand": "Выберите бренд",
+    "selectCategory": "Выберите категорию",
+    "selectSource": "Выберите источник",
+    "isActive": "Активен",
+    "isActiveDescription": "Активные товары отображаются в каталоге"
+  },
+  "toast": {
+    "activated": "Товар активирован",
+    "deactivated": "Товар деактивирован",
+    "deleted": "Товар успешно удален",
+    "created": "Товар успешно создан",
+    "updated": "Товар успешно обновлен",
+    "bulkActivated": "Успешно активирован {{count}} товар",
+    "bulkActivatedPlural": "Успешно активировано {{count}} товаров",
+    "bulkDeactivated": "Успешно деактивирован {{count}} товар",
+    "bulkDeactivatedPlural": "Успешно деактивировано {{count}} товаров",
+    "noProductsUpdated": "Ни один товар не был обновлен (возможно, уже активны)",
+    "exportSuccess": "Товары успешно экспортированы",
+    "exportFailed": "Ошибка экспорта товаров",
+    "updateFailed": "Ошибка обновления статуса товара",
+    "deleteFailed": "Ошибка удаления товара"
+  }
+}

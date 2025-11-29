@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 import { PropertyBreadcrumb } from "@/components/properties/PropertyBreadcrumb";
 import { DeleteConfirmDialog } from "@/components/properties/DeleteConfirmDialog";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -80,6 +80,8 @@ export default function PropertiesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { localizeGroupName } = useLocalizedValue();
+  const { t } = useTranslation('properties');
+  const { t: tCommon } = useTranslation('common');
 
   // Get initial values from URL params
   const initialSearch = searchParams.get("search") || "";
@@ -157,24 +159,24 @@ export default function PropertiesPage() {
 
     if (sortBy && sortBy !== "name_asc") {
       const sortLabels: Record<string, string> = {
-        name_desc: "Name Z-A",
-        properties_desc: "Most Properties",
-        properties_asc: "Least Properties",
-        values_desc: "Most Values",
-        values_asc: "Least Values",
-        products_desc: "Most Products",
-        products_asc: "Least Products",
+        name_desc: t('filters.nameZA'),
+        properties_desc: t('filters.mostProperties'),
+        properties_asc: t('filters.leastProperties'),
+        values_desc: t('filters.mostValues'),
+        values_asc: t('filters.leastValues'),
+        products_desc: t('filters.mostProducts'),
+        products_asc: t('filters.leastProducts'),
       };
       filters.push({
         key: "sort_by",
-        label: "Sort",
+        label: tCommon('filters.sortBy'),
         value: sortBy,
         displayValue: sortLabels[sortBy] || sortBy,
       });
     }
 
     return filters;
-  }, [debouncedSearch, sortBy]);
+  }, [debouncedSearch, sortBy, t, tCommon]);
 
   // Helper to update URL params
   const updateUrlParams = (updates: Record<string, string | null>) => {
@@ -211,7 +213,7 @@ export default function PropertiesPage() {
       // Trigger staggered row animation after data loads
       setTimeout(() => setRowsVisible(true), 50);
     } catch (error: any) {
-      toast.error(error.message || "Failed to fetch property groups");
+      toast.error(error.message || t('messages.failedToFetch'));
       setGroups([]);
     } finally {
       setLoading(false);
@@ -336,7 +338,7 @@ export default function PropertiesPage() {
       const impact = await api.getGroupDeletionImpact(groupName);
       setDeleteDialog({ open: true, groupName, impact, loading: false });
     } catch (error: any) {
-      toast.error(error.message || "Failed to get deletion impact");
+      toast.error(error.message || t('messages.failedToGetImpact'));
       setDeleteDialog({ open: false, groupName: "", loading: false });
     }
   };
@@ -345,11 +347,11 @@ export default function PropertiesPage() {
     try {
       setDeleteDialog((prev) => ({ ...prev, loading: true }));
       await api.deletePropertyGroup(deleteDialog.groupName);
-      toast.success("Property group deleted successfully");
+      toast.success(t('messages.groupDeleted'));
       setDeleteDialog({ open: false, groupName: "", loading: false });
       fetchGroups();
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete property group");
+      toast.error(error.message || t('messages.failedToDelete'));
       setDeleteDialog((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -360,30 +362,30 @@ export default function PropertiesPage() {
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [
     {
-      label: "Total Groups",
+      label: t('stats.totalGroups'),
       value: stats.totalGroups.toLocaleString(),
-      suffix: hasActiveFilters ? "filtered" : undefined,
+      suffix: hasActiveFilters ? t('stats.filtered') : undefined,
       icon: <Database className="h-3.5 w-3.5" />,
       variant: "default",
     },
     {
-      label: "Properties",
+      label: t('stats.properties'),
       value: stats.totalProperties.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <Settings className="h-3.5 w-3.5" />,
       variant: stats.totalProperties > 0 ? "success" : "muted",
     },
     {
-      label: "Values",
+      label: t('stats.values'),
       value: totalValuesOnPage.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <FilterIcon className="h-3.5 w-3.5" />,
       variant: totalValuesOnPage > 0 ? "success" : "warning",
     },
     {
-      label: "Products",
+      label: t('stats.products'),
       value: totalProductsOnPage.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <Package className="h-3.5 w-3.5" />,
       variant: "muted",
     },
@@ -393,9 +395,9 @@ export default function PropertiesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Property Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('page.title')}</h1>
           <p className="text-muted-foreground">
-            Browse property groups, names, and values in a hierarchical structure
+            {t('page.description')}
           </p>
         </div>
         <PropertyBreadcrumb currentLevel={1} />
@@ -408,9 +410,9 @@ export default function PropertiesPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Property Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('page.title')}</h1>
         <p className="text-muted-foreground">
-          Browse property groups, names, and values in a hierarchical structure
+          {t('page.description')}
         </p>
       </div>
 
@@ -460,7 +462,7 @@ export default function PropertiesPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              placeholder="Search property groups..."
+              placeholder={t('filters.searchGroups')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
@@ -484,17 +486,17 @@ export default function PropertiesPage() {
           <Select value={sortBy} onValueChange={handleSortByChange}>
             <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
               <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder={t('filters.sortBy')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name_asc">Name A-Z</SelectItem>
-              <SelectItem value="name_desc">Name Z-A</SelectItem>
-              <SelectItem value="properties_desc">Most properties</SelectItem>
-              <SelectItem value="properties_asc">Least properties</SelectItem>
-              <SelectItem value="values_desc">Most values</SelectItem>
-              <SelectItem value="values_asc">Least values</SelectItem>
-              <SelectItem value="products_desc">Most products</SelectItem>
-              <SelectItem value="products_asc">Least products</SelectItem>
+              <SelectItem value="name_asc">{t('filters.nameAZ')}</SelectItem>
+              <SelectItem value="name_desc">{t('filters.nameZA')}</SelectItem>
+              <SelectItem value="properties_desc">{t('filters.mostProperties')}</SelectItem>
+              <SelectItem value="properties_asc">{t('filters.leastProperties')}</SelectItem>
+              <SelectItem value="values_desc">{t('filters.mostValues')}</SelectItem>
+              <SelectItem value="values_asc">{t('filters.leastValues')}</SelectItem>
+              <SelectItem value="products_desc">{t('filters.mostProducts')}</SelectItem>
+              <SelectItem value="products_asc">{t('filters.leastProducts')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -504,7 +506,7 @@ export default function PropertiesPage() {
           <div className="flex flex-wrap items-center gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="font-medium">{activeFilters.length} active filter{activeFilters.length !== 1 ? "s" : ""}:</span>
+              <span className="font-medium">{activeFilters.length} {activeFilters.length !== 1 ? t('activeFiltersPlural') : t('activeFilters')}:</span>
             </div>
             {activeFilters.map((filter, index) => (
               <Badge
@@ -535,7 +537,7 @@ export default function PropertiesPage() {
               onClick={handleClearFilters}
               className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              Clear all
+              {t('actions.clearAll')}
             </Button>
           </div>
         )}
@@ -550,7 +552,7 @@ export default function PropertiesPage() {
                     onClick={() => handleColumnSort("name")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
                   >
-                    Group Name
+                    {t('table.groupName')}
                     <span className={`transition-all duration-200 ${currentSortField === "name" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "name" && currentSortDirection === "asc" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -565,7 +567,7 @@ export default function PropertiesPage() {
                     onClick={() => handleColumnSort("properties")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Properties
+                    {t('stats.properties')}
                     <span className={`transition-all duration-200 ${currentSortField === "properties" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "properties" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -580,7 +582,7 @@ export default function PropertiesPage() {
                     onClick={() => handleColumnSort("values")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Values
+                    {t('stats.values')}
                     <span className={`transition-all duration-200 ${currentSortField === "values" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "values" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -595,7 +597,7 @@ export default function PropertiesPage() {
                     onClick={() => handleColumnSort("products")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Products
+                    {t('stats.products')}
                     <span className={`transition-all duration-200 ${currentSortField === "products" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "products" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -605,8 +607,8 @@ export default function PropertiesPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>Common Flags</TableHead>
-                <TableHead className="text-right w-[180px]">Actions</TableHead>
+                <TableHead>{t('table.commonFlags')}</TableHead>
+                <TableHead className="text-right w-[180px]">{t('table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -616,7 +618,7 @@ export default function PropertiesPage() {
                     <div className="flex items-center justify-center py-8">
                       <div className="text-center">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                        <p className="mt-2 text-sm text-muted-foreground">Loading groups...</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{t('messages.loadingGroups')}</p>
                       </div>
                     </div>
                   </TableCell>
@@ -629,11 +631,11 @@ export default function PropertiesPage() {
                         <Database className="h-10 w-10 text-muted-foreground/50" />
                       </div>
                       <div className="text-center">
-                        <p className="font-medium text-foreground">No property groups found</p>
+                        <p className="font-medium text-foreground">{t('empty.noGroups')}</p>
                         <p className="text-sm text-muted-foreground mt-1">
                           {hasActiveFilters
-                            ? "Try adjusting your filters to find what you're looking for"
-                            : "No groups available"
+                            ? t('empty.adjustFilters')
+                            : t('empty.noGroupsAvailable')
                           }
                         </p>
                       </div>
@@ -645,7 +647,7 @@ export default function PropertiesPage() {
                           className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                         >
                           <X className="h-4 w-4 mr-1.5" />
-                          Clear all filters
+                          {t('actions.clearAllFilters')}
                         </Button>
                       )}
                     </div>
@@ -692,12 +694,12 @@ export default function PropertiesPage() {
                       <div className="flex gap-1.5">
                         {group.common_is_filter && (
                           <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600 transition-colors">
-                            Filters
+                            {t('table.filters')}
                           </Badge>
                         )}
                         {group.common_is_modification && (
                           <Badge variant="default" className="text-xs bg-blue-500 hover:bg-blue-600 transition-colors">
-                            Mods
+                            {t('table.mods')}
                           </Badge>
                         )}
                         {!group.common_is_filter && !group.common_is_modification && (
@@ -718,7 +720,7 @@ export default function PropertiesPage() {
                           className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                         >
                           <Eye className="mr-1.5 h-4 w-4" />
-                          View Properties
+                          {t('actions.viewProperties')}
                         </Button>
                         <Button
                           variant="ghost"
@@ -742,12 +744,12 @@ export default function PropertiesPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <p>
-                Showing <span className="font-medium text-foreground">{groups.length}</span> of{" "}
-                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> groups
+                {t('pagination.showing')} <span className="font-medium text-foreground">{groups.length}</span> {t('pagination.of')}{" "}
+                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> {t('pagination.groups')}
               </p>
               <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-2">
-                <span>Rows per page:</span>
+                <span>{t('pagination.rowsPerPage')}:</span>
                 <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
                   <SelectTrigger className="w-[70px] h-8">
                     <SelectValue />
@@ -770,7 +772,7 @@ export default function PropertiesPage() {
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage === 1}
                   className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                  title="First page"
+                  title={t('pagination.firstPage')}
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
@@ -784,12 +786,12 @@ export default function PropertiesPage() {
                   className="transition-all duration-200 hover:bg-muted"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  {t('pagination.previous')}
                 </Button>
 
                 {/* Page Info & Jump */}
                 <div className="flex items-center gap-2 px-2">
-                  <span className="text-sm text-muted-foreground">Page</span>
+                  <span className="text-sm text-muted-foreground">{t('pagination.page')}</span>
                   <Input
                     type="number"
                     min={1}
@@ -805,7 +807,7 @@ export default function PropertiesPage() {
                     placeholder={currentPage.toString()}
                     className="w-14 h-8 text-center tabular-nums"
                   />
-                  <span className="text-sm text-muted-foreground">of {totalPages}</span>
+                  <span className="text-sm text-muted-foreground">{t('pagination.of')} {totalPages}</span>
                 </div>
 
                 {/* Next Page */}
@@ -816,7 +818,7 @@ export default function PropertiesPage() {
                   disabled={currentPage === totalPages}
                   className="transition-all duration-200 hover:bg-muted"
                 >
-                  Next
+                  {t('pagination.next')}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
 
@@ -827,7 +829,7 @@ export default function PropertiesPage() {
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage === totalPages}
                   className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                  title="Last page"
+                  title={t('pagination.lastPage')}
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
@@ -842,8 +844,8 @@ export default function PropertiesPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, groupName: "", loading: false })}
         onConfirm={handleDeleteConfirm}
-        title="Delete Property Group"
-        description={`Are you sure you want to delete the group "${deleteDialog.groupName}" and all its properties?`}
+        title={t('dialog.deleteTitle')}
+        description={t('dialog.deleteDescription', { groupName: deleteDialog.groupName })}
         impactData={deleteDialog.impact}
         isLoading={deleteDialog.loading}
       />

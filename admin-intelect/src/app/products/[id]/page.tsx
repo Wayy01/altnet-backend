@@ -74,7 +74,7 @@ import {
 import { api } from "@/lib/api";
 import { Property, Characteristic, ProductDetail, ImageEntry, Product } from "@/types";
 import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 import { VariantSelector } from "@/components/variant-selector";
 
 interface ProductDetailPageProps {
@@ -459,6 +459,8 @@ export default function ProductDetailPage({
   const [mainImageFailed, setMainImageFailed] = useState(false);
   const { currency, formatPrice } = useCurrency();
   const { localize, localizePropertyName, localizeGroupName } = useLocalizedValue();
+  const { t } = useTranslation("products");
+  const { t: tCommon } = useTranslation("common");
 
   // Memoized computations
   const groupedProperties = useMemo(() =>

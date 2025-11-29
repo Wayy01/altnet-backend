@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import { Product, ProductFormState, ProductDetail } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/language-context";
 
 interface VariantsTabProps {
   data: ProductFormState["variants"];
@@ -37,6 +38,7 @@ interface VariantsTabProps {
  * Features elegant search UI, product cards, and informational callouts
  */
 export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps) {
+  const { t } = useTranslation("products");
   // Check if this is an auto-linked variant (came from ?duplicate= query param)
   const isAutoLinked = !!sourceProduct && !!data.parent_id;
   const [searchQuery, setSearchQuery] = useState("");
@@ -170,9 +172,9 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
             <GitBranch className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <Label className="text-base font-semibold">Product Variants</Label>
+            <Label className="text-base font-semibold">{t("variants.title")}</Label>
             <p className="text-sm text-muted-foreground">
-              Configure product grouping and variant relationships
+              {t("variants.description")}
             </p>
           </div>
         </div>
@@ -189,14 +191,14 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-semibold text-blue-600 dark:text-blue-400">
-                    Auto-Linked as Variant
+                    {t("variants.autoLinked")}
                   </h4>
                   <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20">
-                    Automatic
+                    {t("variants.automatic")}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">
-                  This product will be automatically linked as a variant of the source product.
+                  {t("variants.autoLinkedDesc")}
                 </p>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border/50">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted border border-border/50 overflow-hidden">
@@ -264,10 +266,10 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
               </div>
               <div className="space-y-0.5">
                 <Label htmlFor="is_group" className="text-sm font-medium cursor-pointer">
-                  This is a Parent Product (Group)
+                  {t("variants.isParentGroup")}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Enable if this product will have variants linked to it
+                  {t("variants.isParentGroupDesc")}
                 </p>
               </div>
             </div>
@@ -290,7 +292,7 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
             <div className="mt-4 rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-sm text-primary">
-                This product will be able to have other products linked as variants.
+                {t("variants.parentGroupEnabled")}
               </p>
             </div>
           )}
@@ -307,10 +309,10 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
               </div>
               <div>
                 <Label className="text-sm font-semibold">
-                  Link to Parent Product
+                  {t("variants.linkToParent")}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Search and link this product as a variant of another product
+                  {t("variants.linkToParentDesc")}
                 </p>
               </div>
             </div>
@@ -370,7 +372,7 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                       onClick={clearParent}
                     >
                       <Unlink className="mr-2 h-4 w-4" />
-                      Unlink
+                      {t("variants.unlink")}
                     </Button>
                   </div>
                 </div>
@@ -383,7 +385,7 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                   <Input
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    placeholder="Search products by name or code..."
+                    placeholder={t("variants.searchProducts")}
                     className={cn(
                       "h-11 pl-10 rounded-lg transition-all duration-200",
                       "focus:ring-2 focus:ring-primary/20 focus:border-primary",
@@ -399,7 +401,7 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                 {isSearching && !searchResults.length && (
                   <div className="rounded-xl border border-border/50 bg-card p-6 text-center">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Searching products...</p>
+                    <p className="text-sm text-muted-foreground">{t("variants.searchingProducts")}</p>
                   </div>
                 )}
 
@@ -407,7 +409,7 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                   <div className="rounded-xl border border-border/50 bg-card p-6 text-center">
                     <XCircle className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      No products found matching &quot;{searchQuery}&quot;
+                      {t("variants.noProductsFound", { query: searchQuery })}
                     </p>
                   </div>
                 )}
@@ -462,14 +464,14 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                                 : "bg-muted text-muted-foreground"
                             )}
                           >
-                            {product.is_active ? "Active" : "Inactive"}
+                            {product.is_active ? t("variants.activeStatus") : t("variants.inactiveStatus")}
                           </Badge>
                         </button>
                       ))}
                     </div>
                     {searchResults.length > 5 && (
                       <div className="border-t border-border/50 px-3 py-2 bg-muted/30 text-xs text-muted-foreground text-center">
-                        Showing {searchResults.length} results
+                        {t("variants.showingResults", { count: searchResults.length })}
                       </div>
                     )}
                   </div>
@@ -488,27 +490,24 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
               <Info className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h4 className="font-medium mb-2">About Product Variants</h4>
+              <h4 className="font-medium mb-2">{t("variants.aboutVariants")}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <GitBranch className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
                   <span>
-                    <strong className="text-foreground">Parent Products (Groups)</strong>: Products that have
-                    variants linked to them.
+                    <strong className="text-foreground">{t("variants.parentProductsDesc")}</strong>: {t("variants.parentProductsInfo")}
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Link2 className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
                   <span>
-                    <strong className="text-foreground">Variant Products</strong>: Products linked to a parent
-                    product via parent_id.
+                    <strong className="text-foreground">{t("variants.variantProductsDesc")}</strong>: {t("variants.variantProductsInfo")}
                   </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <Package className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
                   <span>
-                    Variants inherit some properties from their parent but have their
-                    own prices/stock.
+                    {t("variants.inheritPropertiesInfo")}
                   </span>
                 </li>
               </ul>
@@ -520,7 +519,7 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                     "transition-colors hover:text-primary/80"
                   )}
                 >
-                  Manage product groupings
+                  {t("variants.manageGroupings")}
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
               </div>
@@ -541,9 +540,9 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                     data.is_group ? "text-primary" : "text-muted-foreground"
                   )}
                 />
-                <p className="text-lg font-bold">{data.is_group ? "Yes" : "No"}</p>
+                <p className="text-lg font-bold">{data.is_group ? t("variants.yes") : t("variants.no")}</p>
               </div>
-              <p className="text-xs text-muted-foreground">Is Parent Group</p>
+              <p className="text-xs text-muted-foreground">{t("variants.isParentGroup2")}</p>
             </div>
             <div className="space-y-1">
               <div className="flex items-center justify-center gap-2">
@@ -553,9 +552,9 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                     data.parent_id ? "text-primary" : "text-muted-foreground"
                   )}
                 />
-                <p className="text-lg font-bold">{data.parent_id ? "Yes" : "No"}</p>
+                <p className="text-lg font-bold">{data.parent_id ? t("variants.yes") : t("variants.no")}</p>
               </div>
-              <p className="text-xs text-muted-foreground">Linked to Parent</p>
+              <p className="text-xs text-muted-foreground">{t("variants.linkedToParent")}</p>
             </div>
           </div>
         </div>

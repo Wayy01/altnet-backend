@@ -1,0 +1,92 @@
+{
+  "page": {
+    "title": "Группировки товаров",
+    "description": "Управление родительскими товарами и связями вариантов",
+    "detailTitle": "Детали группировки",
+    "detailDescription": "Варианты товара для этой группировки"
+  },
+  "stats": {
+    "totalGroups": "Всего групп",
+    "totalVariants": "Варианты",
+    "totalStock": "Общий запас",
+    "avgPrice": "Сред. цена",
+    "active": "Активные",
+    "priceRange": "Диапазон цен",
+    "onPage": "на странице",
+    "filtered": "отфильтровано"
+  },
+  "table": {
+    "productName": "Название товара",
+    "code": "Код",
+    "brand": "Бренд",
+    "category": "Категория",
+    "variants": "Варианты",
+    "priceRange": "Диапазон цен",
+    "stock": "Запас",
+    "status": "Статус",
+    "actions": "Действия",
+    "variantName": "Название варианта",
+    "priceMDL": "Цена (MDL)",
+    "image": "Изображение"
+  },
+  "filters": {
+    "searchGroupings": "Поиск групп товаров...",
+    "searchVariants": "Поиск вариантов...",
+    "sortBy": "Сортировать по",
+    "nameAZ": "Название А-Я",
+    "nameZA": "Название Я-А",
+    "mostVariants": "Больше всего вариантов",
+    "leastVariants": "Меньше всего вариантов",
+    "mostStock": "Больше всего запасов",
+    "leastStock": "Меньше всего запасов"
+  },
+  "empty": {
+    "title": "Группы товаров не найдены",
+    "withFilters": "Попробуйте изменить фильтры, чтобы найти то, что вы ищете",
+    "noFilters": "Нет доступных групп",
+    "noVariants": "Варианты не найдены",
+    "noVariantsForGroup": "Нет доступных вариантов для этой группы"
+  },
+  "badges": {
+    "active": "Активный",
+    "inactive": "Неактивный",
+    "inStock": "В наличии",
+    "outOfStock": "Нет",
+    "noPrice": "Нет цены"
+  },
+  "actions": {
+    "viewVariants": "Смотреть варианты",
+    "delete": "Удалить",
+    "clearAllFilters": "Очистить все фильтры",
+    "clearSearch": "Очистить поиск"
+  },
+  "delete": {
+    "groupTitle": "Удалить группу товаров",
+    "groupDescription": "Вы уверены, что хотите удалить \"{{name}}\" и отвязать все его варианты?",
+    "variantTitle": "Отвязать вариант товара",
+    "variantDescription": "Вы уверены, что хотите отвязать \"{{name}}\" от этой группы?"
+  },
+  "pagination": {
+    "showing": "Показано",
+    "of": "из",
+    "groups": "групп",
+    "variants": "вариантов",
+    "rowsPerPage": "Строк на странице",
+    "page": "Страница",
+    "firstPage": "Первая страница",
+    "lastPage": "Последняя страница",
+    "previous": "Назад",
+    "next": "Вперед"
+  },
+  "detail": {
+    "code": "Код",
+    "brand": "Бренд",
+    "category": "Категория",
+    "status": "Статус"
+  },
+  "loading": {
+    "groups": "Загрузка групп...",
+    "variants": "Загрузка вариантов..."
+  },
+  "activeFilters": "активных фильтров"
+}

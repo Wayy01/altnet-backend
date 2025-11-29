@@ -1,0 +1,114 @@
+{
+  "page": {
+    "title": "Produse",
+    "description": "Gestioneaza si vizualizeaza toate produsele din catalog",
+    "newTitle": "Creeaza produs",
+    "newDescription": "Adauga un produs nou in catalog",
+    "editTitle": "Editeaza produs",
+    "editDescription": "Actualizeaza informatiile produsului"
+  },
+  "stats": {
+    "total": "Total",
+    "withPrices": "Cu preturi",
+    "inStock": "In stoc",
+    "showing": "Se afiseaza",
+    "filtered": "filtrate",
+    "onPage": "pe pagina"
+  },
+  "table": {
+    "name": "Nume",
+    "code": "Cod",
+    "brand": "Marca",
+    "category": "Categorie",
+    "source": "Sursa",
+    "priceMDL": "Pret (MDL)",
+    "stock": "Stoc",
+    "active": "Activ",
+    "actions": "Actiuni"
+  },
+  "filters": {
+    "searchProducts": "Cauta produse...",
+    "allBrands": "Toate marcile",
+    "allCategories": "Toate categoriile",
+    "allSources": "Toate sursele",
+    "price": "Pret",
+    "withPrice": "Cu pret",
+    "noPrice": "Fara pret",
+    "stock": "Stoc",
+    "inStock": "In stoc",
+    "outOfStock": "Stoc epuizat",
+    "status": "Stare",
+    "active": "Activ",
+    "inactive": "Inactiv",
+    "sortBy": "Sorteaza dupa",
+    "nameAZ": "Nume A-Z",
+    "nameZA": "Nume Z-A",
+    "highestPrice": "Cel mai mare pret",
+    "lowestPrice": "Cel mai mic pret",
+    "mostStock": "Cel mai mult stoc",
+    "leastStock": "Cel mai putin stoc"
+  },
+  "empty": {
+    "title": "Nu s-au gasit produse",
+    "withFilters": "Incercati sa ajustati filtrele pentru a gasi ceea ce cautati",
+    "noFilters": "Incepeti prin adaugarea primului produs",
+    "clearFilters": "Sterge toate filtrele"
+  },
+  "bulk": {
+    "selected": "{{count}} produs selectat",
+    "selectedPlural": "{{count}} produse selectate",
+    "allMatching": "Toate cele {{count}} produse corespunzatoare selectate",
+    "selectAllMatching": "Selecteaza toate cele {{count}} produse corespunzatoare"
+  },
+  "badges": {
+    "noPrice": "Fara pret",
+    "outOfStock": "Stoc epuizat"
+  },
+  "actions": {
+    "exportCSV": "Exporta CSV",
+    "viewDetails": "Vezi detalii",
+    "addVariant": "Adauga varianta",
+    "activate": "Activeaza",
+    "deactivate": "Dezactiveaza",
+    "delete": "Sterge"
+  },
+  "dialogs": {
+    "deleteTitle": "Sterge produs",
+    "deleteDescription": "Sigur doriti sa stergeti acest produs? Aceasta actiune nu poate fi anulata."
+  },
+  "tabs": {
+    "basicInfo": "Informatii de baza",
+    "properties": "Proprietati",
+    "media": "Media",
+    "variants": "Variante"
+  },
+  "form": {
+    "productName": "Nume produs",
+    "productNamePlaceholder": "Introduceti numele produsului",
+    "productCode": "Cod produs",
+    "productCodePlaceholder": "ex., SKU-12345",
+    "description": "Descriere",
+    "descriptionPlaceholder": "Introduceti descrierea produsului",
+    "selectBrand": "Selecteaza marca",
+    "selectCategory": "Selecteaza categorie",
+    "selectSource": "Selecteaza sursa",
+    "isActive": "Activ",
+    "isActiveDescription": "Produsele active sunt vizibile in catalog"
+  },
+  "toast": {
+    "activated": "Produs activat",
+    "deactivated": "Produs dezactivat",
+    "deleted": "Produs sters cu succes",
+    "created": "Produs creat cu succes",
+    "updated": "Produs actualizat cu succes",
+    "bulkActivated": "{{count}} produs activat cu succes",
+    "bulkActivatedPlural": "{{count}} produse activate cu succes",
+    "bulkDeactivated": "{{count}} produs dezactivat cu succes",
+    "bulkDeactivatedPlural": "{{count}} produse dezactivate cu succes",
+    "noProductsUpdated": "Niciun produs nu a fost actualizat (poate sunt deja active)",
+    "exportSuccess": "Produse exportate cu succes",
+    "exportFailed": "Exportul produselor a esuat",
+    "updateFailed": "Actualizarea starii produsului a esuat",
+    "deleteFailed": "Stergerea produsului a esuat"
+  }
+}

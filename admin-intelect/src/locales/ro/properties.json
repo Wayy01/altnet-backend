@@ -1,0 +1,50 @@
+{
+  "page": {
+    "title": "Proprietati",
+    "description": "Vizualizeaza si gestioneaza proprietatile produselor organizate pe grupuri",
+    "groupTitle": "Grup de proprietati",
+    "propertyTitle": "Valori proprietate"
+  },
+  "stats": {
+    "totalGroups": "Total grupuri",
+    "totalProperties": "Total proprietati",
+    "totalValues": "Total valori",
+    "uniqueValues": "Valori unice",
+    "filtered": "filtrate"
+  },
+  "table": {
+    "groupName": "Nume grup",
+    "propertyName": "Nume proprietate",
+    "propertyCount": "Numar proprietati",
+    "valueCount": "Numar valori",
+    "value": "Valoare",
+    "products": "Produse"
+  },
+  "filters": {
+    "searchGroups": "Cauta grupuri...",
+    "searchProperties": "Cauta proprietati...",
+    "searchValues": "Cauta valori...",
+    "sortBy": "Sorteaza dupa",
+    "nameAZ": "Nume A-Z",
+    "nameZA": "Nume Z-A",
+    "mostProperties": "Cele mai multe proprietati",
+    "leastProperties": "Cele mai putine proprietati",
+    "mostValues": "Cele mai multe valori",
+    "leastValues": "Cele mai putine valori"
+  },
+  "empty": {
+    "noGroups": "Nu s-au gasit grupuri de proprietati",
+    "noProperties": "Nu s-au gasit proprietati in acest grup",
+    "noValues": "Nu s-au gasit valori pentru aceasta proprietate",
+    "adjustFilters": "Incercati sa ajustati filtrele"
+  },
+  "breadcrumbs": {
+    "properties": "Proprietati",
+    "groups": "Grupuri"
+  },
+  "hierarchy": {
+    "level1": "Grupuri de proprietati",
+    "level2": "Proprietati",
+    "level3": "Valori"
+  }
+}

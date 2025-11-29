@@ -26,6 +26,7 @@ import { api } from "@/lib/api";
 import { Brand, Category, ProductFormState, ProductSource } from "@/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/contexts/language-context";
 
 interface BasicInfoTabProps {
   data: ProductFormState["basicInfo"];
@@ -38,6 +39,7 @@ interface BasicInfoTabProps {
  */
 export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
   const { toast } = useToast();
+  const { t } = useTranslation("products");
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sources, setSources] = useState<ProductSource[]>([]);
@@ -151,13 +153,13 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       onChange({ source_id: newSource.id });
       setNewSourceName("");
       toast({
-        title: "Source Created",
-        description: `"${newSource.name}" has been added.`,
+        title: t("toast.sourceCreated"),
+        description: t("toast.sourceCreatedDesc", { name: newSource.name }),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to create source. It may already exist.",
+        title: t("toast.updateFailed"),
+        description: t("toast.createSourceFailed"),
         variant: "destructive",
       });
     } finally {
@@ -170,8 +172,8 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
     const sourceToDelete = sources.find((s) => s.id === sourceId);
     if (!sourceToDelete || sourceToDelete.is_default || !sourceToDelete.is_deletable) {
       toast({
-        title: "Cannot Delete",
-        description: "This source cannot be deleted.",
+        title: t("toast.cannotDeleteSource"),
+        description: t("toast.cannotDeleteSourceDesc"),
         variant: "destructive",
       });
       return;
@@ -187,13 +189,13 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         onChange({ source_id: defaultSource?.id || "" });
       }
       toast({
-        title: "Source Deleted",
-        description: `"${sourceToDelete.name}" has been deleted.`,
+        title: t("toast.sourceDeleted"),
+        description: t("toast.sourceDeletedDesc", { name: sourceToDelete.name }),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete source. It may be in use by products.",
+        title: t("toast.updateFailed"),
+        description: t("toast.deleteSourceFailed"),
         variant: "destructive",
       });
     } finally {
@@ -246,11 +248,11 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       <FormSection index={0}>
         <div className="space-y-2">
           <Label htmlFor="name" className="text-sm font-medium">
-            Product Name <span className="text-destructive">*</span>
+            {t("basicInfo.title")} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="name"
-            placeholder="Enter product name"
+            placeholder={t("basicInfo.namePlaceholder")}
             value={data.name}
             onChange={(e) => onChange({ name: e.target.value })}
             className={cn(
@@ -260,7 +262,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
             )}
           />
           <p className="text-xs text-muted-foreground">
-            The main display name for this product
+            {t("basicInfo.nameHint")}
           </p>
         </div>
       </FormSection>
@@ -270,11 +272,11 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="code" className="text-sm font-medium">
-              Product Code
+              {t("basicInfo.productCode")}
             </Label>
             <Input
               id="code"
-              placeholder="e.g., PRD-001"
+              placeholder={t("basicInfo.codePlaceholder")}
               value={data.code}
               onChange={(e) => onChange({ code: e.target.value })}
               className={cn(
@@ -284,16 +286,16 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
               )}
             />
             <p className="text-xs text-muted-foreground">
-              Unique identifier for inventory
+              {t("basicInfo.codeHint")}
             </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="article" className="text-sm font-medium">
-              Article
+              {t("basicInfo.article")}
             </Label>
             <Input
               id="article"
-              placeholder="e.g., ART-12345"
+              placeholder={t("basicInfo.articlePlaceholder")}
               value={data.article}
               onChange={(e) => onChange({ article: e.target.value })}
               className={cn(
@@ -303,7 +305,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
               )}
             />
             <p className="text-xs text-muted-foreground">
-              Manufacturer article number
+              {t("basicInfo.articleHint")}
             </p>
           </div>
         </div>
@@ -316,7 +318,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
           <div className="space-y-2">
             <Label htmlFor="brand" className="text-sm font-medium flex items-center gap-2">
               <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-              Brand
+              {t("basicInfo.brand")}
             </Label>
             <Popover open={brandOpen} onOpenChange={setBrandOpen}>
               <PopoverTrigger asChild>
@@ -335,12 +337,12 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   {isLoadingBrands ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading brands...
+                      {t("basicInfo.loadingBrands")}
                     </span>
                   ) : selectedBrand ? (
                     <span className="truncate">{selectedBrand.name}</span>
                   ) : (
-                    "Select brand..."
+                    t("basicInfo.selectBrand")
                   )}
                   <Tag className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -350,7 +352,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   <div className="flex items-center border-b px-3">
                     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                     <input
-                      placeholder="Search brands..."
+                      placeholder={t("basicInfo.searchBrands")}
                       value={brandSearch}
                       onChange={(e) => setBrandSearch(e.target.value)}
                       className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
@@ -367,8 +369,8 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   <CommandList className="max-h-[300px] overflow-y-auto">
                     <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
                       {brandSearch
-                        ? `No brands found matching "${brandSearch}"`
-                        : "No brands available"}
+                        ? t("basicInfo.noBrandsFound", { search: brandSearch })
+                        : t("basicInfo.noBrandsAvailable")}
                     </CommandEmpty>
                     <CommandGroup>
                       {/* No brand option */}
@@ -391,7 +393,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                         >
                           {!data.brand_id && <Check className="h-3 w-3" />}
                         </div>
-                        <span className="text-muted-foreground">No brand</span>
+                        <span className="text-muted-foreground">{t("basicInfo.noBrand")}</span>
                       </CommandItem>
                       {/* Brand list */}
                       {filteredBrands.map((brand) => (
@@ -429,14 +431,14 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   </CommandList>
                   {brands.length > 10 && (
                     <div className="border-t px-3 py-2 text-xs text-muted-foreground">
-                      {filteredBrands.length} of {brands.length} brands
+                      {t("basicInfo.brandsOf", { filtered: filteredBrands.length, total: brands.length })}
                     </div>
                   )}
                 </Command>
               </PopoverContent>
             </Popover>
             <p className="text-xs text-muted-foreground">
-              {brands.length} brands available
+              {t("basicInfo.brandsAvailable", { count: brands.length })}
             </p>
           </div>
 
@@ -444,7 +446,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
           <div className="space-y-2">
             <Label htmlFor="category" className="text-sm font-medium flex items-center gap-2">
               <FolderTree className="h-3.5 w-3.5 text-muted-foreground" />
-              Category
+              {t("basicInfo.category")}
             </Label>
             <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
               <PopoverTrigger asChild>
@@ -463,12 +465,12 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   {isLoadingCategories ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading categories...
+                      {t("basicInfo.loadingCategories")}
                     </span>
                   ) : selectedCategory ? (
                     <span className="truncate">{selectedCategory.name}</span>
                   ) : (
-                    "Select category..."
+                    t("basicInfo.selectCategory")
                   )}
                   <FolderTree className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -478,7 +480,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   <div className="flex items-center border-b px-3">
                     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                     <input
-                      placeholder="Search categories..."
+                      placeholder={t("basicInfo.searchCategories")}
                       value={categorySearch}
                       onChange={(e) => setCategorySearch(e.target.value)}
                       className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
@@ -495,8 +497,8 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   <CommandList className="max-h-[300px] overflow-y-auto">
                     <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
                       {categorySearch
-                        ? `No categories found matching "${categorySearch}"`
-                        : "No categories available"}
+                        ? t("basicInfo.noCategoriesFound", { search: categorySearch })
+                        : t("basicInfo.noCategoriesAvailable")}
                     </CommandEmpty>
                     <CommandGroup>
                       {/* No category option */}
@@ -519,7 +521,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                         >
                           {!data.category_id && <Check className="h-3 w-3" />}
                         </div>
-                        <span className="text-muted-foreground">No category</span>
+                        <span className="text-muted-foreground">{t("basicInfo.noCategory")}</span>
                       </CommandItem>
                       {/* Category list */}
                       {filteredCategories.map((category) => (
@@ -557,14 +559,14 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   </CommandList>
                   {categories.length > 10 && (
                     <div className="border-t px-3 py-2 text-xs text-muted-foreground">
-                      {filteredCategories.length} of {categories.length} categories
+                      {t("basicInfo.categoriesOf", { filtered: filteredCategories.length, total: categories.length })}
                     </div>
                   )}
                 </Command>
               </PopoverContent>
             </Popover>
             <p className="text-xs text-muted-foreground">
-              {categories.length} categories available
+              {t("basicInfo.categoriesAvailable", { count: categories.length })}
             </p>
           </div>
         </div>
@@ -575,7 +577,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         <div className="space-y-2">
           <Label htmlFor="source" className="text-sm font-medium flex items-center gap-2">
             <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-            Source
+            {t("basicInfo.source")}
           </Label>
           <Popover open={sourceOpen} onOpenChange={setSourceOpen}>
             <PopoverTrigger asChild>
@@ -594,19 +596,19 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                 {isLoadingSources ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading sources...
+                    {t("basicInfo.loadingSources")}
                   </span>
                 ) : selectedSource ? (
                   <span className="flex items-center gap-2">
                     <span className="truncate">{selectedSource.name}</span>
                     {selectedSource.is_default && (
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                        Default
+                        {t("basicInfo.default")}
                       </Badge>
                     )}
                   </span>
                 ) : (
-                  "Select source..."
+                  t("basicInfo.selectSource")
                 )}
                 <Globe className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
@@ -616,7 +618,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                 <div className="flex items-center border-b px-3">
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                   <input
-                    placeholder="Search or add source..."
+                    placeholder={t("basicInfo.searchOrAddSource")}
                     value={sourceSearch}
                     onChange={(e) => {
                       setSourceSearch(e.target.value);
@@ -640,7 +642,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   <CommandEmpty className="py-2 px-3 text-sm text-muted-foreground">
                     {newSourceName.trim() ? (
                       <div className="flex flex-col gap-2">
-                        <span>No sources found matching "{newSourceName}"</span>
+                        <span>{t("basicInfo.noSourcesFound", { name: newSourceName })}</span>
                         <Button
                           size="sm"
                           variant="outline"
@@ -653,11 +655,11 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                           ) : (
                             <Plus className="h-4 w-4 mr-2" />
                           )}
-                          Add "{newSourceName.trim()}"
+                          {t("basicInfo.addSource", { name: newSourceName.trim() })}
                         </Button>
                       </div>
                     ) : (
-                      "No sources available"
+                      t("basicInfo.noSourcesAvailable")
                     )}
                   </CommandEmpty>
                   <CommandGroup>
@@ -689,7 +691,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                         <span className="truncate flex-1">{source.name}</span>
                         {source.is_default && (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mr-2">
-                            Default
+                            {t("basicInfo.default")}
                           </Badge>
                         )}
                         {/* Delete button for non-default, deletable sources */}
@@ -728,20 +730,20 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                       ) : (
                         <Plus className="h-4 w-4 mr-2" />
                       )}
-                      Add "{newSourceName.trim()}"
+                      {t("basicInfo.addSource", { name: newSourceName.trim() })}
                     </Button>
                   </div>
                 )}
                 {sources.length > 5 && (
                   <div className="border-t px-3 py-2 text-xs text-muted-foreground">
-                    {filteredSources.length} of {sources.length} sources
+                    {t("basicInfo.sourcesOf", { filtered: filteredSources.length, total: sources.length })}
                   </div>
                 )}
               </Command>
             </PopoverContent>
           </Popover>
           <p className="text-xs text-muted-foreground">
-            Where this product originated from (Ultra for synced products)
+            {t("basicInfo.sourceHint")}
           </p>
         </div>
       </FormSection>
@@ -750,11 +752,11 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       <FormSection index={4}>
         <div className="space-y-2">
           <Label htmlFor="description" className="text-sm font-medium">
-            Description
+            {t("basicInfo.description")}
           </Label>
           <Textarea
             id="description"
-            placeholder="Enter product description..."
+            placeholder={t("basicInfo.descriptionPlaceholder")}
             value={data.description}
             onChange={(e) => onChange({ description: e.target.value })}
             rows={4}
@@ -765,7 +767,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
             )}
           />
           <p className="text-xs text-muted-foreground">
-            Detailed description that appears on the product page
+            {t("basicInfo.descriptionHint")}
           </p>
         </div>
       </FormSection>
@@ -774,11 +776,11 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       <FormSection index={5}>
         <div className="space-y-2">
           <Label htmlFor="warranty" className="text-sm font-medium">
-            Warranty
+            {t("basicInfo.warranty")}
           </Label>
           <Input
             id="warranty"
-            placeholder="e.g., 24 months"
+            placeholder={t("basicInfo.warrantyPlaceholder")}
             value={data.warranty}
             onChange={(e) => onChange({ warranty: e.target.value })}
             className={cn(
@@ -788,7 +790,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
             )}
           />
           <p className="text-xs text-muted-foreground">
-            Warranty period or terms
+            {t("basicInfo.warrantyHint")}
           </p>
         </div>
       </FormSection>
@@ -796,10 +798,10 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       {/* Barcodes */}
       <FormSection index={6}>
         <div className="space-y-3">
-          <Label className="text-sm font-medium">Barcodes</Label>
+          <Label className="text-sm font-medium">{t("basicInfo.barcodes")}</Label>
           <div className="flex gap-2">
             <Input
-              placeholder="Enter barcode (EAN, UPC, etc.)"
+              placeholder={t("basicInfo.barcodePlaceholder")}
               value={barcodeInput}
               onChange={(e) => setBarcodeInput(e.target.value)}
               onKeyDown={(e) => {
@@ -856,7 +858,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            Add multiple barcodes for this product (press Enter or click +)
+            {t("basicInfo.barcodesHint")}
           </p>
         </div>
       </FormSection>
@@ -866,14 +868,14 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-4 w-4 text-primary" />
-            <Label className="text-sm font-semibold">Pricing & Stock</Label>
+            <Label className="text-sm font-semibold">{t("basicInfo.pricingStock")}</Label>
           </div>
 
           {/* Prices Grid - 3 columns */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price_mdl" className="text-sm font-medium">
-                Price (MDL) <span className="text-xs text-muted-foreground">Primary</span>
+                {t("basicInfo.priceMDL")} <span className="text-xs text-muted-foreground">{t("basicInfo.priceMDLPrimary")}</span>
               </Label>
               <Input
                 id="price_mdl"
@@ -902,7 +904,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="price_eur" className="text-sm font-medium">
-                Price (EUR)
+                {t("basicInfo.priceEUR")}
               </Label>
               <Input
                 id="price_eur"
@@ -931,7 +933,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="price_usd" className="text-sm font-medium">
-                Price (USD)
+                {t("basicInfo.priceUSD")}
               </Label>
               <Input
                 id="price_usd"
@@ -965,7 +967,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
             <div className="space-y-2">
               <Label htmlFor="total_stock" className="text-sm font-medium flex items-center gap-2">
                 <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                Total Stock
+                {t("basicInfo.totalStock")}
               </Label>
               <Input
                 id="total_stock"
@@ -987,11 +989,11 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                 )}
               />
               <p className="text-xs text-muted-foreground">
-                Available units in inventory
+                {t("basicInfo.stockHint")}
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Stock Status</Label>
+              <Label className="text-sm font-medium">{t("basicInfo.stockStatus")}</Label>
               <div className="flex items-center gap-3 h-11 px-4 rounded-lg border bg-muted/30">
                 <Switch
                   id="is_in_stock"
@@ -1000,11 +1002,11 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   className="data-[state=checked]:bg-primary"
                 />
                 <Label htmlFor="is_in_stock" className="text-sm cursor-pointer">
-                  {data.is_in_stock ? "In Stock" : "Out of Stock"}
+                  {data.is_in_stock ? t("basicInfo.inStock") : t("basicInfo.outOfStock")}
                 </Label>
               </div>
               <p className="text-xs text-muted-foreground">
-                Auto-calculated from stock (can override)
+                {t("basicInfo.stockAutoHint")}
               </p>
             </div>
           </div>
@@ -1017,10 +1019,10 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
           <div className="flex items-center justify-between p-4 border-b border-border/50">
             <div className="space-y-0.5">
               <Label htmlFor="is_active" className="text-sm font-medium">
-                Active
+                {t("basicInfo.active")}
               </Label>
               <p className="text-xs text-muted-foreground">
-                Product will be visible in the catalog
+                {t("basicInfo.activeDesc")}
               </p>
             </div>
             <Switch
@@ -1033,10 +1035,10 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
           <div className="flex items-center justify-between p-4">
             <div className="space-y-0.5">
               <Label htmlFor="is_service" className="text-sm font-medium">
-                Service
+                {t("basicInfo.service")}
               </Label>
               <p className="text-xs text-muted-foreground">
-                Mark as a service instead of a physical product
+                {t("basicInfo.serviceDesc")}
               </p>
             </div>
             <Switch

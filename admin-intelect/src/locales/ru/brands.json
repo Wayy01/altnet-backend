@@ -1,0 +1,98 @@
+{
+  "page": {
+    "title": "Бренды",
+    "description": "Просмотр и управление всеми брендами в каталоге",
+    "newTitle": "Создать бренд",
+    "newDescription": "Добавить новый бренд в каталог",
+    "editTitle": "Редактировать бренд",
+    "editDescription": "Обновить информацию о бренде"
+  },
+  "stats": {
+    "total": "Всего",
+    "withLogos": "С логотипами",
+    "active": "Активных",
+    "products": "Товаров",
+    "filtered": "отфильтровано",
+    "onPage": "на странице"
+  },
+  "table": {
+    "logo": "Логотип",
+    "name": "Название",
+    "slug": "Slug",
+    "ultraId": "Ultra ID",
+    "products": "Товары",
+    "active": "Активен",
+    "actions": "Действия"
+  },
+  "filters": {
+    "searchBrands": "Поиск брендов...",
+    "productCount": "Количество товаров",
+    "allBrands": "Все бренды",
+    "withProducts": "С товарами",
+    "withoutProducts": "Без товаров",
+    "status": "Статус",
+    "active": "Активен",
+    "inactive": "Неактивен",
+    "sortBy": "Сортировать по",
+    "nameAZ": "Название А-Я",
+    "nameZA": "Название Я-А",
+    "mostProducts": "Больше всего товаров",
+    "leastProducts": "Меньше всего товаров"
+  },
+  "empty": {
+    "title": "Бренды не найдены",
+    "withFilters": "Попробуйте изменить фильтры, чтобы найти то, что вы ищете",
+    "noFilters": "Начните с добавления первого бренда",
+    "clearFilters": "Очистить все фильтры"
+  },
+  "bulk": {
+    "selected": "{{count}} бренд выбран",
+    "selectedPlural": "{{count}} брендов выбрано",
+    "allMatching": "Все {{count}} подходящих брендов выбрано",
+    "selectAllMatching": "Выбрать все {{count}} подходящих брендов"
+  },
+  "actions": {
+    "exportCSV": "Экспорт CSV",
+    "viewDetails": "Подробнее",
+    "editBrand": "Редактировать бренд",
+    "viewProducts": "Смотреть товары",
+    "activate": "Активировать",
+    "deactivate": "Деактивировать",
+    "delete": "Удалить"
+  },
+  "dialogs": {
+    "editTitle": "Редактировать бренд",
+    "editDescription": "Внесите изменения в данные бренда ниже.",
+    "deleteTitle": "Удалить бренд",
+    "deleteDescription": "Вы уверены, что хотите удалить этот бренд? Это действие нельзя отменить и может повлиять на связанные товары."
+  },
+  "form": {
+    "brandLogo": "Логотип бренда",
+    "brandName": "Название бренда",
+    "brandNamePlaceholder": "Введите название бренда",
+    "brandCode": "Код бренда",
+    "brandCodePlaceholder": "напр., SAMSUNG, APPLE",
+    "activeStatus": "Статус активности",
+    "activeDescription": "Активные бренды отображаются в каталоге",
+    "pasteLogoUrl": "Или вставьте URL логотипа..."
+  },
+  "toast": {
+    "activated": "Бренд активирован",
+    "deactivated": "Бренд деактивирован",
+    "deleted": "Бренд успешно удален",
+    "created": "Бренд успешно создан",
+    "updated": "Бренд успешно обновлен",
+    "logoUploaded": "Логотип успешно загружен",
+    "logoUploadFailed": "Ошибка загрузки логотипа",
+    "bulkActivated": "Успешно активирован {{count}} бренд",
+    "bulkActivatedPlural": "Успешно активировано {{count}} брендов",
+    "bulkDeactivated": "Успешно деактивирован {{count}} бренд",
+    "bulkDeactivatedPlural": "Успешно деактивировано {{count}} брендов",
+    "noBrandsUpdated": "Ни один бренд не был обновлен (возможно, уже активны)",
+    "exportSuccess": "Бренды успешно экспортированы",
+    "exportFailed": "Ошибка экспорта брендов",
+    "updateFailed": "Ошибка обновления статуса бренда",
+    "deleteFailed": "Ошибка удаления бренда",
+    "nameRequired": "Название бренда обязательно"
+  }
+}

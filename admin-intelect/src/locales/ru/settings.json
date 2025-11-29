@@ -1,0 +1,33 @@
+{
+  "page": {
+    "title": "Настройки",
+    "description": "Конфигурация приложения и информация"
+  },
+  "sections": {
+    "apiConfiguration": "Конфигурация API",
+    "apiDescription": "Настройки подключения к backend API",
+    "database": "База данных",
+    "databaseDescription": "Информация о базе данных PostgreSQL",
+    "appearance": "Внешний вид",
+    "appearanceDescription": "Настройки темы и отображения",
+    "about": "О приложении",
+    "aboutDescription": "Информация о приложении"
+  },
+  "api": {
+    "url": "URL API",
+    "status": "Статус"
+  },
+  "database": {
+    "name": "Название базы данных",
+    "tables": "Таблицы"
+  },
+  "appearance": {
+    "themeHint": "Используйте переключатель темы в заголовке для переключения между светлой, темной и системной темами."
+  },
+  "about": {
+    "application": "Приложение",
+    "purpose": "Назначение",
+    "purposeDescription": "CMS панель для управления данными товаров Ultra B2B",
+    "stack": "Технологии"
+  }
+}

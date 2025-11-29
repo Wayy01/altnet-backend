@@ -62,7 +62,7 @@ import {
 import { api } from "@/lib/api";
 import { Product, Brand, Category, ProductFilters, ProductSource } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -96,6 +96,8 @@ export default function ProductsPage() {
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const { localize } = useLocalizedValue();
+  const { t } = useTranslation("products");
+  const { t: tCommon } = useTranslation("common");
 
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
@@ -271,7 +273,7 @@ export default function ProductsPage() {
     if (debouncedSearch) {
       filters.push({
         key: "search",
-        label: "Search",
+        label: tCommon("actions.search"),
         value: debouncedSearch,
         displayValue: `"${debouncedSearch}"`,
       });
@@ -281,7 +283,7 @@ export default function ProductsPage() {
       const brand = allBrands.find(b => b.id === brandFilter);
       filters.push({
         key: "brand_id",
-        label: "Brand",
+        label: t("table.brand"),
         value: brandFilter,
         displayValue: brand?.name || brandFilter,
       });
@@ -291,7 +293,7 @@ export default function ProductsPage() {
       const category = allCategories.find(c => c.id === categoryFilter);
       filters.push({
         key: "category_id",
-        label: "Category",
+        label: t("table.category"),
         value: categoryFilter,
         displayValue: category?.name || categoryFilter,
       });
@@ -301,7 +303,7 @@ export default function ProductsPage() {
       const source = allSources.find(s => s.id === sourceFilter);
       filters.push({
         key: "source_id",
-        label: "Source",
+        label: t("table.source"),
         value: sourceFilter,
         displayValue: source?.name || sourceFilter,
       });
@@ -310,48 +312,48 @@ export default function ProductsPage() {
     if (priceFilter) {
       filters.push({
         key: "price_filter",
-        label: "Price",
+        label: t("filters.price"),
         value: priceFilter,
-        displayValue: priceFilter === "with_price" ? "With Price" : "No Price",
+        displayValue: priceFilter === "with_price" ? t("filters.withPrice") : t("filters.noPrice"),
       });
     }
 
     if (stockFilter) {
       filters.push({
         key: "stock_filter",
-        label: "Stock",
+        label: t("filters.stock"),
         value: stockFilter,
-        displayValue: stockFilter === "in_stock" ? "In Stock" : "Out of Stock",
+        displayValue: stockFilter === "in_stock" ? t("filters.inStock") : t("filters.outOfStock"),
       });
     }
 
     if (statusFilter) {
       filters.push({
         key: "status_filter",
-        label: "Status",
+        label: t("filters.status"),
         value: statusFilter,
-        displayValue: statusFilter === "active" ? "Active" : "Inactive",
+        displayValue: statusFilter === "active" ? t("filters.active") : t("filters.inactive"),
       });
     }
 
     if (sortBy && sortBy !== "name_asc") {
       const sortLabels: Record<string, string> = {
-        name_desc: "Name Z-A",
-        price_high: "Highest Price",
-        price_low: "Lowest Price",
-        stock_high: "Most Stock",
-        stock_low: "Least Stock",
+        name_desc: t("filters.nameZA"),
+        price_high: t("filters.highestPrice"),
+        price_low: t("filters.lowestPrice"),
+        stock_high: t("filters.mostStock"),
+        stock_low: t("filters.leastStock"),
       };
       filters.push({
         key: "sort_by",
-        label: "Sort",
+        label: t("filters.sortBy"),
         value: sortBy,
         displayValue: sortLabels[sortBy] || sortBy,
       });
     }
 
     return filters;
-  }, [debouncedSearch, brandFilter, categoryFilter, sourceFilter, priceFilter, stockFilter, statusFilter, sortBy, allBrands, allCategories, allSources]);
+  }, [debouncedSearch, brandFilter, categoryFilter, sourceFilter, priceFilter, stockFilter, statusFilter, sortBy, allBrands, allCategories, allSources, t, tCommon]);
 
   const handleClearSearch = () => {
     setSearchQuery("");
@@ -517,13 +519,13 @@ export default function ProductsPage() {
     setIsProcessing(true);
     try {
       await api.updateProduct(productId, { is_active: isActive });
-      toast.success(`Product ${isActive ? "activated" : "deactivated"}`);
+      toast.success(isActive ? t("toast.activated") : t("toast.deactivated"));
       startTransition(() => {
         fetchProducts();
       });
     } catch (error) {
       console.error("Failed to update product:", error);
-      toast.error("Failed to update product status");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -535,7 +537,7 @@ export default function ProductsPage() {
     setIsProcessing(true);
     try {
       await api.deleteProduct(deleteProductId);
-      toast.success("Product deleted successfully");
+      toast.success(t("toast.deleted"));
       setShowDeleteDialog(false);
       setDeleteProductId(null);
       startTransition(() => {
@@ -543,7 +545,7 @@ export default function ProductsPage() {
       });
     } catch (error) {
       console.error("Failed to delete product:", error);
-      toast.error("Failed to delete product");
+      toast.error(t("toast.deleteFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -616,9 +618,11 @@ export default function ProductsPage() {
         });
       }
       if (result.updated === 0) {
-        toast.info("No products were updated (may already be active)");
+        toast.info(t("toast.noProductsUpdated"));
       } else {
-        toast.success(`Successfully activated ${result.updated} product${result.updated === 1 ? "" : "s"}`);
+        toast.success(result.updated === 1
+          ? t("toast.bulkActivated", { count: result.updated })
+          : t("toast.bulkActivatedPlural", { count: result.updated }));
       }
       handleClearSelection();
       startTransition(() => {
@@ -626,7 +630,7 @@ export default function ProductsPage() {
       });
     } catch (error) {
       console.error("Failed to bulk activate products:", error);
-      toast.error("Failed to activate products");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -657,9 +661,11 @@ export default function ProductsPage() {
         });
       }
       if (result.updated === 0) {
-        toast.info("No products were updated (may already be inactive)");
+        toast.info(t("toast.noProductsUpdated"));
       } else {
-        toast.success(`Successfully deactivated ${result.updated} product${result.updated === 1 ? "" : "s"}`);
+        toast.success(result.updated === 1
+          ? t("toast.bulkDeactivated", { count: result.updated })
+          : t("toast.bulkDeactivatedPlural", { count: result.updated }));
       }
       handleClearSelection();
       startTransition(() => {
@@ -667,7 +673,7 @@ export default function ProductsPage() {
       });
     } catch (error) {
       console.error("Failed to bulk deactivate products:", error);
-      toast.error("Failed to deactivate products");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -686,10 +692,10 @@ export default function ProductsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success("Products exported successfully");
+      toast.success(t("toast.exportSuccess"));
     } catch (error) {
       console.error("Failed to export products:", error);
-      toast.error("Failed to export products");
+      toast.error(t("toast.exportFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -701,27 +707,27 @@ export default function ProductsPage() {
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [
     {
-      label: "Total",
+      label: t("stats.total"),
       value: (total ?? 0).toLocaleString(),
-      suffix: hasActiveFilters ? "filtered" : undefined,
+      suffix: hasActiveFilters ? t("stats.filtered") : undefined,
       variant: "default",
     },
     {
-      label: "With Prices",
+      label: t("stats.withPrices"),
       value: productsWithPrices,
-      suffix: "on page",
+      suffix: t("stats.onPage"),
       icon: <DollarSign className="h-3.5 w-3.5" />,
       variant: productsWithPrices > 0 ? "success" : "muted",
     },
     {
-      label: "In Stock",
+      label: t("stats.inStock"),
       value: productsInStock,
-      suffix: "on page",
+      suffix: t("stats.onPage"),
       icon: <PackageOpen className="h-3.5 w-3.5" />,
       variant: productsInStock > 0 ? "success" : "warning",
     },
     {
-      label: "Showing",
+      label: t("stats.showing"),
       value: filteredProducts.length,
       suffix: `of ${total}`,
       variant: "muted",
@@ -732,9 +738,9 @@ export default function ProductsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
           <p className="text-muted-foreground">
-            Manage and view all products in the catalog
+            {t("page.description")}
           </p>
         </div>
         <ProductsPageSkeleton />
@@ -746,9 +752,9 @@ export default function ProductsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
           <p className="text-muted-foreground">
-            Manage and view all products in the catalog
+            {t("page.description")}
           </p>
         </div>
         <div className="flex flex-col items-center justify-center py-12 rounded-xl border bg-card shadow-sm">
@@ -759,7 +765,7 @@ export default function ProductsPage() {
             className="mt-4"
             onClick={() => window.location.reload()}
           >
-            Try Again
+            {tCommon("actions.tryAgain")}
           </Button>
         </div>
       </div>
@@ -770,9 +776,9 @@ export default function ProductsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
         <p className="text-muted-foreground">
-          Manage and view all products in the catalog
+          {t("page.description")}
         </p>
       </div>
 
@@ -820,7 +826,7 @@ export default function ProductsPage() {
             className="ml-auto transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
           >
             <Download className="h-4 w-4 mr-1.5" />
-            Export CSV
+            {t("actions.exportCSV")}
           </Button>
         </div>
 
@@ -832,7 +838,7 @@ export default function ProductsPage() {
             <Input
               ref={searchInputRef}
               name="search"
-              placeholder="Search products..."
+              placeholder={t("filters.searchProducts")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-[250px] pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
@@ -857,10 +863,10 @@ export default function ProductsPage() {
             <Tag className="h-4 w-4 text-muted-foreground" />
             <Select value={brandFilter || "all"} onValueChange={handleBrandChange} disabled={isLoadingFilters}>
               <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder="Brand" />
+                <SelectValue placeholder={t("table.brand")} />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                <SelectItem value="all">All brands</SelectItem>
+                <SelectItem value="all">{t("filters.allBrands")}</SelectItem>
                 {allBrands.map(brand => (
                   <SelectItem key={brand.id} value={brand.id}>
                     {brand.name}
@@ -875,10 +881,10 @@ export default function ProductsPage() {
             <FolderTree className="h-4 w-4 text-muted-foreground" />
             <Select value={categoryFilter || "all"} onValueChange={handleCategoryChange} disabled={isLoadingFilters}>
               <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder={t("table.category")} />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                <SelectItem value="all">All categories</SelectItem>
+                <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
                 {allCategories.map(category => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -893,10 +899,10 @@ export default function ProductsPage() {
             <Layers className="h-4 w-4 text-muted-foreground" />
             <Select value={sourceFilter || "all"} onValueChange={handleSourceChange} disabled={isLoadingFilters}>
               <SelectTrigger className="w-[140px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder="Source" />
+                <SelectValue placeholder={t("table.source")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All sources</SelectItem>
+                <SelectItem value="all">{t("filters.allSources")}</SelectItem>
                 {allSources.map(source => (
                   <SelectItem key={source.id} value={source.id}>
                     {source.name}
@@ -910,12 +916,12 @@ export default function ProductsPage() {
           <Select value={priceFilter || "all"} onValueChange={handlePriceFilterChange}>
             <SelectTrigger className="w-[130px] transition-all duration-200 hover:border-primary/50">
               <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Price" />
+              <SelectValue placeholder={t("filters.price")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="with_price">With Price</SelectItem>
-              <SelectItem value="no_price">No Price</SelectItem>
+              <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
+              <SelectItem value="with_price">{t("filters.withPrice")}</SelectItem>
+              <SelectItem value="no_price">{t("filters.noPrice")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -923,12 +929,12 @@ export default function ProductsPage() {
           <Select value={stockFilter || "all"} onValueChange={handleStockFilterChange}>
             <SelectTrigger className="w-[140px] transition-all duration-200 hover:border-primary/50">
               <PackageOpen className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Stock" />
+              <SelectValue placeholder={t("filters.stock")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="in_stock">In Stock</SelectItem>
-              <SelectItem value="out_stock">Out of Stock</SelectItem>
+              <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
+              <SelectItem value="in_stock">{t("filters.inStock")}</SelectItem>
+              <SelectItem value="out_stock">{t("filters.outOfStock")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -936,12 +942,12 @@ export default function ProductsPage() {
           <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
             <SelectTrigger className="w-[130px] transition-all duration-200 hover:border-primary/50">
               <Power className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t("filters.status")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
+              <SelectItem value="active">{t("filters.active")}</SelectItem>
+              <SelectItem value="inactive">{t("filters.inactive")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -949,15 +955,15 @@ export default function ProductsPage() {
           <Select value={sortBy} onValueChange={handleSortByChange}>
             <SelectTrigger className="w-[160px] transition-all duration-200 hover:border-primary/50">
               <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder={t("filters.sortBy")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name_asc">Name A-Z</SelectItem>
-              <SelectItem value="name_desc">Name Z-A</SelectItem>
-              <SelectItem value="price_high">Highest Price</SelectItem>
-              <SelectItem value="price_low">Lowest Price</SelectItem>
-              <SelectItem value="stock_high">Most Stock</SelectItem>
-              <SelectItem value="stock_low">Least Stock</SelectItem>
+              <SelectItem value="name_asc">{t("filters.nameAZ")}</SelectItem>
+              <SelectItem value="name_desc">{t("filters.nameZA")}</SelectItem>
+              <SelectItem value="price_high">{t("filters.highestPrice")}</SelectItem>
+              <SelectItem value="price_low">{t("filters.lowestPrice")}</SelectItem>
+              <SelectItem value="stock_high">{t("filters.mostStock")}</SelectItem>
+              <SelectItem value="stock_low">{t("filters.leastStock")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -998,7 +1004,7 @@ export default function ProductsPage() {
               onClick={handleClearFilters}
               className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              Clear all
+              {tCommon("actions.clearAll")}
             </Button>
           </div>
         )}
@@ -1012,8 +1018,10 @@ export default function ProductsPage() {
               </div>
               <span className="text-sm font-medium text-foreground">
                 {selectAllMode
-                  ? `All ${total} matching products selected`
-                  : `${selectedIds.size} product${selectedIds.size !== 1 ? "s" : ""} selected`
+                  ? t("bulk.allMatching", { count: total })
+                  : selectedIds.size === 1
+                    ? t("bulk.selected", { count: selectedIds.size })
+                    : t("bulk.selectedPlural", { count: selectedIds.size })
                 }
               </span>
             </div>
@@ -1025,7 +1033,7 @@ export default function ProductsPage() {
                 className="text-primary p-0 h-auto"
                 onClick={handleSelectAllMatching}
               >
-                Select all {total} matching products
+                {t("bulk.selectAllMatching", { count: total })}
               </Button>
             )}
 
@@ -1038,7 +1046,7 @@ export default function ProductsPage() {
                 className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
               >
                 <Power className="h-4 w-4 mr-1.5" />
-                Activate
+                {t("actions.activate")}
               </Button>
               <Button
                 variant="outline"
@@ -1048,7 +1056,7 @@ export default function ProductsPage() {
                 className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
               >
                 <PowerOff className="h-4 w-4 mr-1.5" />
-                Deactivate
+                {t("actions.deactivate")}
               </Button>
               <Button
                 variant="ghost"
@@ -1057,7 +1065,7 @@ export default function ProductsPage() {
                 disabled={isProcessing || isPending}
               >
                 <X className="h-4 w-4 mr-1" />
-                Clear
+                {tCommon("actions.clear")}
               </Button>
             </div>
           </div>
@@ -1081,7 +1089,7 @@ export default function ProductsPage() {
                     onClick={() => handleColumnSort("name")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
                   >
-                    Name
+                    {t("table.name")}
                     <span className={`transition-all duration-200 ${currentSortField === "name" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "name" && currentSortDirection === "asc" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -1091,16 +1099,16 @@ export default function ProductsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Brand</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Source</TableHead>
+                <TableHead>{t("table.code")}</TableHead>
+                <TableHead>{t("table.brand")}</TableHead>
+                <TableHead>{t("table.category")}</TableHead>
+                <TableHead>{t("table.source")}</TableHead>
                 <TableHead className="text-right">
                   <button
                     onClick={() => handleColumnSort("price")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Price (MDL)
+                    {t("table.priceMDL")}
                     <span className={`transition-all duration-200 ${currentSortField === "price" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "price" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -1115,7 +1123,7 @@ export default function ProductsPage() {
                     onClick={() => handleColumnSort("stock")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Stock
+                    {t("table.stock")}
                     <span className={`transition-all duration-200 ${currentSortField === "stock" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "stock" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -1125,8 +1133,8 @@ export default function ProductsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead className="w-[80px]">Active</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead className="w-[80px]">{t("table.active")}</TableHead>
+                <TableHead className="w-[100px]">{t("table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1138,11 +1146,11 @@ export default function ProductsPage() {
                         <Package className="h-10 w-10 text-muted-foreground/50" />
                       </div>
                       <div className="text-center">
-                        <p className="font-medium text-foreground">No products found</p>
+                        <p className="font-medium text-foreground">{t("empty.title")}</p>
                         <p className="text-sm text-muted-foreground mt-1">
                           {hasActiveFilters
-                            ? "Try adjusting your filters to find what you're looking for"
-                            : "Get started by adding your first product"
+                            ? t("empty.withFilters")
+                            : t("empty.noFilters")
                           }
                         </p>
                       </div>
@@ -1154,7 +1162,7 @@ export default function ProductsPage() {
                           className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                         >
                           <X className="h-4 w-4 mr-1.5" />
-                          Clear all filters
+                          {t("empty.clearFilters")}
                         </Button>
                       )}
                     </div>
@@ -1218,7 +1226,7 @@ export default function ProductsPage() {
                         </span>
                       ) : (
                         <Badge variant="outline" className="font-normal text-muted-foreground">
-                          No price
+                          {t("badges.noPrice")}
                         </Badge>
                       )}
                     </TableCell>
@@ -1235,7 +1243,7 @@ export default function ProductsPage() {
                           variant="destructive"
                           className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 transition-colors"
                         >
-                          Out of stock
+                          {t("badges.outOfStock")}
                         </Badge>
                       )}
                     </TableCell>
@@ -1267,13 +1275,13 @@ export default function ProductsPage() {
                           <DropdownMenuItem asChild>
                             <Link href={`/products/${product.id}`} className="cursor-pointer">
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {t("actions.viewDetails")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>
                             <Link href={`/products/new?duplicate=${product.id}`} className="cursor-pointer">
                               <GitBranch className="mr-2 h-4 w-4" />
-                              Add Variant
+                              {t("actions.addVariant")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -1284,7 +1292,7 @@ export default function ProductsPage() {
                             className="cursor-pointer"
                           >
                             <Power className="mr-2 h-4 w-4" />
-                            {product.is_active ? "Deactivate" : "Activate"}
+                            {product.is_active ? t("actions.deactivate") : t("actions.activate")}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive cursor-pointer focus:text-destructive"
@@ -1294,7 +1302,7 @@ export default function ProductsPage() {
                             }}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            {t("actions.delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -1310,12 +1318,12 @@ export default function ProductsPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <p>
-              Showing <span className="font-medium text-foreground">{filteredProducts.length}</span> of{" "}
-              <span className="font-medium text-foreground">{total}</span> products
+              {tCommon("pagination.showing")} <span className="font-medium text-foreground">{filteredProducts.length}</span> {tCommon("pagination.of")}{" "}
+              <span className="font-medium text-foreground">{total}</span> {tCommon("pagination.items")}
             </p>
             <div className="h-4 w-px bg-border" />
             <div className="flex items-center gap-2">
-              <span>Rows per page:</span>
+              <span>{tCommon("pagination.rowsPerPage")}:</span>
               <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
                 <SelectTrigger className="w-[70px] h-8">
                   <SelectValue />
@@ -1338,7 +1346,7 @@ export default function ProductsPage() {
                 onClick={() => handlePageChange(1)}
                 disabled={currentPage === 1}
                 className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                title="First page"
+                title={tCommon("pagination.firstPage")}
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -1352,12 +1360,12 @@ export default function ProductsPage() {
                 className="transition-all duration-200 hover:bg-muted"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
+                {tCommon("actions.previous")}
               </Button>
 
               {/* Page Info & Jump */}
               <div className="flex items-center gap-2 px-2">
-                <span className="text-sm text-muted-foreground">Page</span>
+                <span className="text-sm text-muted-foreground">{tCommon("pagination.page")}</span>
                 <Input
                   type="number"
                   min={1}
@@ -1384,7 +1392,7 @@ export default function ProductsPage() {
                 disabled={currentPage === totalPages}
                 className="transition-all duration-200 hover:bg-muted"
               >
-                Next
+                {tCommon("actions.next")}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
 
@@ -1395,7 +1403,7 @@ export default function ProductsPage() {
                 onClick={() => handlePageChange(totalPages)}
                 disabled={currentPage === totalPages}
                 className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                title="Last page"
+                title={tCommon("pagination.lastPage")}
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>
@@ -1408,9 +1416,9 @@ export default function ProductsPage() {
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        title="Delete Product"
-        description="Are you sure you want to delete this product? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t("dialogs.deleteTitle")}
+        description={t("dialogs.deleteDescription")}
+        confirmLabel={tCommon("actions.delete")}
         onConfirm={handleDeleteProduct}
         variant="destructive"
         isLoading={isProcessing}

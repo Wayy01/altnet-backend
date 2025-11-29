@@ -1,0 +1,68 @@
+{
+  "page": {
+    "title": "Panou de control",
+    "description": "Prezentare generala a datelor produselor Ultra B2B"
+  },
+  "stats": {
+    "totalProducts": "Total produse",
+    "brands": "Marci",
+    "categories": "Categorii",
+    "properties": "Proprietati",
+    "characteristics": "Caracteristici",
+    "prices": "Preturi",
+    "stockEntries": "Inregistrari stoc",
+    "inStock": "In stoc",
+    "lowStock": "Stoc redus"
+  },
+  "descriptions": {
+    "productsInCatalog": "Produse in catalog",
+    "activeBrands": "Marci active",
+    "productCategories": "Categorii de produse",
+    "productSpecifications": "Specificatii produse",
+    "productVariantsSKUs": "Variante produse/SKU-uri",
+    "priceEntries": "Inregistrari de pret",
+    "stockRecords": "Inregistrari stoc",
+    "productsAvailable": "Produse disponibile",
+    "productsLowStock": "Produse cu stoc <= 5"
+  },
+  "cards": {
+    "recentSyncs": "Sincronizari recente",
+    "lowStockAlerts": "Alerte stoc redus",
+    "topCategories": "Categorii principale",
+    "priceDistribution": "Distributia preturilor",
+    "systemStatus": "Starea sistemului"
+  },
+  "sync": {
+    "lastSync": "Ultima sincronizare",
+    "itemsSynced": "elemente sincronizate",
+    "duration": "Durata",
+    "noSyncActivity": "Nu exista activitate de sincronizare inregistrata.",
+    "viewDetails": "Vezi detalii"
+  },
+  "stock": {
+    "allClear": "Totul in regula",
+    "adequateStock": "Toate produsele au niveluri adecvate de stoc",
+    "left": "ramas",
+    "noStockData": "Nu sunt date de stoc disponibile."
+  },
+  "price": {
+    "under100": "Sub 100 MDL",
+    "range100to500": "100 - 500 MDL",
+    "range500to1000": "500 - 1.000 MDL",
+    "over1000": "Peste 1.000 MDL",
+    "minPrice": "Pret minim",
+    "maxPrice": "Pret maxim",
+    "avgPrice": "Pret mediu",
+    "medianPrice": "Pret median",
+    "products": "produse"
+  },
+  "buttons": {
+    "syncStatus": "Stare sincronizare",
+    "lowStock": "Stoc redus",
+    "products": "Produse"
+  },
+  "category": {
+    "products": "produse",
+    "avg": "Mediu"
+  }
+}

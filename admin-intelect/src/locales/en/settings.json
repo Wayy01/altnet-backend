@@ -1,0 +1,33 @@
+{
+  "page": {
+    "title": "Settings",
+    "description": "Application configuration and information"
+  },
+  "sections": {
+    "apiConfiguration": "API Configuration",
+    "apiDescription": "Backend API connection settings",
+    "database": "Database",
+    "databaseDescription": "PostgreSQL database information",
+    "appearance": "Appearance",
+    "appearanceDescription": "Theme and display settings",
+    "about": "About",
+    "aboutDescription": "Application information"
+  },
+  "api": {
+    "url": "API URL",
+    "status": "Status"
+  },
+  "database": {
+    "name": "Database Name",
+    "tables": "Tables"
+  },
+  "appearance": {
+    "themeHint": "Use the theme toggle in the header to switch between light, dark, and system themes."
+  },
+  "about": {
+    "application": "Application",
+    "purpose": "Purpose",
+    "purposeDescription": "CMS Dashboard for Ultra B2B product data management",
+    "stack": "Stack"
+  }
+}

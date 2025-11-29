@@ -1,0 +1,68 @@
+{
+  "page": {
+    "title": "Панель управления",
+    "description": "Обзор данных товаров Ultra B2B"
+  },
+  "stats": {
+    "totalProducts": "Всего товаров",
+    "brands": "Бренды",
+    "categories": "Категории",
+    "properties": "Свойства",
+    "characteristics": "Характеристики",
+    "prices": "Цены",
+    "stockEntries": "Записи остатков",
+    "inStock": "В наличии",
+    "lowStock": "Мало на складе"
+  },
+  "descriptions": {
+    "productsInCatalog": "Товаров в каталоге",
+    "activeBrands": "Активных брендов",
+    "productCategories": "Категорий товаров",
+    "productSpecifications": "Спецификаций товаров",
+    "productVariantsSKUs": "Вариантов товаров/SKU",
+    "priceEntries": "Записей цен",
+    "stockRecords": "Записей остатков",
+    "productsAvailable": "Товаров в наличии",
+    "productsLowStock": "Товаров с остатком <= 5"
+  },
+  "cards": {
+    "recentSyncs": "Последние синхронизации",
+    "lowStockAlerts": "Предупреждения о низком остатке",
+    "topCategories": "Топ категории",
+    "priceDistribution": "Распределение цен",
+    "systemStatus": "Статус системы"
+  },
+  "sync": {
+    "lastSync": "Последняя синхронизация",
+    "itemsSynced": "элементов синхронизировано",
+    "duration": "Длительность",
+    "noSyncActivity": "Активность синхронизации не зафиксирована.",
+    "viewDetails": "Подробнее"
+  },
+  "stock": {
+    "allClear": "Все в порядке",
+    "adequateStock": "У всех товаров достаточный уровень остатков",
+    "left": "осталось",
+    "noStockData": "Данные об остатках недоступны."
+  },
+  "price": {
+    "under100": "До 100 MDL",
+    "range100to500": "100 - 500 MDL",
+    "range500to1000": "500 - 1000 MDL",
+    "over1000": "Свыше 1000 MDL",
+    "minPrice": "Мин. цена",
+    "maxPrice": "Макс. цена",
+    "avgPrice": "Средняя цена",
+    "medianPrice": "Медианная цена",
+    "products": "товаров"
+  },
+  "buttons": {
+    "syncStatus": "Статус синхронизации",
+    "lowStock": "Мало на складе",
+    "products": "Товары"
+  },
+  "category": {
+    "products": "товаров",
+    "avg": "Средн."
+  }
+}

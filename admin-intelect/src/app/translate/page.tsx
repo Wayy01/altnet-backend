@@ -46,6 +46,7 @@ import {
   TranslationLog,
 } from "@/types";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/language-context";
 
 // Entity type options
 const entityOptions = [
@@ -88,6 +89,8 @@ const languageOptions = [
 export default function TranslatePage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation('translate');
+  const { t: tCommon } = useTranslation('common');
 
   // State
   const [stats, setStats] = useState<TranslationStats | null>(null);
@@ -299,10 +302,10 @@ export default function TranslatePage() {
             href="/"
             className="hover:text-foreground transition-colors duration-200 hover:underline underline-offset-4"
           >
-            Dashboard
+            {t('breadcrumb.dashboard')}
           </Link>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-foreground font-medium">Translations</span>
+          <span className="text-foreground font-medium">{t('breadcrumb.translations')}</span>
         </nav>
 
         {/* Page Header */}
@@ -321,9 +324,9 @@ export default function TranslatePage() {
                 <Languages className="h-7 w-7 text-primary" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Translations</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{t('page.title')}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Translate products, categories, and properties
+                  {t('page.description')}
                 </p>
               </div>
             </div>
@@ -336,14 +339,14 @@ export default function TranslatePage() {
               className="gap-2 transition-all duration-200 hover:bg-muted"
             >
               <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-              Refresh
+              {t('actions.refresh')}
             </Button>
             <Button
               onClick={() => router.push("/translate/jobs")}
               variant="outline"
               className="gap-2 transition-all duration-200 hover:bg-muted"
             >
-              View All Jobs
+              {t('actions.viewAllJobs')}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -503,8 +506,8 @@ export default function TranslatePage() {
                     <Languages className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-semibold">Start Translation</CardTitle>
-                    <CardDescription>Configure and launch a new translation job</CardDescription>
+                    <CardTitle className="text-lg font-semibold">{t('form.startTranslation')}</CardTitle>
+                    <CardDescription>{t('form.configureAndLaunch')}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -513,7 +516,7 @@ export default function TranslatePage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4 text-muted-foreground" />
-                    <Label className="text-sm font-semibold">Entity Type</Label>
+                    <Label className="text-sm font-semibold">{t('form.entityType')}</Label>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {entityOptions.map((opt) => {
@@ -564,7 +567,7 @@ export default function TranslatePage() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Languages className="h-4 w-4 text-muted-foreground" />
-                    <Label className="text-sm font-semibold">Target Language</Label>
+                    <Label className="text-sm font-semibold">{t('form.targetLanguage')}</Label>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {languageOptions.map((opt) => {
@@ -637,10 +640,10 @@ export default function TranslatePage() {
                     </div>
                     <div>
                       <Label className="text-base font-semibold">
-                        {getPendingCount() > 0 ? "Items Pending" : "All Translated"}
+                        {getPendingCount() > 0 ? t('form.itemsPending') : t('form.allTranslated')}
                       </Label>
                       <p className="text-sm text-muted-foreground mt-0.5">
-                        {selectedEntity} to {selectedLanguage === "ru" ? "Russian" : "Romanian"}
+                        {selectedEntity} {t('form.to')} {selectedLanguage === "ru" ? t('languages.ru') : t('languages.ro')}
                       </p>
                     </div>
                   </div>
@@ -663,22 +666,22 @@ export default function TranslatePage() {
                   {startingJob ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Starting Translation...
+                      {t('actions.startingTranslation')}
                     </>
                   ) : activeJob ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Translation in Progress
+                      {t('actions.translationInProgress')}
                     </>
                   ) : getPendingCount() === 0 ? (
                     <>
                       <CheckCircle2 className="mr-2 h-5 w-5" />
-                      All Items Translated
+                      {t('actions.allItemsTranslated')}
                     </>
                   ) : (
                     <>
                       <Play className="mr-2 h-5 w-5" />
-                      Start Translation
+                      {t('actions.startTranslation')}
                     </>
                   )}
                 </Button>

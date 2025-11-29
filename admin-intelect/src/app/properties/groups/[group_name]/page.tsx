@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { PropertyBreadcrumb } from "@/components/properties/PropertyBreadcrumb";
 import { DeleteConfirmDialog } from "@/components/properties/DeleteConfirmDialog";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -82,6 +82,8 @@ export default function PropertyNamesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { localizePropertyName } = useLocalizedValue();
+  const { t } = useTranslation('properties');
+  const { t: tCommon } = useTranslation('common');
 
   const groupName = decodeURIComponent(params.group_name as string);
 
@@ -154,7 +156,7 @@ export default function PropertyNamesPage() {
     if (debouncedSearch) {
       filters.push({
         key: "search",
-        label: "Search",
+        label: t('filters.search'),
         value: debouncedSearch,
         displayValue: `"${debouncedSearch}"`,
       });
@@ -162,26 +164,26 @@ export default function PropertyNamesPage() {
 
     if (sortBy && sortBy !== "name_asc") {
       const sortLabels: Record<string, string> = {
-        name_desc: "Name Z-A",
-        code_asc: "Code A-Z",
-        code_desc: "Code Z-A",
-        values_desc: "Most Values",
-        values_asc: "Least Values",
-        unique_desc: "Most Unique",
-        unique_asc: "Least Unique",
-        products_desc: "Most Products",
-        products_asc: "Least Products",
+        name_desc: t('filters.nameZA'),
+        code_asc: t('filters.codeAZ'),
+        code_desc: t('filters.codeZA'),
+        values_desc: t('filters.mostValues'),
+        values_asc: t('filters.leastValues'),
+        unique_desc: t('filters.mostUnique'),
+        unique_asc: t('filters.leastUnique'),
+        products_desc: t('filters.mostProducts'),
+        products_asc: t('filters.leastProducts'),
       };
       filters.push({
         key: "sort_by",
-        label: "Sort",
+        label: tCommon('filters.sortBy'),
         value: sortBy,
         displayValue: sortLabels[sortBy] || sortBy,
       });
     }
 
     return filters;
-  }, [debouncedSearch, sortBy]);
+  }, [debouncedSearch, sortBy, t, tCommon]);
 
   // Helper to update URL params
   const updateUrlParams = (updates: Record<string, string | null>) => {
@@ -223,7 +225,7 @@ export default function PropertyNamesPage() {
       // Trigger staggered row animation after data loads
       setTimeout(() => setRowsVisible(true), 50);
     } catch (error: any) {
-      toast.error(error.message || "Failed to fetch property names");
+      toast.error(error.message || t('messages.failedToFetchProperties'));
       setProperties([]);
     } finally {
       setLoading(false);
@@ -350,7 +352,7 @@ export default function PropertyNamesPage() {
       const impact = await api.getPropertyNameDeletionImpact(groupName, propertyName);
       setDeleteDialog({ open: true, propertyName, impact, loading: false });
     } catch (error: any) {
-      toast.error(error.message || "Failed to get deletion impact");
+      toast.error(error.message || t('messages.failedToGetImpact'));
       setDeleteDialog({ open: false, propertyName: "", loading: false });
     }
   };
@@ -359,11 +361,11 @@ export default function PropertyNamesPage() {
     try {
       setDeleteDialog((prev) => ({ ...prev, loading: true }));
       await api.deletePropertyName(groupName, deleteDialog.propertyName);
-      toast.success("Property name deleted successfully");
+      toast.success(t('messages.propertyDeleted'));
       setDeleteDialog({ open: false, propertyName: "", loading: false });
       fetchProperties();
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete property name");
+      toast.error(error.message || t('messages.failedToDeleteProperty'));
       setDeleteDialog((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -374,30 +376,30 @@ export default function PropertyNamesPage() {
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [
     {
-      label: "Total Properties",
+      label: t('stats.totalProperties'),
       value: stats.totalProperties.toLocaleString(),
-      suffix: hasActiveFilters ? "filtered" : undefined,
+      suffix: hasActiveFilters ? t('stats.filtered') : undefined,
       icon: <Database className="h-3.5 w-3.5" />,
       variant: "default",
     },
     {
-      label: "Values",
+      label: t('stats.values'),
       value: totalValuesOnPage.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <FilterIcon className="h-3.5 w-3.5" />,
       variant: totalValuesOnPage > 0 ? "success" : "muted",
     },
     {
-      label: "Unique Values",
+      label: t('stats.uniqueValues'),
       value: stats.uniqueValues.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <Hash className="h-3.5 w-3.5" />,
       variant: stats.uniqueValues > 0 ? "success" : "warning",
     },
     {
-      label: "Products",
+      label: t('stats.products'),
       value: totalProductsOnPage.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <Package className="h-3.5 w-3.5" />,
       variant: "muted",
     },
@@ -407,9 +409,9 @@ export default function PropertyNamesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Property Names</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('page.namesTitle')}</h1>
           <p className="text-muted-foreground">
-            Properties in group: {groupName}
+            {t('page.namesDescription', { groupName })}
           </p>
         </div>
         <PropertyBreadcrumb currentLevel={2} groupName={groupName} />
@@ -422,9 +424,9 @@ export default function PropertyNamesPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Property Names</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('page.namesTitle')}</h1>
         <p className="text-muted-foreground">
-          Properties in group: {groupName}
+          {t('page.namesDescription', { groupName })}
         </p>
       </div>
 
@@ -474,7 +476,7 @@ export default function PropertyNamesPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              placeholder="Search properties..."
+              placeholder={t('filters.searchProperties')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
@@ -498,17 +500,17 @@ export default function PropertyNamesPage() {
           <Select value={sortBy} onValueChange={handleSortByChange}>
             <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
               <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder={t('filters.sortBy')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name_asc">Name A-Z</SelectItem>
-              <SelectItem value="name_desc">Name Z-A</SelectItem>
-              <SelectItem value="values_desc">Most values</SelectItem>
-              <SelectItem value="values_asc">Least values</SelectItem>
-              <SelectItem value="unique_desc">Most unique</SelectItem>
-              <SelectItem value="unique_asc">Least unique</SelectItem>
-              <SelectItem value="products_desc">Most products</SelectItem>
-              <SelectItem value="products_asc">Least products</SelectItem>
+              <SelectItem value="name_asc">{t('filters.nameAZ')}</SelectItem>
+              <SelectItem value="name_desc">{t('filters.nameZA')}</SelectItem>
+              <SelectItem value="values_desc">{t('filters.mostValues')}</SelectItem>
+              <SelectItem value="values_asc">{t('filters.leastValues')}</SelectItem>
+              <SelectItem value="unique_desc">{t('filters.mostUnique')}</SelectItem>
+              <SelectItem value="unique_asc">{t('filters.leastUnique')}</SelectItem>
+              <SelectItem value="products_desc">{t('filters.mostProducts')}</SelectItem>
+              <SelectItem value="products_asc">{t('filters.leastProducts')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -518,7 +520,7 @@ export default function PropertyNamesPage() {
           <div className="flex flex-wrap items-center gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="font-medium">{activeFilters.length} active filter{activeFilters.length !== 1 ? "s" : ""}:</span>
+              <span className="font-medium">{activeFilters.length} {activeFilters.length !== 1 ? t('activeFiltersPlural') : t('activeFilters')}:</span>
             </div>
             {activeFilters.map((filter, index) => (
               <Badge
@@ -549,7 +551,7 @@ export default function PropertyNamesPage() {
               onClick={handleClearFilters}
               className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              Clear all
+              {t('actions.clearAll')}
             </Button>
           </div>
         )}
@@ -564,7 +566,7 @@ export default function PropertyNamesPage() {
                     onClick={() => handleColumnSort("name")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
                   >
-                    Property Name
+                    {t('table.propertyName')}
                     <span className={`transition-all duration-200 ${currentSortField === "name" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "name" && currentSortDirection === "asc" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -574,13 +576,13 @@ export default function PropertyNamesPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>Code</TableHead>
+                <TableHead>{t('table.code')}</TableHead>
                 <TableHead className="text-right">
                   <button
                     onClick={() => handleColumnSort("values")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Values
+                    {t('stats.values')}
                     <span className={`transition-all duration-200 ${currentSortField === "values" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "values" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -595,7 +597,7 @@ export default function PropertyNamesPage() {
                     onClick={() => handleColumnSort("unique")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Unique
+                    {t('table.unique')}
                     <span className={`transition-all duration-200 ${currentSortField === "unique" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "unique" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -610,7 +612,7 @@ export default function PropertyNamesPage() {
                     onClick={() => handleColumnSort("products")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
                   >
-                    Products
+                    {t('stats.products')}
                     <span className={`transition-all duration-200 ${currentSortField === "products" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "products" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
@@ -620,9 +622,9 @@ export default function PropertyNamesPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Flags</TableHead>
-                <TableHead className="text-right w-[180px]">Actions</TableHead>
+                <TableHead>{t('table.type')}</TableHead>
+                <TableHead>{t('table.flags')}</TableHead>
+                <TableHead className="text-right w-[180px]">{t('table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -632,7 +634,7 @@ export default function PropertyNamesPage() {
                     <div className="flex items-center justify-center py-8">
                       <div className="text-center">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                        <p className="mt-2 text-sm text-muted-foreground">Loading properties...</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{t('messages.loadingProperties')}</p>
                       </div>
                     </div>
                   </TableCell>
@@ -645,11 +647,11 @@ export default function PropertyNamesPage() {
                         <Database className="h-10 w-10 text-muted-foreground/50" />
                       </div>
                       <div className="text-center">
-                        <p className="font-medium text-foreground">No properties found</p>
+                        <p className="font-medium text-foreground">{t('empty.noProperties')}</p>
                         <p className="text-sm text-muted-foreground mt-1">
                           {hasActiveFilters
-                            ? "Try adjusting your filters to find what you're looking for"
-                            : "No properties in this group"
+                            ? t('empty.adjustFilters')
+                            : t('empty.noPropertiesInGroup')
                           }
                         </p>
                       </div>
@@ -661,7 +663,7 @@ export default function PropertyNamesPage() {
                           className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                         >
                           <X className="h-4 w-4 mr-1.5" />
-                          Clear all filters
+                          {t('actions.clearAllFilters')}
                         </Button>
                       )}
                     </div>
@@ -719,19 +721,19 @@ export default function PropertyNamesPage() {
                           {property.common_value_type}
                         </Badge>
                       ) : (
-                        <span className="text-muted-foreground text-sm">Mixed</span>
+                        <span className="text-muted-foreground text-sm">{t('table.mixed')}</span>
                       )}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1.5">
                         {property.common_is_filter && (
                           <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600 transition-colors">
-                            Filter
+                            {t('table.filter')}
                           </Badge>
                         )}
                         {property.common_is_modification && (
                           <Badge variant="default" className="text-xs bg-blue-500 hover:bg-blue-600 transition-colors">
-                            Mod
+                            {t('table.mod')}
                           </Badge>
                         )}
                         {!property.common_is_filter && !property.common_is_modification && (
@@ -754,7 +756,7 @@ export default function PropertyNamesPage() {
                           className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                         >
                           <Eye className="mr-1.5 h-4 w-4" />
-                          View Values
+                          {t('actions.viewValues')}
                         </Button>
                         <Button
                           variant="ghost"
@@ -778,12 +780,12 @@ export default function PropertyNamesPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <p>
-                Showing <span className="font-medium text-foreground">{properties.length}</span> of{" "}
-                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> properties
+                {t('pagination.showing')} <span className="font-medium text-foreground">{properties.length}</span> {t('pagination.of')}{" "}
+                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> {t('pagination.properties')}
               </p>
               <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-2">
-                <span>Rows per page:</span>
+                <span>{t('pagination.rowsPerPage')}:</span>
                 <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
                   <SelectTrigger className="w-[70px] h-8">
                     <SelectValue />
@@ -806,7 +808,7 @@ export default function PropertyNamesPage() {
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage === 1}
                   className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                  title="First page"
+                  title={t('pagination.firstPage')}
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
@@ -820,12 +822,12 @@ export default function PropertyNamesPage() {
                   className="transition-all duration-200 hover:bg-muted"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  {t('pagination.previous')}
                 </Button>
 
                 {/* Page Info & Jump */}
                 <div className="flex items-center gap-2 px-2">
-                  <span className="text-sm text-muted-foreground">Page</span>
+                  <span className="text-sm text-muted-foreground">{t('pagination.page')}</span>
                   <Input
                     type="number"
                     min={1}
@@ -841,7 +843,7 @@ export default function PropertyNamesPage() {
                     placeholder={currentPage.toString()}
                     className="w-14 h-8 text-center tabular-nums"
                   />
-                  <span className="text-sm text-muted-foreground">of {totalPages}</span>
+                  <span className="text-sm text-muted-foreground">{t('pagination.of')} {totalPages}</span>
                 </div>
 
                 {/* Next Page */}
@@ -852,7 +854,7 @@ export default function PropertyNamesPage() {
                   disabled={currentPage === totalPages}
                   className="transition-all duration-200 hover:bg-muted"
                 >
-                  Next
+                  {t('pagination.next')}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
 
@@ -863,7 +865,7 @@ export default function PropertyNamesPage() {
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage === totalPages}
                   className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                  title="Last page"
+                  title={t('pagination.lastPage')}
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
@@ -878,8 +880,8 @@ export default function PropertyNamesPage() {
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, propertyName: "", loading: false })}
         onConfirm={handleDeleteConfirm}
-        title="Delete Property Name"
-        description={`Are you sure you want to delete the property "${deleteDialog.propertyName}" and all its values?`}
+        title={t('dialog.deletePropertyTitle')}
+        description={t('dialog.deletePropertyDescription', { propertyName: deleteDialog.propertyName })}
         impactData={deleteDialog.impact}
         isLoading={deleteDialog.loading}
       />

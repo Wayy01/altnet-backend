@@ -70,7 +70,7 @@ import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { Category, CategoryFilterOptions, UpdateCategoryPayload } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -106,6 +106,8 @@ export default function CategoriesPage() {
   const [isPending, startTransition] = useTransition();
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { localize } = useLocalizedValue();
+  const { t } = useTranslation("categories");
+  const { t: tCommon } = useTranslation("common");
 
   // Get initial values from URL params
   const initialSearch = searchParams.get("search") || "";
@@ -196,7 +198,7 @@ export default function CategoriesPage() {
     if (debouncedSearch) {
       filters.push({
         key: "search",
-        label: "Search",
+        label: tCommon("actions.search"),
         value: debouncedSearch,
         displayValue: `"${debouncedSearch}"`,
       });
@@ -205,37 +207,37 @@ export default function CategoriesPage() {
     if (hasProductsFilter) {
       filters.push({
         key: "has_products",
-        label: "Products",
+        label: t("table.products"),
         value: hasProductsFilter,
-        displayValue: hasProductsFilter === "true" ? "With Products" : "Without Products",
+        displayValue: hasProductsFilter === "true" ? t("filters.withProducts") : t("filters.withoutProducts"),
       });
     }
 
     if (isActiveFilter) {
       filters.push({
         key: "is_active",
-        label: "Status",
+        label: t("filters.status"),
         value: isActiveFilter,
-        displayValue: isActiveFilter === "true" ? "Active" : "Inactive",
+        displayValue: isActiveFilter === "true" ? t("filters.active") : t("filters.inactive"),
       });
     }
 
     if (sortBy && sortBy !== "name_asc") {
       const sortLabels: Record<string, string> = {
-        name_desc: "Name Z-A",
-        products_desc: "Most Products",
-        products_asc: "Least Products",
+        name_desc: t("filters.nameZA"),
+        products_desc: t("filters.mostProducts"),
+        products_asc: t("filters.leastProducts"),
       };
       filters.push({
         key: "sort_by",
-        label: "Sort",
+        label: t("filters.sortBy"),
         value: sortBy,
         displayValue: sortLabels[sortBy] || sortBy,
       });
     }
 
     return filters;
-  }, [debouncedSearch, hasProductsFilter, isActiveFilter, sortBy]);
+  }, [debouncedSearch, hasProductsFilter, isActiveFilter, sortBy, t, tCommon]);
 
   // Helper to update URL params
   const updateUrlParams = (updates: Record<string, string | null>) => {
@@ -463,13 +465,13 @@ export default function CategoriesPage() {
     setIsProcessing(true);
     try {
       await api.updateCategory(categoryId, { is_active: isActive });
-      toast.success(`Category ${isActive ? "activated" : "deactivated"}`);
+      toast.success(isActive ? t("toast.activated") : t("toast.deactivated"));
       startTransition(() => {
         fetchCategories();
       });
     } catch (error) {
       console.error("Failed to update category:", error);
-      toast.error("Failed to update category status");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -496,9 +498,11 @@ export default function CategoriesPage() {
         });
       }
       if (result.updated === 0) {
-        toast.info("No categories were updated (may already be active)");
+        toast.info(t("toast.noCategoriesUpdated"));
       } else {
-        toast.success(`Successfully activated ${result.updated} ${result.updated === 1 ? "category" : "categories"}`);
+        toast.success(result.updated === 1
+          ? t("toast.bulkActivated", { count: result.updated })
+          : t("toast.bulkActivatedPlural", { count: result.updated }));
       }
       handleClearSelection();
       startTransition(() => {
@@ -506,7 +510,7 @@ export default function CategoriesPage() {
       });
     } catch (error) {
       console.error("Failed to bulk activate categories:", error);
-      toast.error("Failed to activate categories");
+      toast.error(t("toast.bulkFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -532,9 +536,11 @@ export default function CategoriesPage() {
         });
       }
       if (result.updated === 0) {
-        toast.info("No categories were updated (may already be inactive)");
+        toast.info(t("toast.noCategoriesUpdated"));
       } else {
-        toast.success(`Successfully deactivated ${result.updated} ${result.updated === 1 ? "category" : "categories"}`);
+        toast.success(result.updated === 1
+          ? t("toast.bulkDeactivated", { count: result.updated })
+          : t("toast.bulkDeactivatedPlural", { count: result.updated }));
       }
       handleClearSelection();
       startTransition(() => {
@@ -542,7 +548,7 @@ export default function CategoriesPage() {
       });
     } catch (error) {
       console.error("Failed to bulk deactivate categories:", error);
-      toast.error("Failed to deactivate categories");
+      toast.error(t("toast.bulkFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -561,10 +567,10 @@ export default function CategoriesPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success("Categories exported successfully");
+      toast.success(t("toast.exportSuccess"));
     } catch (error) {
       console.error("Failed to export categories:", error);
-      toast.error("Failed to export categories");
+      toast.error(t("toast.exportFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -577,7 +583,7 @@ export default function CategoriesPage() {
     setIsProcessing(true);
     try {
       await api.deleteCategory(deleteCategoryId);
-      toast.success("Category deleted successfully");
+      toast.success(t("toast.deleted"));
       setShowDeleteDialog(false);
       setDeleteCategoryId(null);
       startTransition(() => {
@@ -585,7 +591,7 @@ export default function CategoriesPage() {
       });
     } catch (error) {
       console.error("Failed to delete category:", error);
-      toast.error("Failed to delete category");
+      toast.error(t("toast.deleteFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -617,9 +623,9 @@ export default function CategoriesPage() {
     try {
       const response = await api.uploadImage(file);
       handleEditFormChange("image_url", response.url);
-      toast.success("Image uploaded successfully");
+      toast.success(t("toast.imageUploaded"));
     } catch (error) {
-      toast.error("Failed to upload image");
+      toast.error(t("toast.imageUploadFailed"));
     } finally {
       setIsEditUploading(false);
     }
@@ -640,7 +646,7 @@ export default function CategoriesPage() {
       };
 
       await api.updateCategory(editCategory.id, payload);
-      toast.success(`Category "${editFormState.name}" updated successfully`);
+      toast.success(t("toast.updated"));
       setShowEditDialog(false);
       setEditCategory(null);
       startTransition(() => {
@@ -648,7 +654,7 @@ export default function CategoriesPage() {
       });
     } catch (error) {
       console.error("Failed to update category:", error);
-      toast.error("Failed to update category");
+      toast.error(t("toast.updateFailed"));
     } finally {
       setIsProcessing(false);
     }
@@ -679,29 +685,29 @@ export default function CategoriesPage() {
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [
     {
-      label: "Total",
+      label: t("stats.total"),
       value: (total ?? 0).toLocaleString(),
-      suffix: hasActiveFilters ? "filtered" : undefined,
+      suffix: hasActiveFilters ? t("stats.filtered") : undefined,
       variant: "default",
     },
     {
-      label: "Root",
+      label: t("stats.root"),
       value: rootCount,
-      suffix: "on page",
+      suffix: t("stats.onPage"),
       icon: <Layers className="h-3.5 w-3.5" />,
       variant: rootCount > 0 ? "success" : "muted",
     },
     {
-      label: "Active",
+      label: t("stats.active"),
       value: activeCategoriesOnPage,
-      suffix: "on page",
+      suffix: t("stats.onPage"),
       icon: <Power className="h-3.5 w-3.5" />,
       variant: activeCategoriesOnPage > 0 ? "success" : "warning",
     },
     {
-      label: "Products",
+      label: t("table.products"),
       value: totalProductsOnPage.toLocaleString(),
-      suffix: "on page",
+      suffix: t("stats.onPage"),
       icon: <Package className="h-3.5 w-3.5" />,
       variant: "muted",
     },
@@ -711,9 +717,9 @@ export default function CategoriesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
           <p className="text-muted-foreground">
-            View and manage all categories in the catalog
+            {t("page.description")}
           </p>
         </div>
         <CategoriesPageSkeleton />
@@ -725,9 +731,9 @@ export default function CategoriesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
           <p className="text-muted-foreground">
-            View and manage all categories in the catalog
+            {t("page.description")}
           </p>
         </div>
         <div className="flex flex-col items-center justify-center py-12 rounded-xl border bg-card shadow-sm">
@@ -740,7 +746,7 @@ export default function CategoriesPage() {
             className="mt-4 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
             onClick={() => window.location.reload()}
           >
-            Try Again
+            {tCommon("actions.tryAgain")}
           </Button>
         </div>
       </div>
@@ -751,9 +757,9 @@ export default function CategoriesPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
         <p className="text-muted-foreground">
-          View and manage all categories in the catalog
+          {t("page.description")}
         </p>
       </div>
 

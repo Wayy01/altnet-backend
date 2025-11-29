@@ -57,6 +57,7 @@ import { SyncProgress } from "@/types";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { handleSyncError, calculateProgress } from "@/lib/sync-utils";
+import { useTranslation } from "@/contexts/language-context";
 
 /**
  * Format duration in human-readable format
@@ -112,6 +113,8 @@ export default function SelectiveSyncPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const configId = searchParams.get("config");
+  const { t } = useTranslation('sync');
+  const { t: tCommon } = useTranslation('common');
 
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -406,9 +409,9 @@ export default function SelectiveSyncPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Selective Sync</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t('page.selectiveTitle')}</h1>
             <p className="text-muted-foreground">
-              Execute granular sync operations with custom field configurations
+              {t('page.selectiveDescription')}
             </p>
           </div>
         </div>
@@ -421,7 +424,7 @@ export default function SelectiveSyncPage() {
           >
             <Link href="/sync/configs">
               <Settings className="h-4 w-4 mr-2" />
-              Manage Configs
+              {t('actions.manageConfigs')}
             </Link>
           </Button>
           {syncLogId && (
@@ -433,7 +436,7 @@ export default function SelectiveSyncPage() {
             >
               <Link href={`/sync/changes?log=${syncLogId}`}>
                 <FileText className="h-4 w-4 mr-2" />
-                View Changes
+                {t('actions.viewChanges')}
               </Link>
             </Button>
           )}

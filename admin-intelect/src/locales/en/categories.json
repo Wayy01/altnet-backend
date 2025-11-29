@@ -1,0 +1,90 @@
+{
+  "page": {
+    "title": "Categories",
+    "description": "View and manage all categories in the catalog",
+    "newTitle": "Create Category",
+    "newDescription": "Add a new category to the catalog",
+    "editTitle": "Edit Category",
+    "editDescription": "Update category information"
+  },
+  "stats": {
+    "total": "Total",
+    "active": "Active",
+    "products": "Products",
+    "filtered": "filtered",
+    "onPage": "on page"
+  },
+  "table": {
+    "name": "Name",
+    "slug": "Slug",
+    "ultraId": "Ultra ID",
+    "products": "Products",
+    "active": "Active",
+    "actions": "Actions"
+  },
+  "filters": {
+    "searchCategories": "Search categories...",
+    "productCount": "Product count",
+    "allCategories": "All categories",
+    "withProducts": "With products",
+    "withoutProducts": "Without products",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "sortBy": "Sort by",
+    "nameAZ": "Name A-Z",
+    "nameZA": "Name Z-A",
+    "mostProducts": "Most products",
+    "leastProducts": "Least products"
+  },
+  "empty": {
+    "title": "No categories found",
+    "withFilters": "Try adjusting your filters to find what you're looking for",
+    "noFilters": "Get started by adding your first category",
+    "clearFilters": "Clear all filters"
+  },
+  "bulk": {
+    "selected": "{{count}} category selected",
+    "selectedPlural": "{{count}} categories selected",
+    "allMatching": "All {{count}} matching categories selected",
+    "selectAllMatching": "Select all {{count}} matching categories"
+  },
+  "actions": {
+    "exportCSV": "Export CSV",
+    "viewDetails": "View Details",
+    "editCategory": "Edit Category",
+    "viewProducts": "View Products",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "delete": "Delete"
+  },
+  "dialogs": {
+    "editTitle": "Edit Category",
+    "editDescription": "Make changes to the category details below.",
+    "deleteTitle": "Delete Category",
+    "deleteDescription": "Are you sure you want to delete this category? This action cannot be undone and may affect associated products."
+  },
+  "form": {
+    "categoryName": "Category Name",
+    "categoryNamePlaceholder": "Enter category name",
+    "activeStatus": "Active Status",
+    "activeDescription": "Active categories are visible in the catalog"
+  },
+  "toast": {
+    "activated": "Category activated",
+    "deactivated": "Category deactivated",
+    "deleted": "Category deleted successfully",
+    "created": "Category created successfully",
+    "updated": "Category updated successfully",
+    "bulkActivated": "Successfully activated {{count}} category",
+    "bulkActivatedPlural": "Successfully activated {{count}} categories",
+    "bulkDeactivated": "Successfully deactivated {{count}} category",
+    "bulkDeactivatedPlural": "Successfully deactivated {{count}} categories",
+    "noCategoriesUpdated": "No categories were updated (may already be active)",
+    "exportSuccess": "Categories exported successfully",
+    "exportFailed": "Failed to export categories",
+    "updateFailed": "Failed to update category status",
+    "deleteFailed": "Failed to delete category",
+    "nameRequired": "Category name is required"
+  }
+}

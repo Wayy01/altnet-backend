@@ -1,0 +1,68 @@
+{
+  "page": {
+    "title": "Dashboard",
+    "description": "Overview of Ultra B2B product data"
+  },
+  "stats": {
+    "totalProducts": "Total Products",
+    "brands": "Brands",
+    "categories": "Categories",
+    "properties": "Properties",
+    "characteristics": "Characteristics",
+    "prices": "Prices",
+    "stockEntries": "Stock Entries",
+    "inStock": "In Stock",
+    "lowStock": "Low Stock"
+  },
+  "descriptions": {
+    "productsInCatalog": "Products in catalog",
+    "activeBrands": "Active brands",
+    "productCategories": "Product categories",
+    "productSpecifications": "Product specifications",
+    "productVariantsSKUs": "Product variants/SKUs",
+    "priceEntries": "Price entries",
+    "stockRecords": "Stock records",
+    "productsAvailable": "Products available",
+    "productsLowStock": "Products with <= 5 stock"
+  },
+  "cards": {
+    "recentSyncs": "Recent Syncs",
+    "lowStockAlerts": "Low Stock Alerts",
+    "topCategories": "Top Categories",
+    "priceDistribution": "Price Distribution",
+    "systemStatus": "System Status"
+  },
+  "sync": {
+    "lastSync": "Last sync",
+    "itemsSynced": "items synced",
+    "duration": "Duration",
+    "noSyncActivity": "No sync activity recorded yet.",
+    "viewDetails": "View Details"
+  },
+  "stock": {
+    "allClear": "All Clear",
+    "adequateStock": "All products have adequate stock levels",
+    "left": "left",
+    "noStockData": "No stock data available."
+  },
+  "price": {
+    "under100": "Under 100 MDL",
+    "range100to500": "100 - 500 MDL",
+    "range500to1000": "500 - 1,000 MDL",
+    "over1000": "Over 1,000 MDL",
+    "minPrice": "Min Price",
+    "maxPrice": "Max Price",
+    "avgPrice": "Average Price",
+    "medianPrice": "Median Price",
+    "products": "products"
+  },
+  "buttons": {
+    "syncStatus": "Sync Status",
+    "lowStock": "Low Stock",
+    "products": "Products"
+  },
+  "category": {
+    "products": "products",
+    "avg": "Avg"
+  }
+}

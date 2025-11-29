@@ -34,7 +34,7 @@ import {
   StockSummaryItem,
   PriceSummary,
 } from "@/types";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 interface DashboardData {
   stats: DashboardStats;
@@ -144,6 +144,8 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [cardsVisible, setCardsVisible] = useState(false);
   const { localize } = useLocalizedValue();
+  const { t } = useTranslation("dashboard");
+  const { t: tCommon } = useTranslation("common");
 
   async function fetchDashboardData(): Promise<DashboardData> {
     const [
@@ -219,9 +221,9 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
           <p className="text-muted-foreground">
-            Overview of Ultra B2B product data
+            {t("page.description")}
           </p>
         </div>
         <DashboardSkeleton />
@@ -233,78 +235,78 @@ export default function DashboardPage() {
 
   const statCards = [
     {
-      title: "Total Products",
+      title: t("stats.totalProducts"),
       value: (stats.total_products ?? 0).toLocaleString(),
       icon: Package,
-      description: "Products in catalog",
+      description: t("descriptions.productsInCatalog"),
       color: "text-primary",
       link: "/products",
       variant: "default" as const,
     },
     {
-      title: "Brands",
+      title: t("stats.brands"),
       value: (stats.total_brands ?? 0).toLocaleString(),
       icon: Building2,
-      description: "Active brands",
+      description: t("descriptions.activeBrands"),
       color: "text-primary",
       link: "/brands",
       variant: "default" as const,
     },
     {
-      title: "Categories",
+      title: t("stats.categories"),
       value: (stats.total_categories ?? 0).toLocaleString(),
       icon: FolderTree,
-      description: "Product categories",
+      description: t("descriptions.productCategories"),
       color: "text-primary",
       link: "/categories",
       variant: "default" as const,
     },
     {
-      title: "Properties",
+      title: t("stats.properties"),
       value: (stats.total_properties ?? 0).toLocaleString(),
       icon: FileText,
-      description: "Product specifications",
+      description: t("descriptions.productSpecifications"),
       color: "text-muted-foreground",
       variant: "muted" as const,
     },
     {
-      title: "Characteristics",
+      title: t("stats.characteristics"),
       value: (stats.total_characteristics ?? 0).toLocaleString(),
       icon: Tags,
-      description: "Product variants/SKUs",
+      description: t("descriptions.productVariantsSKUs"),
       color: "text-muted-foreground",
       variant: "muted" as const,
     },
     {
-      title: "Prices",
+      title: t("stats.prices"),
       value: (stats.total_prices ?? 0).toLocaleString(),
       icon: DollarSign,
-      description: "Price entries",
+      description: t("descriptions.priceEntries"),
       color: "text-muted-foreground",
       variant: "muted" as const,
     },
     {
-      title: "Stock Entries",
+      title: t("stats.stockEntries"),
       value: (stats.total_stock ?? 0).toLocaleString(),
       icon: Warehouse,
-      description: "Stock records",
+      description: t("descriptions.stockRecords"),
       color: "text-muted-foreground",
       variant: "muted" as const,
     },
     {
-      title: "In Stock",
+      title: t("stats.inStock"),
       value: (stats.in_stock_products ?? 0).toLocaleString(),
       icon: PackageCheck,
-      description: "Products available",
+      description: t("descriptions.productsAvailable"),
       color: "text-primary",
       link: "/products?stock_filter=in_stock",
       variant: "success" as const,
     },
     {
-      title: "Low Stock",
+      title: t("stats.lowStock"),
       value: lowStockAlerts.length.toLocaleString(),
       icon: AlertTriangle,
-      description: "Products with <= 5 stock",
+      description: t("descriptions.productsLowStock"),
       color: "text-destructive",
       link: "/products?stock_filter=low_stock",
       variant: "warning" as const,
@@ -316,14 +318,14 @@ export default function DashboardPage() {
       {/* Header with Quick Actions */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
           <p className="text-muted-foreground">
-            Overview of Ultra B2B product data
+            {t("page.description")}
           </p>
         </div>
         <div className="flex items-center gap-4">
           <p className="text-xs text-muted-foreground">
-            Last updated: {lastUpdated.toLocaleTimeString()}
+            {tCommon("time.lastUpdated")}: {lastUpdated.toLocaleTimeString()}
           </p>
           <div className="flex gap-2">
             <Button
@@ -334,7 +336,7 @@ export default function DashboardPage() {
             >
               <Link href="/sync">
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Sync Status
+                {t("buttons.syncStatus")}
               </Link>
             </Button>
             <Button
@@ -345,7 +347,7 @@ export default function DashboardPage() {
             >
               <Link href="/products?stock_filter=low_stock">
                 <AlertTriangle className="mr-2 h-4 w-4" />
-                Low Stock
+                {t("buttons.lowStock")}
               </Link>
             </Button>
             <Button
@@ -355,7 +357,7 @@ export default function DashboardPage() {
             >
               <Link href="/products">
                 <Package className="mr-2 h-4 w-4" />
-                Products
+                {t("buttons.products")}
               </Link>
             </Button>
           </div>
@@ -397,7 +399,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h3 className="text-sm font-medium flex items-center gap-2">
-                  System Status
+                  {t("cards.systemStatus")}
                   <Badge
                     variant={latestSync.status === "completed" ? "default" : "destructive"}
                     className={`text-xs ${
@@ -406,17 +408,17 @@ export default function DashboardPage() {
                         : "bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20"
                     }`}
                   >
-                    {latestSync.status === "completed" ? "Healthy" : "Issues Detected"}
+                    {latestSync.status === "completed" ? tCommon("status.healthy") : tCommon("status.issuesDetected")}
                   </Badge>
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Last sync: {formatRelativeTime(latestSync.started_at)} | {" "}
+                  {t("sync.lastSync")}: {formatRelativeTime(latestSync.started_at)} | {" "}
                   {(
                     (latestSync.products_synced ?? 0) +
                     (latestSync.brands_synced ?? 0) +
                     (latestSync.categories_synced ?? 0)
                   ).toLocaleString()}{" "}
-                  items synced | Duration: {formatDuration(latestSync.duration_seconds)}
+                  {t("sync.itemsSynced")} | {t("sync.duration")}: {formatDuration(latestSync.duration_seconds)}
                 </p>
               </div>
             </div>
@@ -427,7 +429,7 @@ export default function DashboardPage() {
               className="transition-all duration-200 hover:bg-primary/10 hover:text-primary"
             >
               <Link href="/sync">
-                View Details
+                {t("sync.viewDetails")}
                 <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
               </Link>
             </Button>
@@ -474,7 +476,7 @@ export default function DashboardPage() {
               {stat.link && (
                 <div className="px-6 py-2 bg-muted/30 border-t">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    View all
+                    {tCommon("actions.viewAll")}
                     <ExternalLink className="h-3 w-3" />
                   </span>
                 </div>
@@ -520,7 +522,7 @@ export default function DashboardPage() {
                 <div className="p-1.5 rounded-lg bg-muted">
                   <RefreshCw className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <h3 className="font-semibold">Recent Syncs</h3>
+                <h3 className="font-semibold">{t("cards.recentSyncs")}</h3>
               </div>
               <Button
                 variant="ghost"
@@ -529,7 +531,7 @@ export default function DashboardPage() {
                 className="text-xs transition-all duration-200 hover:bg-primary/10 hover:text-primary"
               >
                 <Link href="/sync">
-                  View All
+                  {tCommon("actions.viewAll")}
                   <ExternalLink className="ml-1 h-3 w-3" />
                 </Link>
               </Button>
@@ -542,7 +544,7 @@ export default function DashboardPage() {
                   <RefreshCw className="h-6 w-6 text-muted-foreground/50" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  No sync activity recorded yet.
+                  {t("sync.noSyncActivity")}
                 </p>
               </div>
             ) : (
@@ -620,7 +622,7 @@ export default function DashboardPage() {
                 `}>
                   <AlertTriangle className={`h-4 w-4 ${lowStockAlerts.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
                 </div>
-                <h3 className="font-semibold">Low Stock Alerts</h3>
+                <h3 className="font-semibold">{t("cards.lowStockAlerts")}</h3>
                 {lowStockAlerts.length > 0 && (
                   <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
                     {lowStockAlerts.length}
@@ -634,7 +636,7 @@ export default function DashboardPage() {
                 className="text-xs transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
               >
                 <Link href="/products?stock_filter=low_stock">
-                  View All
+                  {tCommon("actions.viewAll")}
                   <ExternalLink className="ml-1 h-3 w-3" />
                 </Link>
               </Button>
@@ -646,9 +648,9 @@ export default function DashboardPage() {
                 <div className="p-3 rounded-full bg-primary/10 mb-3">
                   <CheckCircle2 className="h-6 w-6 text-primary" />
                 </div>
-                <p className="text-sm font-medium text-foreground">All Clear</p>
+                <p className="text-sm font-medium text-foreground">{t("stock.allClear")}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  All products have adequate stock levels
+                  {t("stock.adequateStock")}
                 </p>
               </div>
             ) : (
@@ -676,7 +678,7 @@ export default function DashboardPage() {
                           : ""
                       }`}
                     >
-                      {product.total_stock} left
+                      {product.total_stock} {t("stock.left")}
                     </Badge>
                   </Link>
                 ))}
@@ -700,7 +702,7 @@ export default function DashboardPage() {
                 <div className="p-1.5 rounded-lg bg-muted">
                   <Warehouse className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <h3 className="font-semibold">Top Categories</h3>
+                <h3 className="font-semibold">{t("cards.topCategories")}</h3>
               </div>
               <Button
                 variant="ghost"
@@ -709,7 +711,7 @@ export default function DashboardPage() {
                 className="text-xs transition-all duration-200 hover:bg-primary/10 hover:text-primary"
               >
                 <Link href="/categories">
-                  View All
+                  {tCommon("actions.viewAll")}
                   <ExternalLink className="ml-1 h-3 w-3" />
                 </Link>
               </Button>
@@ -722,7 +724,7 @@ export default function DashboardPage() {
                   <Warehouse className="h-6 w-6 text-muted-foreground/50" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  No stock data available.
+                  {t("stock.noStockData")}
                 </p>
               </div>
             ) : (
@@ -738,7 +740,7 @@ export default function DashboardPage() {
                         {localize(category, "name")}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {category.product_count} products | Avg:{" "}
+                        {category.product_count} {t("category.products")} | {t("category.avg")}:{" "}
                         {category.avg_price.toFixed(2)} MDL
                       </p>
                     </div>
@@ -771,45 +773,45 @@ export default function DashboardPage() {
               <div className="p-1.5 rounded-lg bg-muted">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </div>
-              <h3 className="font-semibold">Price Distribution</h3>
+              <h3 className="font-semibold">{t("cards.priceDistribution")}</h3>
             </div>
           </div>
           <div className="p-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               <div className="p-4 rounded-lg bg-muted/30 border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm">
-                <p className="text-sm text-muted-foreground mb-1">Under 100 MDL</p>
+                <p className="text-sm text-muted-foreground mb-1">{t("price.under100")}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold tabular-nums">
                     {priceSummary.distribution.under_100.toLocaleString()}
                   </span>
-                  <span className="text-xs text-muted-foreground">products</span>
+                  <span className="text-xs text-muted-foreground">{t("price.products")}</span>
                 </div>
               </div>
               <div className="p-4 rounded-lg bg-muted/30 border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm">
-                <p className="text-sm text-muted-foreground mb-1">100 - 500 MDL</p>
+                <p className="text-sm text-muted-foreground mb-1">{t("price.range100to500")}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold tabular-nums">
                     {priceSummary.distribution["100_to_500"].toLocaleString()}
                   </span>
-                  <span className="text-xs text-muted-foreground">products</span>
+                  <span className="text-xs text-muted-foreground">{t("price.products")}</span>
                 </div>
               </div>
               <div className="p-4 rounded-lg bg-muted/30 border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm">
-                <p className="text-sm text-muted-foreground mb-1">500 - 1,000 MDL</p>
+                <p className="text-sm text-muted-foreground mb-1">{t("price.range500to1000")}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold tabular-nums">
                     {priceSummary.distribution["500_to_1000"].toLocaleString()}
                   </span>
-                  <span className="text-xs text-muted-foreground">products</span>
+                  <span className="text-xs text-muted-foreground">{t("price.products")}</span>
                 </div>
               </div>
               <div className="p-4 rounded-lg bg-muted/30 border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm">
-                <p className="text-sm text-muted-foreground mb-1">Over 1,000 MDL</p>
+                <p className="text-sm text-muted-foreground mb-1">{t("price.over1000")}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-bold tabular-nums">
                     {priceSummary.distribution.over_1000.toLocaleString()}
                   </span>
-                  <span className="text-xs text-muted-foreground">products</span>
+                  <span className="text-xs text-muted-foreground">{t("price.products")}</span>
                 </div>
               </div>
             </div>
@@ -820,7 +822,7 @@ export default function DashboardPage() {
                   <TrendingDown className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Min Price</p>
+                  <p className="text-xs text-muted-foreground">{t("price.minPrice")}</p>
                   <p className="text-lg font-semibold tabular-nums">
                     {priceSummary.min_price !== null
                       ? `${priceSummary.min_price.toFixed(2)} MDL`
@@ -833,7 +835,7 @@ export default function DashboardPage() {
                   <TrendingUp className="h-4 w-4 text-destructive" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Max Price</p>
+                  <p className="text-xs text-muted-foreground">{t("price.maxPrice")}</p>
                   <p className="text-lg font-semibold tabular-nums">
                     {priceSummary.max_price !== null
                       ? `${priceSummary.max_price.toFixed(2)} MDL`
@@ -846,7 +848,7 @@ export default function DashboardPage() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Average Price</p>
+                  <p className="text-xs text-muted-foreground">{t("price.avgPrice")}</p>
                   <p className="text-lg font-semibold tabular-nums">
                     {priceSummary.avg_price !== null
                       ? `${priceSummary.avg_price.toFixed(2)} MDL`
@@ -859,7 +861,7 @@ export default function DashboardPage() {
                   <Activity className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Median Price</p>
+                  <p className="text-xs text-muted-foreground">{t("price.medianPrice")}</p>
                   <p className="text-lg font-semibold tabular-nums">
                     {priceSummary.median_price !== null
                       ? `${priceSummary.median_price.toFixed(2)} MDL`

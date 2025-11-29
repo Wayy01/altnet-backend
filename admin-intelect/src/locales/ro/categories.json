@@ -1,0 +1,90 @@
+{
+  "page": {
+    "title": "Categorii",
+    "description": "Vizualizeaza si gestioneaza toate categoriile din catalog",
+    "newTitle": "Creeaza categorie",
+    "newDescription": "Adauga o categorie noua in catalog",
+    "editTitle": "Editeaza categorie",
+    "editDescription": "Actualizeaza informatiile categoriei"
+  },
+  "stats": {
+    "total": "Total",
+    "active": "Active",
+    "products": "Produse",
+    "filtered": "filtrate",
+    "onPage": "pe pagina"
+  },
+  "table": {
+    "name": "Nume",
+    "slug": "Slug",
+    "ultraId": "Ultra ID",
+    "products": "Produse",
+    "active": "Activ",
+    "actions": "Actiuni"
+  },
+  "filters": {
+    "searchCategories": "Cauta categorii...",
+    "productCount": "Numar produse",
+    "allCategories": "Toate categoriile",
+    "withProducts": "Cu produse",
+    "withoutProducts": "Fara produse",
+    "status": "Stare",
+    "active": "Activ",
+    "inactive": "Inactiv",
+    "sortBy": "Sorteaza dupa",
+    "nameAZ": "Nume A-Z",
+    "nameZA": "Nume Z-A",
+    "mostProducts": "Cele mai multe produse",
+    "leastProducts": "Cele mai putine produse"
+  },
+  "empty": {
+    "title": "Nu s-au gasit categorii",
+    "withFilters": "Incercati sa ajustati filtrele pentru a gasi ceea ce cautati",
+    "noFilters": "Incepeti prin adaugarea primei categorii",
+    "clearFilters": "Sterge toate filtrele"
+  },
+  "bulk": {
+    "selected": "{{count}} categorie selectata",
+    "selectedPlural": "{{count}} categorii selectate",
+    "allMatching": "Toate cele {{count}} categorii corespunzatoare selectate",
+    "selectAllMatching": "Selecteaza toate cele {{count}} categorii corespunzatoare"
+  },
+  "actions": {
+    "exportCSV": "Exporta CSV",
+    "viewDetails": "Vezi detalii",
+    "editCategory": "Editeaza categorie",
+    "viewProducts": "Vezi produse",
+    "activate": "Activeaza",
+    "deactivate": "Dezactiveaza",
+    "delete": "Sterge"
+  },
+  "dialogs": {
+    "editTitle": "Editeaza categorie",
+    "editDescription": "Faceti modificari la detaliile categoriei mai jos.",
+    "deleteTitle": "Sterge categorie",
+    "deleteDescription": "Sigur doriti sa stergeti aceasta categorie? Aceasta actiune nu poate fi anulata si poate afecta produsele asociate."
+  },
+  "form": {
+    "categoryName": "Nume categorie",
+    "categoryNamePlaceholder": "Introduceti numele categoriei",
+    "activeStatus": "Stare activa",
+    "activeDescription": "Categoriile active sunt vizibile in catalog"
+  },
+  "toast": {
+    "activated": "Categorie activata",
+    "deactivated": "Categorie dezactivata",
+    "deleted": "Categorie stearsa cu succes",
+    "created": "Categorie creata cu succes",
+    "updated": "Categorie actualizata cu succes",
+    "bulkActivated": "{{count}} categorie activata cu succes",
+    "bulkActivatedPlural": "{{count}} categorii activate cu succes",
+    "bulkDeactivated": "{{count}} categorie dezactivata cu succes",
+    "bulkDeactivatedPlural": "{{count}} categorii dezactivate cu succes",
+    "noCategoriesUpdated": "Nicio categorie nu a fost actualizata (poate sunt deja active)",
+    "exportSuccess": "Categorii exportate cu succes",
+    "exportFailed": "Exportul categoriilor a esuat",
+    "updateFailed": "Actualizarea starii categoriei a esuat",
+    "deleteFailed": "Stergerea categoriei a esuat",
+    "nameRequired": "Numele categoriei este obligatoriu"
+  }
+}

@@ -86,6 +86,7 @@ import {
   sanitizeConfigurationDescription,
   handleSyncError,
 } from "@/lib/sync-utils";
+import { useTranslation } from "@/contexts/language-context";
 
 /**
  * Get step icon based on step name
@@ -114,6 +115,8 @@ function getStepIcon(stepName: string) {
 
 export default function ConfigurationsPage() {
   const router = useRouter();
+  const { t } = useTranslation('sync');
+  const { t: tCommon } = useTranslation('common');
   const [loading, setLoading] = useState(true);
   const [configurations, setConfigurations] = useState<SyncConfiguration[]>([]);
   const [total, setTotal] = useState(0);
@@ -349,9 +352,9 @@ export default function ConfigurationsPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Sync Configurations</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t('page.configsTitle')}</h1>
             <p className="text-muted-foreground">
-              Manage saved sync configurations and templates
+              {t('page.configsDescription')}
             </p>
           </div>
         </div>
@@ -360,7 +363,7 @@ export default function ConfigurationsPage() {
           className="gap-2 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
         >
           <Plus className="h-4 w-4" />
-          New Configuration
+          {t('configs.newConfiguration')}
         </Button>
       </div>
 

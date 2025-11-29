@@ -1,0 +1,92 @@
+{
+  "page": {
+    "title": "Product Groupings",
+    "description": "Manage parent products and their variant relationships",
+    "detailTitle": "Grouping Details",
+    "detailDescription": "Product variants for this grouping"
+  },
+  "stats": {
+    "totalGroups": "Total Groups",
+    "totalVariants": "Variants",
+    "totalStock": "Total Stock",
+    "avgPrice": "Avg Price",
+    "active": "Active",
+    "priceRange": "Price Range",
+    "onPage": "on page",
+    "filtered": "filtered"
+  },
+  "table": {
+    "productName": "Product Name",
+    "code": "Code",
+    "brand": "Brand",
+    "category": "Category",
+    "variants": "Variants",
+    "priceRange": "Price Range",
+    "stock": "Stock",
+    "status": "Status",
+    "actions": "Actions",
+    "variantName": "Variant Name",
+    "priceMDL": "Price (MDL)",
+    "image": "Image"
+  },
+  "filters": {
+    "searchGroupings": "Search product groups...",
+    "searchVariants": "Search variants...",
+    "sortBy": "Sort by",
+    "nameAZ": "Name A-Z",
+    "nameZA": "Name Z-A",
+    "mostVariants": "Most variants",
+    "leastVariants": "Least variants",
+    "mostStock": "Most stock",
+    "leastStock": "Least stock"
+  },
+  "empty": {
+    "title": "No product groups found",
+    "withFilters": "Try adjusting your filters to find what you're looking for",
+    "noFilters": "No groups available",
+    "noVariants": "No variants found",
+    "noVariantsForGroup": "No variants available for this group"
+  },
+  "badges": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "inStock": "In Stock",
+    "outOfStock": "Out",
+    "noPrice": "No price"
+  },
+  "actions": {
+    "viewVariants": "View Variants",
+    "delete": "Delete",
+    "clearAllFilters": "Clear all filters",
+    "clearSearch": "Clear search"
+  },
+  "delete": {
+    "groupTitle": "Delete Product Group",
+    "groupDescription": "Are you sure you want to delete \"{{name}}\" and unlink all its variants?",
+    "variantTitle": "Unlink Product Variant",
+    "variantDescription": "Are you sure you want to unlink \"{{name}}\" from this group?"
+  },
+  "pagination": {
+    "showing": "Showing",
+    "of": "of",
+    "groups": "groups",
+    "variants": "variants",
+    "rowsPerPage": "Rows per page",
+    "page": "Page",
+    "firstPage": "First page",
+    "lastPage": "Last page",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "detail": {
+    "code": "Code",
+    "brand": "Brand",
+    "category": "Category",
+    "status": "Status"
+  },
+  "loading": {
+    "groups": "Loading groups...",
+    "variants": "Loading variants..."
+  },
+  "activeFilters": "active filters"
+}

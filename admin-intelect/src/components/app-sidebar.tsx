@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useCurrency, CURRENCY_OPTIONS } from "@/contexts/currency-context";
-import { useLanguage, LANGUAGES } from "@/contexts/language-context";
+import { useLanguage, LANGUAGES, useTranslation } from "@/contexts/language-context";
 import { CurrencyCode } from "@/types";
 import { LanguageCode } from "@/contexts/language-context";
 import { cn } from "@/lib/utils";
@@ -60,126 +60,12 @@ import { cn } from "@/lib/utils";
  * Navigation item type definition for type-safe menu configuration
  */
 interface NavItem {
-  title: string;
+  titleKey: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string | number;
-  description?: string;
+  descriptionKey?: string;
 }
-
-/**
- * Main navigation items with icons and routes
- */
-const mainMenuItems: NavItem[] = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: LayoutDashboard,
-    description: "Overview & statistics",
-  },
-  {
-    title: "Products",
-    url: "/products",
-    icon: Package,
-    description: "Manage product catalog",
-  },
-  {
-    title: "Properties",
-    url: "/properties",
-    icon: Database,
-    description: "Product properties",
-  },
-  {
-    title: "Groupings",
-    url: "/groupings",
-    icon: Network,
-    description: "Product groupings",
-  },
-  {
-    title: "Brands",
-    url: "/brands",
-    icon: Building2,
-    description: "Brand management",
-  },
-  {
-    title: "Categories",
-    url: "/categories",
-    icon: FolderTree,
-    description: "Category hierarchy",
-  },
-];
-
-/**
- * Sync operation items for the collapsible sync section
- */
-const syncMenuItems: NavItem[] = [
-  {
-    title: "Overview",
-    url: "/sync",
-    icon: Activity,
-    description: "Sync status & logs",
-  },
-  {
-    title: "Selective Sync",
-    url: "/sync/selective",
-    icon: Sparkles,
-    description: "Custom sync operations",
-  },
-  {
-    title: "Configurations",
-    url: "/sync/configs",
-    icon: FileText,
-    description: "Sync templates",
-  },
-  {
-    title: "Change History",
-    url: "/sync/changes",
-    icon: History,
-    description: "Track changes",
-  },
-];
-
-/**
- * Create new items section
- */
-const createMenuItems: NavItem[] = [
-  {
-    title: "Create Product",
-    url: "/products/new",
-    icon: Package,
-    description: "Add new product",
-  },
-  {
-    title: "Create Brand",
-    url: "/brands/new",
-    icon: Building2,
-    description: "Add new brand",
-  },
-  {
-    title: "Create Category",
-    url: "/categories/new",
-    icon: FolderTree,
-    description: "Add new category",
-  },
-];
-
-/**
- * Translation items section
- */
-const translationMenuItems: NavItem[] = [
-  {
-    title: "Translate",
-    url: "/translate",
-    icon: Languages,
-    description: "Translate content",
-  },
-  {
-    title: "Jobs",
-    url: "/translate/jobs",
-    icon: ListChecks,
-    description: "Translation jobs",
-  },
-];
 
 /**
  * Premium sidebar component with enhanced visual design and interactions
@@ -188,6 +74,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { currency, setCurrency } = useCurrency();
   const { language, setLanguage, currentLanguage } = useLanguage();
+  const { t } = useTranslation("navigation");
   const { state } = useSidebar();
   const [syncOpen, setSyncOpen] = useState(pathname.startsWith("/sync"));
   const [createOpen, setCreateOpen] = useState(
@@ -198,6 +85,120 @@ export function AppSidebar() {
   const [translateOpen, setTranslateOpen] = useState(pathname.startsWith("/translate"));
 
   const isCollapsed = state === "collapsed";
+
+  /**
+   * Main navigation items with icons and routes
+   */
+  const mainMenuItems: NavItem[] = [
+    {
+      titleKey: "menu.dashboard",
+      url: "/",
+      icon: LayoutDashboard,
+      descriptionKey: "descriptions.dashboard",
+    },
+    {
+      titleKey: "menu.products",
+      url: "/products",
+      icon: Package,
+      descriptionKey: "descriptions.products",
+    },
+    {
+      titleKey: "menu.properties",
+      url: "/properties",
+      icon: Database,
+      descriptionKey: "descriptions.properties",
+    },
+    {
+      titleKey: "menu.groupings",
+      url: "/groupings",
+      icon: Network,
+      descriptionKey: "descriptions.groupings",
+    },
+    {
+      titleKey: "menu.brands",
+      url: "/brands",
+      icon: Building2,
+      descriptionKey: "descriptions.brands",
+    },
+    {
+      titleKey: "menu.categories",
+      url: "/categories",
+      icon: FolderTree,
+      descriptionKey: "descriptions.categories",
+    },
+  ];
+
+  /**
+   * Sync operation items for the collapsible sync section
+   */
+  const syncMenuItems: NavItem[] = [
+    {
+      titleKey: "sync.overview",
+      url: "/sync",
+      icon: Activity,
+      descriptionKey: "descriptions.syncOverview",
+    },
+    {
+      titleKey: "sync.selectiveSync",
+      url: "/sync/selective",
+      icon: Sparkles,
+      descriptionKey: "descriptions.selectiveSync",
+    },
+    {
+      titleKey: "sync.configurations",
+      url: "/sync/configs",
+      icon: FileText,
+      descriptionKey: "descriptions.configurations",
+    },
+    {
+      titleKey: "sync.changeHistory",
+      url: "/sync/changes",
+      icon: History,
+      descriptionKey: "descriptions.changeHistory",
+    },
+  ];
+
+  /**
+   * Create new items section
+   */
+  const createMenuItems: NavItem[] = [
+    {
+      titleKey: "create.product",
+      url: "/products/new",
+      icon: Package,
+      descriptionKey: "descriptions.createProduct",
+    },
+    {
+      titleKey: "create.brand",
+      url: "/brands/new",
+      icon: Building2,
+      descriptionKey: "descriptions.createBrand",
+    },
+    {
+      titleKey: "create.category",
+      url: "/categories/new",
+      icon: FolderTree,
+      descriptionKey: "descriptions.createCategory",
+    },
+  ];
+
+  /**
+   * Translation items section
+   */
+  const translationMenuItems: NavItem[] = [
+    {
+      titleKey: "translate.translate",
+      url: "/translate",
+      icon: Languages,
+      descriptionKey: "descriptions.translate",
+    },
+    {
+      titleKey: "translate.jobs",
+      url: "/translate/jobs",
+      icon: ListChecks,
+      descriptionKey: "descriptions.jobs",
+    },
+  ];
 
   /**
    * Checks if a route is currently active
@@ -234,10 +235,10 @@ export function AppSidebar() {
           {!isCollapsed && (
             <div className="flex flex-col overflow-hidden">
               <span className="text-sm font-semibold tracking-tight truncate">
-                Admin Intelect
+                {t("sidebar.appName")}
               </span>
               <span className="text-[10px] text-muted-foreground/70 font-medium uppercase tracking-wider">
-                Ultra B2B Manager
+                {t("sidebar.appSubtitle")}
               </span>
             </div>
           )}
@@ -247,26 +248,26 @@ export function AppSidebar() {
       <SidebarContent className="px-2">
         {/* Main Navigation */}
         <SidebarGroup className="py-2">
-          <SidebarGroupLabel className="px-2 mb-1">Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 mb-1">{t("sections.navigation")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuItems.map((item, index) => (
                 <SidebarMenuItem
-                  key={item.title}
+                  key={item.titleKey}
                   className="animate-in fade-in-0 slide-in-from-left-2"
                   style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'backwards' }}
                 >
                   <SidebarMenuButton
                     asChild
                     isActive={isActive(item.url)}
-                    tooltip={isCollapsed ? item.title : undefined}
+                    tooltip={isCollapsed ? t(item.titleKey) : undefined}
                   >
                     <Link href={item.url} className="group/link">
                       <item.icon className={cn(
                         "h-4 w-4 transition-colors duration-200",
                         isActive(item.url) ? "text-primary" : "text-muted-foreground group-hover/link:text-foreground"
                       )} />
-                      <span className="font-medium">{item.title}</span>
+                      <span className="font-medium">{t(item.titleKey)}</span>
                       {item.badge && (
                         <Badge
                           variant="secondary"
@@ -292,7 +293,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-colors group/trigger">
                 <span className="flex items-center gap-2">
                   <RefreshCw className="h-3.5 w-3.5 text-emerald-500" />
-                  Sync Operations
+                  {t("sections.syncOperations")}
                 </span>
                 <ChevronRight className={cn(
                   "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200 ease-out group-hover/trigger:text-muted-foreground",
@@ -305,21 +306,21 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {syncMenuItems.map((item, index) => (
                     <SidebarMenuItem
-                      key={item.title}
+                      key={item.titleKey}
                       className="animate-in fade-in-0 slide-in-from-left-1"
                       style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'backwards' }}
                     >
                       <SidebarMenuButton
                         asChild
                         isActive={isActive(item.url)}
-                        tooltip={isCollapsed ? item.title : undefined}
+                        tooltip={isCollapsed ? t(item.titleKey) : undefined}
                       >
                         <Link href={item.url} className="group/link">
                           <item.icon className={cn(
                             "h-4 w-4 transition-colors duration-200",
                             isActive(item.url) ? "text-primary" : "text-muted-foreground group-hover/link:text-foreground"
                           )} />
-                          <span className="font-medium">{item.title}</span>
+                          <span className="font-medium">{t(item.titleKey)}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -339,7 +340,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-colors group/trigger">
                 <span className="flex items-center gap-2">
                   <PlusCircle className="h-3.5 w-3.5 text-primary" />
-                  New
+                  {t("sections.createNew")}
                 </span>
                 <ChevronRight className={cn(
                   "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200 ease-out group-hover/trigger:text-muted-foreground",
@@ -352,21 +353,21 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {createMenuItems.map((item, index) => (
                     <SidebarMenuItem
-                      key={item.title}
+                      key={item.titleKey}
                       className="animate-in fade-in-0 slide-in-from-left-1"
                       style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'backwards' }}
                     >
                       <SidebarMenuButton
                         asChild
                         isActive={isActive(item.url)}
-                        tooltip={isCollapsed ? item.title : undefined}
+                        tooltip={isCollapsed ? t(item.titleKey) : undefined}
                       >
                         <Link href={item.url} className="group/link">
                           <item.icon className={cn(
                             "h-4 w-4 transition-colors duration-200",
                             isActive(item.url) ? "text-primary" : "text-muted-foreground group-hover/link:text-foreground"
                           )} />
-                          <span className="font-medium">{item.title}</span>
+                          <span className="font-medium">{t(item.titleKey)}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -386,7 +387,7 @@ export function AppSidebar() {
               <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-colors group/trigger">
                 <span className="flex items-center gap-2">
                   <Languages className="h-3.5 w-3.5 text-blue-500" />
-                  Translations
+                  {t("sections.translations")}
                 </span>
                 <ChevronRight className={cn(
                   "h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200 ease-out group-hover/trigger:text-muted-foreground",
@@ -399,21 +400,21 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {translationMenuItems.map((item, index) => (
                     <SidebarMenuItem
-                      key={item.title}
+                      key={item.titleKey}
                       className="animate-in fade-in-0 slide-in-from-left-1"
                       style={{ animationDelay: `${index * 40}ms`, animationFillMode: 'backwards' }}
                     >
                       <SidebarMenuButton
                         asChild
                         isActive={isActive(item.url)}
-                        tooltip={isCollapsed ? item.title : undefined}
+                        tooltip={isCollapsed ? t(item.titleKey) : undefined}
                       >
                         <Link href={item.url} className="group/link">
                           <item.icon className={cn(
                             "h-4 w-4 transition-colors duration-200",
                             isActive(item.url) ? "text-primary" : "text-muted-foreground group-hover/link:text-foreground"
                           )} />
-                          <span className="font-medium">{item.title}</span>
+                          <span className="font-medium">{t(item.titleKey)}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -434,7 +435,7 @@ export function AppSidebar() {
               {/* Language Selector */}
               <div className="group/selector">
                 <label className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-1.5 px-1 transition-colors group-hover/selector:text-muted-foreground/80">
-                  Language
+                  {t("sidebar.language")}
                 </label>
                 <Select
                   value={language}
@@ -476,7 +477,7 @@ export function AppSidebar() {
               {/* Currency Selector */}
               <div className="group/selector">
                 <label className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 mb-1.5 px-1 transition-colors group-hover/selector:text-muted-foreground/80">
-                  Currency
+                  {t("sidebar.currency")}
                 </label>
                 <Select
                   value={currency}
@@ -522,7 +523,7 @@ export function AppSidebar() {
             <>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  tooltip={`Language: ${currentLanguage.label}`}
+                  tooltip={`${t("sidebar.language")}: ${currentLanguage.label}`}
                   className="flex items-center justify-center"
                 >
                   <div className="flex items-center justify-center w-7 h-7 rounded-md bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/20 transition-all duration-200 hover:from-blue-500/30 hover:to-blue-600/15">
@@ -532,7 +533,7 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
-                  tooltip={`Currency: ${currency}`}
+                  tooltip={`${t("sidebar.currency")}: ${currency}`}
                   className="flex items-center justify-center"
                 >
                   <div className="flex items-center justify-center w-7 h-7 rounded-md bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/20 transition-all duration-200 hover:from-amber-500/30 hover:to-amber-600/15">
@@ -550,7 +551,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               asChild
               isActive={isActive("/settings")}
-              tooltip={isCollapsed ? "Settings" : undefined}
+              tooltip={isCollapsed ? t("menu.settings") : undefined}
             >
               <Link href="/settings" className="group/link">
                 <Settings className={cn(
@@ -559,7 +560,7 @@ export function AppSidebar() {
                     ? "text-primary"
                     : "text-muted-foreground group-hover/link:text-foreground group-hover/link:rotate-45"
                 )} />
-                <span className="font-medium">Settings</span>
+                <span className="font-medium">{t("menu.settings")}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

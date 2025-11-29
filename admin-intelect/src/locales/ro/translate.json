@@ -1,0 +1,199 @@
+{
+  "page": {
+    "title": "Traduceri",
+    "description": "Traducere produse, categorii si proprietati",
+    "jobsTitle": "Sarcini de Traducere",
+    "jobsDescription": "Vizualizeaza si gestioneaza toate sarcinile de traducere",
+    "jobDetailTitle": "Detalii Sarcina",
+    "jobDetailDescription": "Vizualizeaza progresul si rezultatele detaliate"
+  },
+  "breadcrumb": {
+    "dashboard": "Panou de Control",
+    "translations": "Traduceri",
+    "jobs": "Sarcini"
+  },
+  "stats": {
+    "totalJobs": "Total Sarcini",
+    "running": "In Curs",
+    "completed": "Finalizate",
+    "failed": "Esuate",
+    "total": "Total",
+    "translated": "Traduse",
+    "skipped": "Sarite"
+  },
+  "form": {
+    "startTranslation": "Incepe Traducerea",
+    "configureAndLaunch": "Configureaza si lanseaza o noua sarcina de traducere",
+    "entityType": "Tip Entitate",
+    "products": "Produse",
+    "productsDescription": "Nume si descrieri",
+    "categories": "Categorii",
+    "categoriesDescription": "Nume categorii",
+    "properties": "Proprietati",
+    "propertiesDescription": "Grupuri si nume",
+    "targetLanguage": "Limba Tinta",
+    "russian": "Rusa",
+    "romanian": "Romana",
+    "itemsPending": "Elemente in Asteptare",
+    "allTranslated": "Toate Traduse",
+    "to": "la"
+  },
+  "languages": {
+    "ru": "Rusa",
+    "ro": "Romana"
+  },
+  "actions": {
+    "refresh": "Reimprospatare",
+    "viewAllJobs": "Vezi Toate Sarcinile",
+    "back": "Inapoi",
+    "startTranslation": "Incepe Traducerea",
+    "startingTranslation": "Pornire Traducere...",
+    "translationInProgress": "Traducere in Progres",
+    "allItemsTranslated": "Toate Elementele Traduse",
+    "newTranslation": "Traducere Noua",
+    "backToTranslations": "Inapoi la Traduceri",
+    "cancelJob": "Anuleaza Sarcina"
+  },
+  "activeJob": {
+    "title": "Sarcina Activa",
+    "progress": "Progres",
+    "translated": "Traduse",
+    "failed": "Esuate",
+    "skipped": "Sarite",
+    "recentActivity": "Activitate Recenta",
+    "cancel": "Anuleaza"
+  },
+  "tips": {
+    "title": "Sfaturi si Ghiduri",
+    "entitySelection": "Selectie Entitate",
+    "entitySelectionDescription": "Alege ce tip de continut sa traduci",
+    "languageTarget": "Limba Tinta",
+    "languageTargetDescription": "Selecteaza rusa sau romana ca limba tinta",
+    "batchProcessing": "Procesare in Loturi",
+    "batchProcessingDescription": "Elementele sunt traduse in loturi pentru eficienta",
+    "progressTracking": "Urmarire Progres",
+    "progressTrackingDescription": "Monitorizati progresul in timp real in timpul traducerii"
+  },
+  "recentJobs": {
+    "title": "Sarcini Recente",
+    "description": "Ultimele 5 sarcini de traducere",
+    "viewAll": "Vezi Tot",
+    "noJobs": "Fara sarcini de traducere inca",
+    "items": "elemente"
+  },
+  "confirm": {
+    "title": "Incepe Sarcina de Traducere?",
+    "description": "Aceasta va traduce",
+    "to": "la",
+    "duration": "Durata depinde de numarul de elemente de procesat.",
+    "cancel": "Anuleaza",
+    "start": "Incepe Traducerea"
+  },
+  "jobs": {
+    "title": "Sarcini",
+    "totalJobs": "total sarcini",
+    "filters": "Filtre",
+    "allEntities": "Toate Entitatile",
+    "allLanguages": "Toate Limbile",
+    "allStatuses": "Toate Starile",
+    "clear": "Sterge",
+    "noJobsFound": "Nu s-au gasit sarcini de traducere",
+    "adjustFilters": "Incercati sa ajustati filtrele",
+    "startFirst": "Incepeti o traducere noua pentru a vedea sarcinile aici",
+    "startTranslation": "Incepe o Traducere",
+    "live": "Live",
+    "created": "Creat",
+    "duration": "Durata",
+    "page": "Pagina",
+    "previous": "Anterior",
+    "next": "Urmator",
+    "loading": "Se incarca sarcinile..."
+  },
+  "jobStatus": {
+    "title": "Ghid Stare Sarcina",
+    "running": "In Curs",
+    "runningDescription": "Sarcina proceseaza elemente in prezent",
+    "pending": "In Asteptare",
+    "pendingDescription": "Sarcina este in coada si asteapta sa inceapa",
+    "completed": "Finalizat",
+    "completedDescription": "Sarcina s-a incheiat cu succes",
+    "failed": "Esuat",
+    "failedDescription": "Sarcina a intampinat o eroare si s-a oprit",
+    "cancelled": "Anulat",
+    "cancelledDescription": "Sarcina a fost anulata manual"
+  },
+  "jobDetail": {
+    "notFound": "Sarcina nu a fost gasita",
+    "notFoundDescription": "Sarcina de traducere pe care o cautati nu exista.",
+    "backToJobs": "Inapoi la Sarcini",
+    "refresh": "Reimprospatare",
+    "started": "Inceput",
+    "notYet": "Inca nu",
+    "estimatedTime": "Timp Estimat",
+    "progress": "Progres",
+    "overallProgress": "Progres General",
+    "duration": "Durata",
+    "successRate": "Rata de Succes",
+    "speed": "Viteza",
+    "perMin": "/min",
+    "errorMessage": "Mesaj Eroare",
+    "translationLogs": "Jurnale Traducere",
+    "autoScrollOn": "Auto-scroll PORNIT",
+    "autoScrollOff": "Auto-scroll OPRIT",
+    "loadingLogs": "Se incarca jurnalele...",
+    "noLogsYet": "Fara jurnale disponibile inca",
+    "logsWillAppear": "Jurnalele vor aparea aici pe masura ce traducerile sunt procesate",
+    "loadMore": "Incarca Mai Mult",
+    "remaining": "ramase",
+    "calculating": "Se calculeaza...",
+    "almostDone": "Aproape gata"
+  },
+  "table": {
+    "jobId": "ID sarcina",
+    "entityType": "Tip entitate",
+    "languages": "Limbi",
+    "status": "Stare",
+    "progress": "Progres",
+    "startedAt": "Inceput la",
+    "completedAt": "Finalizat la",
+    "duration": "Durata",
+    "actions": "Actiuni"
+  },
+  "status": {
+    "pending": "In asteptare",
+    "running": "In executie",
+    "completed": "Finalizat",
+    "failed": "Esuat",
+    "cancelled": "Anulat"
+  },
+  "progress": {
+    "translating": "Se traduce...",
+    "processed": "Procesate",
+    "of": "din",
+    "items": "elemente",
+    "errors": "Erori",
+    "currentItem": "Element curent"
+  },
+  "empty": {
+    "noJobs": "Nu s-au gasit sarcini de traducere",
+    "startFirst": "Incepeti prima sarcina de traducere de mai sus"
+  },
+  "toast": {
+    "jobStarted": "Sarcina de traducere a inceput",
+    "jobCompleted": "Sarcina de traducere finalizata cu succes",
+    "jobFailed": "Sarcina de traducere a esuat",
+    "jobCancelled": "Sarcina de traducere anulata",
+    "selectEntityType": "Va rugam selectati un tip de entitate",
+    "selectLanguage": "Va rugam selectati cel putin o limba tinta",
+    "selectField": "Va rugam selectati cel putin un camp de tradus"
+  },
+  "details": {
+    "jobInformation": "Informatii sarcina",
+    "configuration": "Configuratie",
+    "results": "Rezultate",
+    "errors": "Erori",
+    "translatedCount": "Traduse",
+    "skippedCount": "Sarite",
+    "errorCount": "Erori"
+  }
+}

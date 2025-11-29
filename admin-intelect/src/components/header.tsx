@@ -12,24 +12,51 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
-
-const pathNameMap: Record<string, string> = {
-  "": "Dashboard",
-  products: "Products",
-  brands: "Brands",
-  categories: "Categories",
-  sync: "Sync Status",
-  settings: "Settings",
-};
+import { useTranslation } from "@/contexts/language-context";
 
 export function Header() {
   const pathname = usePathname();
+  const { t } = useTranslation("navigation");
   const segments = pathname.split("/").filter(Boolean);
+
+  // Map segment keys to translation keys
+  const segmentToTranslationKey: Record<string, string> = {
+    "": "breadcrumbs.dashboard",
+    products: "breadcrumbs.products",
+    brands: "breadcrumbs.brands",
+    categories: "breadcrumbs.categories",
+    sync: "breadcrumbs.sync",
+    settings: "breadcrumbs.settings",
+    properties: "breadcrumbs.properties",
+    groupings: "breadcrumbs.groupings",
+    translate: "breadcrumbs.translate",
+    new: "breadcrumbs.new",
+    edit: "breadcrumbs.edit",
+    selective: "breadcrumbs.selective",
+    configs: "breadcrumbs.configs",
+    changes: "breadcrumbs.changes",
+    jobs: "breadcrumbs.jobs",
+    monitor: "breadcrumbs.monitor",
+    groups: "breadcrumbs.groups",
+  };
+
+  const getLabel = (segment: string): string => {
+    const key = segmentToTranslationKey[segment];
+    if (key) {
+      return t(key);
+    }
+    // If it's a UUID or dynamic segment, return as-is (truncated for UUIDs)
+    if (segment.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      return segment.substring(0, 8) + "...";
+    }
+    // Capitalize first letter for unknown segments
+    return segment.charAt(0).toUpperCase() + segment.slice(1);
+  };
 
   const breadcrumbs = segments.map((segment, index) => {
     const path = "/" + segments.slice(0, index + 1).join("/");
     const isLast = index === segments.length - 1;
-    const label = pathNameMap[segment] || segment;
+    const label = getLabel(segment);
 
     return {
       path,
@@ -46,9 +73,9 @@ export function Header() {
         <BreadcrumbList>
           <BreadcrumbItem>
             {breadcrumbs.length === 0 ? (
-              <BreadcrumbPage>Dashboard</BreadcrumbPage>
+              <BreadcrumbPage>{t("breadcrumbs.dashboard")}</BreadcrumbPage>
             ) : (
-              <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
+              <BreadcrumbLink href="/">{t("breadcrumbs.dashboard")}</BreadcrumbLink>
             )}
           </BreadcrumbItem>
           {breadcrumbs.map((crumb) => (

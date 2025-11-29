@@ -1,0 +1,74 @@
+{
+  "menu": {
+    "dashboard": "Панель управления",
+    "products": "Товары",
+    "properties": "Свойства",
+    "groupings": "Группировки",
+    "brands": "Бренды",
+    "categories": "Категории",
+    "settings": "Настройки"
+  },
+  "sections": {
+    "navigation": "Навигация",
+    "syncOperations": "Операции синхронизации",
+    "createNew": "Создать",
+    "translations": "Переводы"
+  },
+  "sync": {
+    "overview": "Обзор",
+    "selectiveSync": "Выборочная синхронизация",
+    "configurations": "Конфигурации",
+    "changeHistory": "История изменений"
+  },
+  "create": {
+    "product": "Создать товар",
+    "brand": "Создать бренд",
+    "category": "Создать категорию"
+  },
+  "translate": {
+    "translate": "Перевод",
+    "jobs": "Задачи"
+  },
+  "descriptions": {
+    "dashboard": "Обзор и статистика",
+    "products": "Управление каталогом товаров",
+    "properties": "Свойства товаров",
+    "groupings": "Группировки товаров",
+    "brands": "Управление брендами",
+    "categories": "Иерархия категорий",
+    "syncOverview": "Статус синхронизации и журналы",
+    "selectiveSync": "Пользовательские операции синхронизации",
+    "configurations": "Шаблоны синхронизации",
+    "changeHistory": "Отслеживание изменений",
+    "createProduct": "Добавить новый товар",
+    "createBrand": "Добавить новый бренд",
+    "createCategory": "Добавить новую категорию",
+    "translate": "Перевод контента",
+    "jobs": "Задачи перевода"
+  },
+  "breadcrumbs": {
+    "dashboard": "Панель управления",
+    "products": "Товары",
+    "brands": "Бренды",
+    "categories": "Категории",
+    "sync": "Статус синхронизации",
+    "settings": "Настройки",
+    "properties": "Свойства",
+    "groupings": "Группировки",
+    "translate": "Перевод",
+    "new": "Новый",
+    "edit": "Редактировать",
+    "selective": "Выборочная",
+    "configs": "Конфигурации",
+    "changes": "Изменения",
+    "jobs": "Задачи",
+    "monitor": "Монитор",
+    "groups": "Группы"
+  },
+  "sidebar": {
+    "language": "Язык",
+    "currency": "Валюта",
+    "appName": "Admin Intelect",
+    "appSubtitle": "Менеджер Ultra B2B"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "menu": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "properties": "Properties",
+    "groupings": "Groupings",
+    "brands": "Brands",
+    "categories": "Categories",
+    "settings": "Settings"
+  },
+  "sections": {
+    "navigation": "Navigation",
+    "syncOperations": "Sync Operations",
+    "createNew": "New",
+    "translations": "Translations"
+  },
+  "sync": {
+    "overview": "Overview",
+    "selectiveSync": "Selective Sync",
+    "configurations": "Configurations",
+    "changeHistory": "Change History"
+  },
+  "create": {
+    "product": "Create Product",
+    "brand": "Create Brand",
+    "category": "Create Category"
+  },
+  "translate": {
+    "translate": "Translate",
+    "jobs": "Jobs"
+  },
+  "descriptions": {
+    "dashboard": "Overview & statistics",
+    "products": "Manage product catalog",
+    "properties": "Product properties",
+    "groupings": "Product groupings",
+    "brands": "Brand management",
+    "categories": "Category hierarchy",
+    "syncOverview": "Sync status & logs",
+    "selectiveSync": "Custom sync operations",
+    "configurations": "Sync templates",
+    "changeHistory": "Track changes",
+    "createProduct": "Add new product",
+    "createBrand": "Add new brand",
+    "createCategory": "Add new category",
+    "translate": "Translate content",
+    "jobs": "Translation jobs"
+  },
+  "breadcrumbs": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "brands": "Brands",
+    "categories": "Categories",
+    "sync": "Sync Status",
+    "settings": "Settings",
+    "properties": "Properties",
+    "groupings": "Groupings",
+    "translate": "Translate",
+    "new": "New",
+    "edit": "Edit",
+    "selective": "Selective",
+    "configs": "Configurations",
+    "changes": "Changes",
+    "jobs": "Jobs",
+    "monitor": "Monitor",
+    "groups": "Groups"
+  },
+  "sidebar": {
+    "language": "Language",
+    "currency": "Currency",
+    "appName": "Admin Intelect",
+    "appSubtitle": "Ultra B2B Manager"
+  }
+}

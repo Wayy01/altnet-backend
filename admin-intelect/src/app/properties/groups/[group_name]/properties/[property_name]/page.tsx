@@ -58,7 +58,7 @@ import {
   PowerOff,
 } from "lucide-react";
 import { PropertyBreadcrumb } from "@/components/properties/PropertyBreadcrumb";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 /**
  * Stat indicator item configuration
@@ -94,6 +94,8 @@ export default function PropertyValuesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { localize } = useLocalizedValue();
+  const { t } = useTranslation('properties');
+  const { t: tCommon } = useTranslation('common');
 
   const groupName = decodeURIComponent(params.group_name as string);
   const propertyName = decodeURIComponent(params.property_name as string);
@@ -172,7 +174,7 @@ export default function PropertyValuesPage() {
     if (debouncedSearch) {
       filters.push({
         key: "search",
-        label: "Search",
+        label: t('filters.search'),
         value: debouncedSearch,
         displayValue: `"${debouncedSearch}"`,
       });
@@ -180,22 +182,22 @@ export default function PropertyValuesPage() {
 
     if (sortBy && sortBy !== "value_asc") {
       const sortLabels: Record<string, string> = {
-        value_desc: "Value Z-A",
-        product_asc: "Product A-Z",
-        product_desc: "Product Z-A",
-        sort_order_asc: "Sort Order (Asc)",
-        sort_order_desc: "Sort Order (Desc)",
+        value_desc: t('filters.valueZA'),
+        product_asc: t('filters.productAZ'),
+        product_desc: t('filters.productZA'),
+        sort_order_asc: t('filters.sortOrderAsc'),
+        sort_order_desc: t('filters.sortOrderDesc'),
       };
       filters.push({
         key: "sort_by",
-        label: "Sort",
+        label: tCommon('filters.sortBy'),
         value: sortBy,
         displayValue: sortLabels[sortBy] || sortBy,
       });
     }
 
     return filters;
-  }, [debouncedSearch, sortBy]);
+  }, [debouncedSearch, sortBy, t, tCommon]);
 
   // Helper to update URL params
   const updateUrlParams = (updates: Record<string, string | null>) => {
@@ -242,7 +244,7 @@ export default function PropertyValuesPage() {
       // Trigger staggered row animation after data loads
       setTimeout(() => setRowsVisible(true), 50);
     } catch (error: any) {
-      toast.error(error.message || "Failed to fetch property values");
+      toast.error(error.message || t('messages.failedToFetchValues'));
       setValues([]);
     } finally {
       setLoading(false);
@@ -385,25 +387,25 @@ export default function PropertyValuesPage() {
     try {
       setEditDialog((prev) => ({ ...prev, loading: true }));
       await api.updatePropertyValue(editDialog.value.id, editForm);
-      toast.success("Property value updated successfully");
+      toast.success(t('messages.valueUpdated'));
       setEditDialog({ open: false, loading: false });
       fetchValues();
     } catch (error: any) {
-      toast.error(error.message || "Failed to update property value");
+      toast.error(error.message || t('messages.failedToUpdateValue'));
       setEditDialog((prev) => ({ ...prev, loading: false }));
     }
   };
 
   // Delete handlers
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this property value?")) return;
+    if (!confirm(t('messages.confirmDeleteValue'))) return;
 
     try {
       await api.deletePropertyValue(id);
-      toast.success("Property value deleted");
+      toast.success(t('messages.valueDeleted'));
       fetchValues();
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete property value");
+      toast.error(error.message || t('messages.failedToDeleteValue'));
     }
   };
 
@@ -421,17 +423,17 @@ export default function PropertyValuesPage() {
         Array.from(selectedIds),
         updates
       );
-      toast.success(`Updated ${selectedIds.size} property values`);
+      toast.success(t('messages.valuesUpdated', { count: selectedIds.size }));
       setSelectedIds(new Set());
       fetchValues();
     } catch (error: any) {
-      toast.error(error.message || "Failed to update property values");
+      toast.error(error.message || t('messages.failedToUpdateValues'));
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Delete ${selectedIds.size} property values?`)) return;
+    if (!confirm(t('messages.confirmDeleteValues', { count: selectedIds.size }))) return;
 
     try {
       await api.bulkDeletePropertyValues(
@@ -439,11 +441,11 @@ export default function PropertyValuesPage() {
         propertyName,
         Array.from(selectedIds)
       );
-      toast.success(`Deleted ${selectedIds.size} property values`);
+      toast.success(t('messages.valuesDeleted', { count: selectedIds.size }));
       setSelectedIds(new Set());
       fetchValues();
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete property values");
+      toast.error(error.message || t('messages.failedToDeleteValues'));
     }
   };
 
@@ -457,30 +459,30 @@ export default function PropertyValuesPage() {
   // Stats indicators configuration
   const statsIndicators: StatIndicator[] = [
     {
-      label: "Total Values",
+      label: t('stats.totalValues'),
       value: stats.totalValues.toLocaleString(),
-      suffix: hasActiveFilters ? "filtered" : undefined,
+      suffix: hasActiveFilters ? t('stats.filtered') : undefined,
       icon: <Database className="h-3.5 w-3.5" />,
       variant: "default",
     },
     {
-      label: "Unique Products",
+      label: t('stats.uniqueProducts'),
       value: stats.uniqueProducts.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <Package className="h-3.5 w-3.5" />,
       variant: stats.uniqueProducts > 0 ? "success" : "muted",
     },
     {
-      label: "Filters",
+      label: t('stats.filters'),
       value: stats.filterProperties.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <FilterIcon className="h-3.5 w-3.5" />,
       variant: stats.filterProperties > 0 ? "success" : "warning",
     },
     {
-      label: "Modifications",
+      label: t('stats.modifications'),
       value: stats.modificationProperties.toLocaleString(),
-      suffix: "on page",
+      suffix: t('stats.onPage'),
       icon: <Settings className="h-3.5 w-3.5" />,
       variant: stats.modificationProperties > 0 ? "success" : "muted",
     },
@@ -490,9 +492,9 @@ export default function PropertyValuesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Property Values</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('page.valuesTitle')}</h1>
           <p className="text-muted-foreground">
-            Values for property: {propertyName}
+            {t('page.valuesDescription', { propertyName })}
           </p>
         </div>
         <PropertyBreadcrumb
@@ -509,9 +511,9 @@ export default function PropertyValuesPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Property Values</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('page.valuesTitle')}</h1>
         <p className="text-muted-foreground">
-          Values for property: {propertyName}
+          {t('page.valuesDescription', { propertyName })}
         </p>
       </div>
 
@@ -565,7 +567,7 @@ export default function PropertyValuesPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              placeholder="Search values or product names..."
+              placeholder={t('filters.searchValues')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
@@ -589,15 +591,15 @@ export default function PropertyValuesPage() {
           <Select value={sortBy} onValueChange={handleSortByChange}>
             <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
               <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder={t('filters.sortBy')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="value_asc">Value A-Z</SelectItem>
-              <SelectItem value="value_desc">Value Z-A</SelectItem>
-              <SelectItem value="product_asc">Product A-Z</SelectItem>
-              <SelectItem value="product_desc">Product Z-A</SelectItem>
-              <SelectItem value="sort_order_asc">Sort Order (Asc)</SelectItem>
-              <SelectItem value="sort_order_desc">Sort Order (Desc)</SelectItem>
+              <SelectItem value="value_asc">{t('filters.valueAZ')}</SelectItem>
+              <SelectItem value="value_desc">{t('filters.valueZA')}</SelectItem>
+              <SelectItem value="product_asc">{t('filters.productAZ')}</SelectItem>
+              <SelectItem value="product_desc">{t('filters.productZA')}</SelectItem>
+              <SelectItem value="sort_order_asc">{t('filters.sortOrderAsc')}</SelectItem>
+              <SelectItem value="sort_order_desc">{t('filters.sortOrderDesc')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -607,7 +609,7 @@ export default function PropertyValuesPage() {
           <div className="flex flex-wrap items-center gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="font-medium">{activeFilters.length} active filter{activeFilters.length !== 1 ? "s" : ""}:</span>
+              <span className="font-medium">{activeFilters.length} {activeFilters.length !== 1 ? t('activeFiltersPlural') : t('activeFilters')}:</span>
             </div>
             {activeFilters.map((filter, index) => (
               <Badge
@@ -638,7 +640,7 @@ export default function PropertyValuesPage() {
               onClick={handleClearFilters}
               className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
-              Clear all
+              {t('actions.clearAll')}
             </Button>
           </div>
         )}
@@ -651,7 +653,7 @@ export default function PropertyValuesPage() {
                 <CheckSquare className="h-4 w-4 text-primary" />
               </div>
               <span className="text-sm font-medium text-foreground">
-                {selectedIds.size} value{selectedIds.size !== 1 ? "s" : ""} selected
+                {selectedIds.size !== 1 ? t('bulk.selectedPlural', { count: selectedIds.size }) : t('bulk.selected', { count: selectedIds.size })}
               </span>
             </div>
 
@@ -663,7 +665,7 @@ export default function PropertyValuesPage() {
                 className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
               >
                 <Power className="h-4 w-4 mr-1.5" />
-                Set as Filter
+                {t('actions.setAsFilter')}
               </Button>
               <Button
                 variant="outline"
@@ -672,7 +674,7 @@ export default function PropertyValuesPage() {
                 className="transition-all duration-200 hover:bg-blue-500/10 hover:text-blue-600 hover:border-blue-500/30"
               >
                 <Settings className="h-4 w-4 mr-1.5" />
-                Set as Modification
+                {t('actions.setAsModification')}
               </Button>
               <Button
                 variant="outline"
@@ -681,7 +683,7 @@ export default function PropertyValuesPage() {
                 className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
               >
                 <Trash2 className="h-4 w-4 mr-1.5" />
-                Delete Selected
+                {t('actions.deleteSelected')}
               </Button>
               <Button
                 variant="ghost"
@@ -689,7 +691,7 @@ export default function PropertyValuesPage() {
                 onClick={() => setSelectedIds(new Set())}
               >
                 <X className="h-4 w-4 mr-1" />
-                Clear
+                {t('actions.clear')}
               </Button>
             </div>
           </div>
@@ -712,7 +714,7 @@ export default function PropertyValuesPage() {
                     onClick={() => handleColumnSort("value")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
                   >
-                    Value
+                    {t('table.value')}
                     <span className={`transition-all duration-200 ${currentSortField === "value" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "value" && currentSortDirection === "asc" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -727,7 +729,7 @@ export default function PropertyValuesPage() {
                     onClick={() => handleColumnSort("product")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
                   >
-                    Product
+                    {t('table.product')}
                     <span className={`transition-all duration-200 ${currentSortField === "product" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "product" && currentSortDirection === "asc" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -737,14 +739,14 @@ export default function PropertyValuesPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>Product Code</TableHead>
-                <TableHead>Type</TableHead>
+                <TableHead>{t('table.productCode')}</TableHead>
+                <TableHead>{t('table.type')}</TableHead>
                 <TableHead className="text-center">
                   <button
                     onClick={() => handleColumnSort("sort_order")}
                     className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
                   >
-                    Sort Order
+                    {t('table.sortOrder')}
                     <span className={`transition-all duration-200 ${currentSortField === "sort_order" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "sort_order" && currentSortDirection === "asc" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
@@ -754,9 +756,9 @@ export default function PropertyValuesPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead className="text-center">Filter</TableHead>
-                <TableHead className="text-center">Modification</TableHead>
-                <TableHead className="text-right w-[100px]">Actions</TableHead>
+                <TableHead className="text-center">{t('table.filter')}</TableHead>
+                <TableHead className="text-center">{t('table.modification')}</TableHead>
+                <TableHead className="text-right w-[100px]">{t('table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -766,7 +768,7 @@ export default function PropertyValuesPage() {
                     <div className="flex items-center justify-center py-8">
                       <div className="text-center">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                        <p className="mt-2 text-sm text-muted-foreground">Loading values...</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{t('messages.loadingValues')}</p>
                       </div>
                     </div>
                   </TableCell>
@@ -779,11 +781,11 @@ export default function PropertyValuesPage() {
                         <Database className="h-10 w-10 text-muted-foreground/50" />
                       </div>
                       <div className="text-center">
-                        <p className="font-medium text-foreground">No values found</p>
+                        <p className="font-medium text-foreground">{t('empty.noValues')}</p>
                         <p className="text-sm text-muted-foreground mt-1">
                           {hasActiveFilters
-                            ? "Try adjusting your filters to find what you're looking for"
-                            : "No values for this property"
+                            ? t('empty.adjustFilters')
+                            : t('empty.noValuesForProperty')
                           }
                         </p>
                       </div>
@@ -795,7 +797,7 @@ export default function PropertyValuesPage() {
                           className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                         >
                           <X className="h-4 w-4 mr-1.5" />
-                          Clear all filters
+                          {t('actions.clearAllFilters')}
                         </Button>
                       )}
                     </div>
@@ -856,19 +858,19 @@ export default function PropertyValuesPage() {
                     <TableCell className="text-center">
                       {value.is_filter ? (
                         <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600 transition-colors">
-                          Yes
+                          {t('table.yes')}
                         </Badge>
                       ) : (
-                        <span className="text-muted-foreground text-sm">No</span>
+                        <span className="text-muted-foreground text-sm">{t('table.no')}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-center">
                       {value.is_modification ? (
                         <Badge variant="default" className="text-xs bg-blue-500 hover:bg-blue-600 transition-colors">
-                          Yes
+                          {t('table.yes')}
                         </Badge>
                       ) : (
-                        <span className="text-muted-foreground text-sm">No</span>
+                        <span className="text-muted-foreground text-sm">{t('table.no')}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -903,12 +905,12 @@ export default function PropertyValuesPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <p>
-                Showing <span className="font-medium text-foreground">{values.length}</span> of{" "}
-                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> values
+                {t('pagination.showing')} <span className="font-medium text-foreground">{values.length}</span> {t('pagination.of')}{" "}
+                <span className="font-medium text-foreground">{totalCount.toLocaleString()}</span> {t('pagination.values')}
               </p>
               <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-2">
-                <span>Rows per page:</span>
+                <span>{t('pagination.rowsPerPage')}:</span>
                 <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
                   <SelectTrigger className="w-[70px] h-8">
                     <SelectValue />
@@ -931,7 +933,7 @@ export default function PropertyValuesPage() {
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage === 1}
                   className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                  title="First page"
+                  title={t('pagination.firstPage')}
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
@@ -945,12 +947,12 @@ export default function PropertyValuesPage() {
                   className="transition-all duration-200 hover:bg-muted"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  {t('pagination.previous')}
                 </Button>
 
                 {/* Page Info & Jump */}
                 <div className="flex items-center gap-2 px-2">
-                  <span className="text-sm text-muted-foreground">Page</span>
+                  <span className="text-sm text-muted-foreground">{t('pagination.page')}</span>
                   <Input
                     type="number"
                     min={1}
@@ -966,7 +968,7 @@ export default function PropertyValuesPage() {
                     placeholder={currentPage.toString()}
                     className="w-14 h-8 text-center tabular-nums"
                   />
-                  <span className="text-sm text-muted-foreground">of {totalPages}</span>
+                  <span className="text-sm text-muted-foreground">{t('pagination.of')} {totalPages}</span>
                 </div>
 
                 {/* Next Page */}
@@ -977,7 +979,7 @@ export default function PropertyValuesPage() {
                   disabled={currentPage === totalPages}
                   className="transition-all duration-200 hover:bg-muted"
                 >
-                  Next
+                  {t('pagination.next')}
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
 
@@ -988,7 +990,7 @@ export default function PropertyValuesPage() {
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage === totalPages}
                   className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                  title="Last page"
+                  title={t('pagination.lastPage')}
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
@@ -1002,14 +1004,14 @@ export default function PropertyValuesPage() {
       <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ open, loading: false })}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Property Value</DialogTitle>
+            <DialogTitle>{t('dialog.editValueTitle')}</DialogTitle>
             <DialogDescription>
-              Update the property value details
+              {t('dialog.editValueDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="value">Value</Label>
+              <Label htmlFor="value">{t('form.value')}</Label>
               <Input
                 id="value"
                 value={editForm.value}
@@ -1018,7 +1020,7 @@ export default function PropertyValuesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="value_type">Value Type</Label>
+              <Label htmlFor="value_type">{t('form.valueType')}</Label>
               <Input
                 id="value_type"
                 value={editForm.value_type}
@@ -1027,7 +1029,7 @@ export default function PropertyValuesPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sort_order">Sort Order</Label>
+              <Label htmlFor="sort_order">{t('form.sortOrder')}</Label>
               <Input
                 id="sort_order"
                 type="number"
@@ -1048,7 +1050,7 @@ export default function PropertyValuesPage() {
                   }
                   className="transition-transform duration-200 hover:scale-110"
                 />
-                <Label htmlFor="is_filter" className="text-sm font-normal">Is Filter</Label>
+                <Label htmlFor="is_filter" className="text-sm font-normal">{t('form.isFilter')}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -1059,7 +1061,7 @@ export default function PropertyValuesPage() {
                   }
                   className="transition-transform duration-200 hover:scale-110"
                 />
-                <Label htmlFor="is_modification" className="text-sm font-normal">Is Modification</Label>
+                <Label htmlFor="is_modification" className="text-sm font-normal">{t('form.isModification')}</Label>
               </div>
             </div>
           </div>
@@ -1070,7 +1072,7 @@ export default function PropertyValuesPage() {
               disabled={editDialog.loading}
               className="transition-all duration-200"
             >
-              Cancel
+              {t('form.cancel')}
             </Button>
             <Button
               onClick={handleEditSave}
@@ -1080,10 +1082,10 @@ export default function PropertyValuesPage() {
               {editDialog.loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                  Saving...
+                  {t('form.saving')}
                 </>
               ) : (
-                "Save Changes"
+                t('form.saveChanges')
               )}
             </Button>
           </DialogFooter>
