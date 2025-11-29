@@ -409,9 +409,14 @@ export interface LowStockAlert {
 
 // API mutation payloads
 export interface UpdateProductPayload {
-  is_active?: boolean;
   name?: string;
-  description?: string;
+  code?: string | null;
+  article?: string | null;
+  description?: string | null;
+  brand_id?: string | null;
+  category_id?: string | null;
+  is_active?: boolean;
+  is_service?: boolean;
 }
 
 // Create brand request

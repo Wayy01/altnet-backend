@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Package,
@@ -14,62 +14,35 @@ import {
   GitBranch,
   CheckCircle2,
   ChevronRight,
+  Pencil,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import {
   ProductFormState,
-  CreateProductPayload,
+  UpdateProductPayload,
   CreatePropertyData,
   ProductDetail,
 } from "@/types";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/language-context";
 
-import { BasicInfoTab } from "./basic-info-tab";
-import { MediaTab } from "./media-tab";
-import { PropertiesTab } from "./properties-tab";
-import { VariantsTab } from "./variants-tab";
+import { BasicInfoTab } from "../../new/basic-info-tab";
+import { MediaTab } from "../../new/media-tab";
+import { PropertiesTab } from "../../new/properties-tab";
+import { VariantsTab } from "../../new/variants-tab";
 
-/**
- * Generate a unique product code that doesn't exist in the database.
- * Format: PRD-XXXXXX (uppercase alphanumeric)
- */
-async function generateUniqueCode(): Promise<string> {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  const maxAttempts = 10;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Generate random 6-character suffix
-    let suffix = "";
-    for (let i = 0; i < 6; i++) {
-      suffix += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    const code = `PRD-${suffix}`;
-
-    // Check if code already exists
-    try {
-      const { data } = await api.getProducts({ search: code }, 1, 0);
-      // If no exact match found, this code is unique
-      const exactMatch = data.some((p) => p.code === code);
-      if (!exactMatch) {
-        return code;
-      }
-    } catch {
-      // If API fails, just return the generated code
-      return code;
-    }
-  }
-
-  // Fallback: use timestamp-based code
-  return `PRD-${Date.now().toString(36).toUpperCase()}`;
+interface EditProductPageProps {
+  params: Promise<{
+    id: string;
+  }>;
 }
-
 
 const initialFormState: ProductFormState = {
   basicInfo: {
@@ -84,7 +57,6 @@ const initialFormState: ProductFormState = {
     barcodes: [],
     is_active: true,
     is_service: false,
-    // Pricing
     price_mdl: null,
     price_eur: null,
     price_usd: null,
@@ -103,9 +75,6 @@ const initialFormState: ProductFormState = {
   },
 };
 
-/**
- * Tab configuration with icons, labels, and validation status
- */
 interface TabConfig {
   id: string;
   labelKey: string;
@@ -140,106 +109,169 @@ const tabConfigs: TabConfig[] = [
   },
 ];
 
-export default function CreateProductPage() {
+function EditProductSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 p-6">
+      {/* Breadcrumb skeleton */}
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-3 w-3" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-3 w-3" />
+        <Skeleton className="h-4 w-20" />
+      </div>
+
+      {/* Header skeleton */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10 rounded-xl" />
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-12 w-12 rounded-xl" />
+            <div>
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-32 mt-1" />
+            </div>
+          </div>
+        </div>
+        <Skeleton className="h-10 w-32 rounded-xl" />
+      </div>
+
+      {/* Card skeleton */}
+      <div className="rounded-xl border shadow-sm">
+        <div className="border-b p-0">
+          <div className="flex gap-0">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-14 w-32" />
+            ))}
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function EditProductPage({ params }: EditProductPageProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { t } = useTranslation("products");
+  const [productId, setProductId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [formState, setFormState] = useState<ProductFormState>(initialFormState);
   const [contentVisible, setContentVisible] = useState(false);
+  const [originalProduct, setOriginalProduct] = useState<ProductDetail | null>(null);
 
-  // Duplicate/variant functionality
-  const duplicateId = searchParams.get("duplicate");
-  const [sourceProduct, setSourceProduct] = useState<ProductDetail | null>(null);
-  const [isLoadingSource, setIsLoadingSource] = useState(false);
-
-  // Trigger entrance animation
+  // Unwrap params Promise once on mount
   useEffect(() => {
-    const timer = setTimeout(() => setContentVisible(true), 50);
-    return () => clearTimeout(timer);
-  }, []);
+    let cancelled = false;
 
-  // Fetch source product for duplication/variant creation
+    async function unwrapParams() {
+      const { id } = await params;
+      if (!cancelled) {
+        setProductId(id);
+      }
+    }
+
+    unwrapParams();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params]);
+
+  // Load product data when productId is set
   useEffect(() => {
-    if (!duplicateId) return;
+    if (!productId) return;
 
     let cancelled = false;
 
-    async function fetchSourceProduct() {
-      setIsLoadingSource(true);
+    async function loadProduct() {
       try {
-        // Fetch source product and generate unique code in parallel
-        const [product, uniqueCode] = await Promise.all([
-          api.getProduct(duplicateId as string),
-          generateUniqueCode(),
-        ]);
+        const product = await api.getProduct(productId);
 
         if (cancelled) return;
 
-        setSourceProduct(product);
+        if (!product) {
+          toast({
+            title: "Product not found",
+            description: "The product you're trying to edit doesn't exist.",
+            variant: "destructive",
+          });
+          router.push("/products");
+          return;
+        }
 
-        // Pre-fill form with ALL source product data for complete variant duplication
-        setFormState((prev) => ({
-          ...prev,
+        setOriginalProduct(product);
+
+        // Pre-fill form with product data
+        setFormState({
           basicInfo: {
-            ...prev.basicInfo,
-            name: `${product.name} (Variant)`,
-            code: uniqueCode, // Auto-generated unique code
+            name: product.name || "",
+            code: product.code || "",
             article: product.article || "",
             description: product.description || "",
-            // Copy brand and category from source product (now using direct IDs)
             brand_id: product.brand_id || "",
             category_id: product.category_id || "",
+            source_id: product.source_id || "",
             warranty: product.warranty || "",
-            barcodes: [], // Clear barcodes - should be unique
-            is_active: true,
-            is_service: product.is_service || false,
-            // Copy pricing
+            barcodes: product.barcodes || [],
+            is_active: product.is_active ?? true,
+            is_service: product.is_service ?? false,
             price_mdl: product.price_mdl ?? null,
             price_eur: product.price_eur ?? null,
             price_usd: product.price_usd ?? null,
-            total_stock: 0, // Reset stock for new variant
-            is_in_stock: false,
+            total_stock: product.total_stock ?? 0,
+            is_in_stock: product.is_in_stock ?? false,
           },
           media: {
             main_image_url: product.main_image_url || "",
-            // Copy all images and videos from source product
             images: product.images || [],
             videos: product.videos || [],
           },
-          // Copy all properties from source product
           properties: (product.properties || []).map((prop) => ({
             group_name: prop.group_name || "",
             property_name: prop.property_name || "",
             value: prop.value || "",
           })),
           variants: {
-            // Auto-link to parent: use source's group if it's already a variant, otherwise use source as parent
-            parent_id: product.parent_id || product.id,
-            is_group: false,
+            parent_id: product.parent_id || null,
+            is_group: product.is_group ?? false,
           },
-        }));
+        });
+
+        // Trigger entrance animation
+        setTimeout(() => setContentVisible(true), 50);
       } catch (error) {
         if (!cancelled) {
-          console.error("Failed to fetch source product:", error);
+          console.error("Failed to load product:", error);
+          toast({
+            title: "Failed to load product",
+            description: error instanceof Error ? error.message : "Unknown error",
+            variant: "destructive",
+          });
+          router.push("/products");
         }
       } finally {
         if (!cancelled) {
-          setIsLoadingSource(false);
+          setIsLoading(false);
         }
       }
     }
 
-    fetchSourceProduct();
+    loadProduct();
 
     return () => {
       cancelled = true;
     };
-    // Note: toast is intentionally excluded from deps to prevent infinite re-renders
+    // Note: toast and router are intentionally excluded from deps to prevent infinite re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duplicateId]);
+  }, [productId]);
 
   // Update handlers for each section
   const updateBasicInfo = useCallback(
@@ -324,6 +356,8 @@ export default function CreateProductPage() {
 
   // Submit handler
   const handleSubmit = async () => {
+    if (!productId) return;
+
     const validationError = validateForm();
     if (validationError) {
       toast({
@@ -338,41 +372,25 @@ export default function CreateProductPage() {
     setIsSubmitting(true);
 
     try {
-      const payload: CreateProductPayload = {
+      const payload: UpdateProductPayload = {
         name: formState.basicInfo.name,
         code: formState.basicInfo.code || null,
         article: formState.basicInfo.article || null,
         description: formState.basicInfo.description || null,
         brand_id: formState.basicInfo.brand_id || null,
         category_id: formState.basicInfo.category_id || null,
-        source_id: formState.basicInfo.source_id || null,
-        warranty: formState.basicInfo.warranty || null,
-        barcodes: formState.basicInfo.barcodes,
         is_active: formState.basicInfo.is_active,
         is_service: formState.basicInfo.is_service,
-        // Product-level pricing
-        price_mdl: formState.basicInfo.price_mdl,
-        price_eur: formState.basicInfo.price_eur,
-        price_usd: formState.basicInfo.price_usd,
-        total_stock: formState.basicInfo.total_stock,
-        is_in_stock: formState.basicInfo.is_in_stock,
-        // Media
-        main_image_url: formState.media.main_image_url || null,
-        images: formState.media.images.length > 0 ? formState.media.images : undefined,
-        videos: formState.media.videos.length > 0 ? formState.media.videos : undefined,
-        properties: formState.properties.length > 0 ? formState.properties : undefined,
-        parent_id: formState.variants.parent_id,
-        is_group: formState.variants.is_group,
       };
 
-      const product = await api.createProduct(payload);
+      await api.updateProduct(productId, payload);
 
       toast({
-        title: t("toast.productCreated"),
-        description: t("toast.productCreatedDesc", { name: product.name }),
+        title: t("toast.productUpdated") || "Product updated",
+        description: t("toast.productUpdatedDesc", { name: formState.basicInfo.name }) || `${formState.basicInfo.name} has been updated successfully.`,
       });
 
-      router.push(`/products/${product.id}`);
+      router.push(`/products/${productId}`);
     } catch (error) {
       toast({
         title: t("toast.updateFailed"),
@@ -393,6 +411,10 @@ export default function CreateProductPage() {
     }
   };
 
+  if (isLoading) {
+    return <EditProductSkeleton />;
+  }
+
   return (
     <div
       className={cn(
@@ -409,19 +431,19 @@ export default function CreateProductPage() {
           {t("page.title")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        {sourceProduct && (
+        {originalProduct && (
           <>
             <Link
-              href={`/products/${sourceProduct.id}`}
+              href={`/products/${originalProduct.id}`}
               className="hover:text-foreground transition-colors max-w-[200px] truncate"
             >
-              {sourceProduct.name}
+              {originalProduct.name}
             </Link>
             <ChevronRight className="h-3.5 w-3.5" />
           </>
         )}
         <span className="text-foreground font-medium">
-          {duplicateId ? t("page.newVariant") : t("page.newProduct")}
+          {t("page.editProduct") || "Edit"}
         </span>
       </nav>
 
@@ -437,41 +459,32 @@ export default function CreateProductPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-4">
-            <div className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm",
-              duplicateId
-                ? "bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/20"
-                : "bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20"
-            )}>
-              {duplicateId ? (
-                <GitBranch className="h-6 w-6 text-blue-500" />
-              ) : (
-                <Package className="h-6 w-6 text-primary" />
-              )}
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm bg-gradient-to-br from-amber-500/20 to-amber-500/5 border-amber-500/20">
+              <Pencil className="h-6 w-6 text-amber-500" />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
-                {duplicateId ? t("page.createVariant") : t("page.newTitle")}
+                {t("page.editTitle") || "Edit Product"}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {duplicateId && sourceProduct
-                  ? t("page.creatingVariantOf", { name: sourceProduct.name })
-                  : t("page.newDescription")}
+                {originalProduct
+                  ? t("page.editingProduct", { name: originalProduct.name }) || `Editing ${originalProduct.name}`
+                  : t("page.editDescription") || "Update product details"}
               </p>
             </div>
           </div>
         </div>
         <Button
           onClick={handleSubmit}
-          disabled={isSubmitting || isLoadingSource}
+          disabled={isSubmitting}
           className="h-10 px-6 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
         >
-          {isSubmitting || isLoadingSource ? (
+          {isSubmitting ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}
-          {duplicateId ? t("page.createVariant") : t("page.newTitle")}
+          {t("page.saveChanges") || "Save Changes"}
         </Button>
       </div>
 
@@ -574,7 +587,7 @@ export default function CreateProductPage() {
                 <VariantsTab
                   data={formState.variants}
                   onChange={updateVariants}
-                  sourceProduct={sourceProduct}
+                  sourceProduct={originalProduct}
                 />
               </TabsContent>
             </div>
@@ -604,15 +617,15 @@ export default function CreateProductPage() {
                   )}
                   <Button
                     onClick={handleSubmit}
-                    disabled={isSubmitting || isLoadingSource}
+                    disabled={isSubmitting}
                     className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
                   >
-                    {isSubmitting || isLoadingSource ? (
+                    {isSubmitting ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                       <Save className="mr-2 h-4 w-4" />
                     )}
-                    {duplicateId ? t("page.createVariant") : t("page.newTitle")}
+                    {t("page.saveChanges") || "Save Changes"}
                   </Button>
                 </div>
               </div>

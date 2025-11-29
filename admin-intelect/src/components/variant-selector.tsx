@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Palette, HardDrive } from "lucide-react";
+import { Palette, HardDrive, Pencil } from "lucide-react";
 import { Product } from "@/types";
 import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
 
@@ -223,6 +224,7 @@ function parseAndGroupVariants(variants: Product[]): {
 }
 
 export function VariantSelector({ variants, currentProductId }: VariantSelectorProps) {
+  const router = useRouter();
   const { currency, formatPrice } = useCurrency();
 
   // Parse and group variants
@@ -345,27 +347,39 @@ export function VariantSelector({ variants, currentProductId }: VariantSelectorP
                 }
 
                 return (
-                  <Link key={variant.id} href={`/products/${variant.id}`}>
-                    <Button
-                      variant={isCurrentVariant ? "default" : "outline"}
-                      size="sm"
-                      className="flex flex-col items-start h-auto py-2 px-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`h-2 w-2 rounded-full ${
-                            hasStock ? "bg-green-500" : "bg-red-500"
-                          }`}
-                        />
-                        <span className="font-medium">{displayLabel}</span>
-                      </div>
-                      {variantPrice !== null && (
-                        <span className="text-xs opacity-70 mt-0.5">
-                          {formatPrice(variantPrice)}
-                        </span>
-                      )}
-                    </Button>
-                  </Link>
+                  <div key={variant.id} className="flex items-center gap-1 group">
+                    <Link href={`/products/${variant.id}`}>
+                      <Button
+                        variant={isCurrentVariant ? "default" : "outline"}
+                        size="sm"
+                        className="flex flex-col items-start h-auto py-2 px-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-2 w-2 rounded-full ${
+                              hasStock ? "bg-green-500" : "bg-red-500"
+                            }`}
+                          />
+                          <span className="font-medium">{displayLabel}</span>
+                        </div>
+                        {variantPrice !== null && (
+                          <span className="text-xs opacity-70 mt-0.5">
+                            {formatPrice(variantPrice)}
+                          </span>
+                        )}
+                      </Button>
+                    </Link>
+                    <Link href={`/products/${variant.id}/edit`}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Edit variant"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
                 );
               })}
             </div>
@@ -379,6 +393,7 @@ export function VariantSelector({ variants, currentProductId }: VariantSelectorP
           </div>
         )}
       </CardContent>
+
     </Card>
   );
 }

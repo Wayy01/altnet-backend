@@ -37,6 +37,7 @@ import {
   ArrowDown,
   GitBranch,
   Layers,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -752,6 +753,17 @@ export default function ProductDetailPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="flex items-center gap-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30 hover:shadow-sm hover:-translate-y-0.5"
+          >
+            <Link href={`/products/${product.id}/edit`}>
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"

@@ -35,6 +35,7 @@ import {
   ArrowUp,
   ArrowDown,
   Layers,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1480,6 +1481,12 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                               <Link href={`/products/${product.id}`} className="cursor-pointer">
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Details
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/products/${product.id}/edit`} className="cursor-pointer">
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />

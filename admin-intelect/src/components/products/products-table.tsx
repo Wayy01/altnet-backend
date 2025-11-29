@@ -43,6 +43,7 @@ import {
   Trash2,
   Power,
   PowerOff,
+  Pencil,
 } from "lucide-react";
 import { Product, Brand, Category } from "@/types";
 import { api } from "@/lib/api";
@@ -489,6 +490,12 @@ export function ProductsTable({
                             View Details
                           </Link>
                         </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/products/${product.id}/edit`}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive"
@@ -570,6 +577,7 @@ export function ProductsTable({
         variant="destructive"
         isLoading={isProcessing}
       />
+
     </div>
   );
 }

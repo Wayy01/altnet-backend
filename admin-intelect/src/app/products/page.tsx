@@ -30,6 +30,7 @@ import {
   SlidersHorizontal,
   GitBranch,
   Layers,
+  Pencil,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1276,6 +1277,12 @@ export default function ProductsPage() {
                             <Link href={`/products/${product.id}`} className="cursor-pointer">
                               <Eye className="mr-2 h-4 w-4" />
                               {t("actions.viewDetails")}
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/products/${product.id}/edit`} className="cursor-pointer">
+                              <Pencil className="mr-2 h-4 w-4" />
+                              {t("actions.edit")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>

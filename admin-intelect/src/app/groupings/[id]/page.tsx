@@ -37,6 +37,7 @@ import {
   Warehouse,
   CheckCircle2,
   XCircle,
+  Pencil,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -559,14 +560,26 @@ export default function ProductGroupingDetailPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteClick(variant)}
-                        className="h-8 w-8 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Link href={`/products/${variant.id}/edit`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                            title={t('actions.editVariant')}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteClick(variant)}
+                          className="h-8 w-8 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -671,6 +684,7 @@ export default function ProductGroupingDetailPage() {
         impactData={{ records_to_delete: 0, products_affected: 1 }}
         isLoading={deleteDialog.loading}
       />
+
     </div>
   );
 }
