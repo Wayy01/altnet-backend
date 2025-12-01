@@ -57,6 +57,40 @@ type ScheduleCreateRequest struct {
 	CreatedBy          string                 `json:"created_by,omitempty"`
 }
 
+// ScheduleUpdateRequest represents a request to update a schedule
+type ScheduleUpdateRequest struct {
+	Name               *string                `json:"name,omitempty"`
+	Description        *string                `json:"description,omitempty"`
+	ConfigurationID    *uuid.UUID             `json:"configuration_id,omitempty"`
+	CronExpression     *string                `json:"cron_expression,omitempty"`
+	Timezone           *string                `json:"timezone,omitempty"`
+	IsActive           *bool                  `json:"is_active,omitempty"`
+	RetryConfig        map[string]interface{} `json:"retry_config,omitempty"`
+	NotificationConfig map[string]interface{} `json:"notification_config,omitempty"`
+}
+
+// ScheduleWithConfig represents a schedule with its associated configuration
+type ScheduleWithConfig struct {
+	*SyncSchedule
+	ConfigurationName  string   `json:"configuration_name,omitempty"`
+	ConfigurationSteps []string `json:"configuration_steps,omitempty"`
+}
+
+// ScheduleRunStatus constants
+const (
+	ScheduleRunStatusRunning   = "running"
+	ScheduleRunStatusCompleted = "completed"
+	ScheduleRunStatusFailed    = "failed"
+	ScheduleRunStatusCancelled = "cancelled"
+)
+
+// Schedule status constants
+const (
+	ScheduleStatusSuccess = "success"
+	ScheduleStatusFailed  = "failed"
+	ScheduleStatusPartial = "partial"
+)
+
 // ============================================================================
 // ADVANCED FILTERING MODELS
 // ============================================================================
@@ -74,9 +108,9 @@ type SyncEntityFilter struct {
 // FilterCriteria represents filter conditions
 type FilterCriteria struct {
 	// Brand filters
-	BrandIDs       []uuid.UUID `json:"brand_ids,omitempty"`
-	BrandUltraIDs  []string    `json:"brand_ultra_ids,omitempty"`
-	BrandNames     []string    `json:"brand_names,omitempty"`
+	BrandIDs      []uuid.UUID `json:"brand_ids,omitempty"`
+	BrandUltraIDs []string    `json:"brand_ultra_ids,omitempty"`
+	BrandNames    []string    `json:"brand_names,omitempty"`
 
 	// Category filters
 	CategoryIDs      []uuid.UUID `json:"category_ids,omitempty"`
@@ -84,37 +118,37 @@ type FilterCriteria struct {
 	CategoryNames    []string    `json:"category_names,omitempty"`
 
 	// Product filters
-	ProductIDs       []uuid.UUID `json:"product_ids,omitempty"`
-	ProductUltraIDs  []string    `json:"product_ultra_ids,omitempty"`
-	ProductNames     []string    `json:"product_names,omitempty"`
+	ProductIDs      []uuid.UUID `json:"product_ids,omitempty"`
+	ProductUltraIDs []string    `json:"product_ultra_ids,omitempty"`
+	ProductNames    []string    `json:"product_names,omitempty"`
 
 	// Price range filters
-	MinPrice         *float64    `json:"min_price,omitempty"`
-	MaxPrice         *float64    `json:"max_price,omitempty"`
-	Currency         string      `json:"currency,omitempty"`
+	MinPrice *float64 `json:"min_price,omitempty"`
+	MaxPrice *float64 `json:"max_price,omitempty"`
+	Currency string   `json:"currency,omitempty"`
 
 	// Stock filters
-	InStock          *bool       `json:"in_stock,omitempty"`
-	MinStock         *int        `json:"min_stock,omitempty"`
-	MaxStock         *int        `json:"max_stock,omitempty"`
+	InStock  *bool `json:"in_stock,omitempty"`
+	MinStock *int  `json:"min_stock,omitempty"`
+	MaxStock *int  `json:"max_stock,omitempty"`
 
 	// Status filters
-	IsActive         *bool       `json:"is_active,omitempty"`
-	IsService        *bool       `json:"is_service,omitempty"`
+	IsActive  *bool `json:"is_active,omitempty"`
+	IsService *bool `json:"is_service,omitempty"`
 
 	// Date filters
-	CreatedAfter     *time.Time  `json:"created_after,omitempty"`
-	CreatedBefore    *time.Time  `json:"created_before,omitempty"`
-	UpdatedAfter     *time.Time  `json:"updated_after,omitempty"`
-	UpdatedBefore    *time.Time  `json:"updated_before,omitempty"`
+	CreatedAfter  *time.Time `json:"created_after,omitempty"`
+	CreatedBefore *time.Time `json:"created_before,omitempty"`
+	UpdatedAfter  *time.Time `json:"updated_after,omitempty"`
+	UpdatedBefore *time.Time `json:"updated_before,omitempty"`
 
 	// Pattern matching
-	NamePattern      string      `json:"name_pattern,omitempty"` // SQL LIKE pattern
-	CodePattern      string      `json:"code_pattern,omitempty"`
+	NamePattern string `json:"name_pattern,omitempty"` // SQL LIKE pattern
+	CodePattern string `json:"code_pattern,omitempty"`
 
 	// Logical operators
-	Operator         string      `json:"operator,omitempty"` // 'AND', 'OR'
-	SubFilters       []FilterCriteria `json:"sub_filters,omitempty"` // For nested conditions
+	Operator   string           `json:"operator,omitempty"`    // 'AND', 'OR'
+	SubFilters []FilterCriteria `json:"sub_filters,omitempty"` // For nested conditions
 }
 
 // ============================================================================
@@ -123,30 +157,19 @@ type FilterCriteria struct {
 
 // EntitySyncTracking tracks last sync state for incremental sync
 type EntitySyncTracking struct {
-	EntityType      string    `json:"entity_type"`
-	EntityID        uuid.UUID `json:"entity_id"`
-	EntityUltraID   string    `json:"entity_ultra_id"`
-	LastSyncedAt    time.Time `json:"last_synced_at"`
-	LastModifiedAt  time.Time `json:"last_modified_at"`
-	SyncChecksum    string    `json:"sync_checksum,omitempty"`
+	EntityType     string    `json:"entity_type"`
+	EntityID       uuid.UUID `json:"entity_id"`
+	EntityUltraID  string    `json:"entity_ultra_id"`
+	LastSyncedAt   time.Time `json:"last_synced_at"`
+	LastModifiedAt time.Time `json:"last_modified_at"`
+	SyncChecksum   string    `json:"sync_checksum,omitempty"`
 }
 
 // ============================================================================
 // MONITORING & ALERTS MODELS
 // ============================================================================
 
-// SyncNotification represents a notification to be sent
-type SyncNotification struct {
-	ID               uuid.UUID              `json:"id"`
-	SyncLogID        *uuid.UUID             `json:"sync_log_id,omitempty"`
-	NotificationType string                 `json:"notification_type"` // 'email', 'slack', 'webhook', 'push'
-	Recipient        string                 `json:"recipient"`
-	Status           string                 `json:"status"` // 'pending', 'sent', 'failed'
-	SentAt           *time.Time             `json:"sent_at,omitempty"`
-	ErrorMessage     string                 `json:"error_message,omitempty"`
-	Metadata         map[string]interface{} `json:"metadata"`
-	CreatedAt        time.Time              `json:"created_at"`
-}
+// NOTE: SyncNotification has been moved to notification.go with extended fields
 
 // SyncPerformanceMetric represents a performance metric
 type SyncPerformanceMetric struct {
@@ -162,16 +185,16 @@ type SyncPerformanceMetric struct {
 
 // SyncAnalytics represents aggregated sync analytics
 type SyncAnalytics struct {
-	Period            string              `json:"period"` // 'day', 'week', 'month'
-	TotalSyncs        int                 `json:"total_syncs"`
-	SuccessfulSyncs   int                 `json:"successful_syncs"`
-	FailedSyncs       int                 `json:"failed_syncs"`
-	AverageDuration   float64             `json:"average_duration"`
-	TotalEntitiesSynced int               `json:"total_entities_synced"`
-	ByStep            map[SyncStep]int    `json:"by_step"`
-	TotalConflicts    int                 `json:"total_conflicts"`
-	TotalRollbacks    int                 `json:"total_rollbacks"`
-	PerformanceTrend  []PerformancePoint  `json:"performance_trend"`
+	Period              string             `json:"period"` // 'day', 'week', 'month'
+	TotalSyncs          int                `json:"total_syncs"`
+	SuccessfulSyncs     int                `json:"successful_syncs"`
+	FailedSyncs         int                `json:"failed_syncs"`
+	AverageDuration     float64            `json:"average_duration"`
+	TotalEntitiesSynced int                `json:"total_entities_synced"`
+	ByStep              map[SyncStep]int   `json:"by_step"`
+	TotalConflicts      int                `json:"total_conflicts"`
+	TotalRollbacks      int                `json:"total_rollbacks"`
+	PerformanceTrend    []PerformancePoint `json:"performance_trend"`
 }
 
 // PerformancePoint represents a single data point in performance trend
@@ -202,17 +225,17 @@ type WebSocketMessage struct {
 
 // SyncProgress represents current sync progress
 type SyncProgress struct {
-	CurrentStep     SyncStep `json:"current_step"`
-	TotalSteps      int      `json:"total_steps"`
-	CompletedSteps  int      `json:"completed_steps"`
-	CurrentProgress int      `json:"current_progress"` // Percentage 0-100
-	TotalEntities   int      `json:"total_entities"`
-	ProcessedCount  int      `json:"processed_count"`
-	InsertedCount   int      `json:"inserted_count"`
-	UpdatedCount    int      `json:"updated_count"`
-	SkippedCount    int      `json:"skipped_count"`
-	FailedCount     int      `json:"failed_count"`
-	SelectedSteps   []string `json:"selected_steps,omitempty"`
+	CurrentStep            SyncStep      `json:"current_step"`
+	TotalSteps             int           `json:"total_steps"`
+	CompletedSteps         int           `json:"completed_steps"`
+	CurrentProgress        int           `json:"current_progress"` // Percentage 0-100
+	TotalEntities          int           `json:"total_entities"`
+	ProcessedCount         int           `json:"processed_count"`
+	InsertedCount          int           `json:"inserted_count"`
+	UpdatedCount           int           `json:"updated_count"`
+	SkippedCount           int           `json:"skipped_count"`
+	FailedCount            int           `json:"failed_count"`
+	SelectedSteps          []string      `json:"selected_steps,omitempty"`
 	EstimatedTimeRemaining time.Duration `json:"estimated_time_remaining,omitempty"`
 }
 
@@ -235,6 +258,23 @@ func (r *ScheduleCreateRequest) Validate() error {
 	// This is a basic check to prevent obviously invalid input
 	if len(r.CronExpression) < 9 { // Minimum: "* * * * *"
 		return fmt.Errorf("invalid cron expression format")
+	}
+
+	return nil
+}
+
+// Validate validates a ScheduleUpdateRequest
+func (r *ScheduleUpdateRequest) Validate() error {
+	// If name is provided, it cannot be empty
+	if r.Name != nil && *r.Name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+
+	// If cron expression is provided, validate it
+	if r.CronExpression != nil {
+		if len(*r.CronExpression) < 9 { // Minimum: "* * * * *"
+			return fmt.Errorf("invalid cron expression format")
+		}
 	}
 
 	return nil
