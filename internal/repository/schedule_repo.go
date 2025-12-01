@@ -521,7 +521,7 @@ func (r *ScheduleRepository) CreateScheduleRun(ctx context.Context, scheduleID u
 		INSERT INTO sync_schedule_runs (schedule_id, sync_log_id, status)
 		VALUES ($1, $2, $3)
 		RETURNING id, schedule_id, sync_log_id, started_at, completed_at, status,
-			retry_count, error_message, execution_metadata
+			retry_count, COALESCE(error_message, ''), COALESCE(execution_metadata, '{}'::jsonb)
 	`
 
 	run := &models.SyncScheduleRun{}
@@ -596,7 +596,7 @@ func (r *ScheduleRepository) ListScheduleRuns(ctx context.Context, scheduleID uu
 
 	query := `
 		SELECT id, schedule_id, sync_log_id, started_at, completed_at, status,
-			retry_count, error_message, execution_metadata
+			retry_count, COALESCE(error_message, ''), COALESCE(execution_metadata, '{}'::jsonb)
 		FROM sync_schedule_runs
 		WHERE schedule_id = $1
 		ORDER BY started_at DESC
@@ -725,22 +725,22 @@ func (r *ScheduleRepository) UpdateScheduleLastRun(ctx context.Context, id uuid.
 				last_status = $1,
 				run_count = run_count + 1,
 				next_run_at = $2,
-				failure_count = CASE WHEN $1 = 'failed' THEN failure_count + 1 ELSE failure_count END,
+				failure_count = CASE WHEN $3 = 'failed' THEN failure_count + 1 ELSE failure_count END,
 				updated_at = NOW()
-			WHERE id = $3
+			WHERE id = $4
 		`
-		args = []interface{}{status, *nextRunAt, id}
+		args = []interface{}{status, *nextRunAt, status, id}
 	} else {
 		query = `
 			UPDATE sync_schedules
 			SET last_run_at = NOW(),
 				last_status = $1,
 				run_count = run_count + 1,
-				failure_count = CASE WHEN $1 = 'failed' THEN failure_count + 1 ELSE failure_count END,
+				failure_count = CASE WHEN $2 = 'failed' THEN failure_count + 1 ELSE failure_count END,
 				updated_at = NOW()
-			WHERE id = $2
+			WHERE id = $3
 		`
-		args = []interface{}{status, id}
+		args = []interface{}{status, status, id}
 	}
 
 	_, err := r.pool.Exec(ctx, query, args...)
@@ -767,7 +767,7 @@ func (r *ScheduleRepository) SetNextRunAt(ctx context.Context, id uuid.UUID, nex
 func (r *ScheduleRepository) GetScheduleRun(ctx context.Context, runID uuid.UUID) (*models.SyncScheduleRun, error) {
 	query := `
 		SELECT id, schedule_id, sync_log_id, started_at, completed_at, status,
-			retry_count, error_message, execution_metadata
+			retry_count, COALESCE(error_message, ''), COALESCE(execution_metadata, '{}'::jsonb)
 		FROM sync_schedule_runs
 		WHERE id = $1
 	`
