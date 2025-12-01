@@ -444,9 +444,11 @@ func (s *Scheduler) GetNextRunTime(cronExpr string, timezone string) (time.Time,
 	}
 	now := time.Now().In(loc)
 
-	// Calculate next run time
+	// Calculate next run time in the local timezone, then convert to UTC for storage.
+	// This ensures the time is properly stored in PostgreSQL and can be converted
+	// back to the user's timezone when displayed.
 	next := schedule.Next(now)
-	return next, nil
+	return next.UTC(), nil
 }
 
 // GetNextRunTimeAfter calculates the next run time after a specific time
@@ -463,9 +465,11 @@ func (s *Scheduler) GetNextRunTimeAfter(cronExpr string, timezone string, after 
 	}
 	afterInTz := after.In(loc)
 
-	// Calculate next run time
+	// Calculate next run time in the local timezone, then convert to UTC for storage.
+	// This ensures the time is properly stored in PostgreSQL and can be converted
+	// back to the user's timezone when displayed.
 	next := schedule.Next(afterInTz)
-	return next, nil
+	return next.UTC(), nil
 }
 
 // ParseCron parses a cron expression and returns an error if invalid
