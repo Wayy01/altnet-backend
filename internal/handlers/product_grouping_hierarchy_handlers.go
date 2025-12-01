@@ -14,8 +14,8 @@ import (
 
 // Constants for product grouping handlers
 const (
-	MaxGroupingLimit = 100
-	MaxVariantLimit  = 100
+	MaxGroupingLimit  = 100
+	MaxVariantLimit   = 100
 	MaxBulkVariantIDs = 1000
 )
 

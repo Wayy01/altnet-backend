@@ -62,10 +62,10 @@ func (h *ComparisonHandler) CompareSync(w http.ResponseWriter, r *http.Request) 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"data": comparisons,
 		"summary": map[string]interface{}{
-			"total_to_insert":  totalToInsert,
-			"total_to_update":  totalToUpdate,
-			"total_unchanged":  totalUnchanged,
-			"total_conflicts":  totalConflicts,
+			"total_to_insert":   totalToInsert,
+			"total_to_update":   totalToUpdate,
+			"total_unchanged":   totalUnchanged,
+			"total_conflicts":   totalConflicts,
 			"estimated_changes": totalToInsert + totalToUpdate,
 		},
 	})

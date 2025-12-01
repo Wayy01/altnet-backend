@@ -412,7 +412,7 @@ func (r *ConflictRepository) FindApplicableRule(ctx context.Context, entityType,
 
 	query := `
 		SELECT id, name, entity_type, conflict_type, priority, conditions,
-			   resolution_strategy, merge_strategy, is_active, created_by,
+			   resolution_strategy, merge_strategy, is_active, COALESCE(created_by, '') as created_by,
 			   created_at, updated_at
 		FROM sync_conflict_rules
 		WHERE entity_type = $1
@@ -612,7 +612,7 @@ func (r *ConflictRepository) DeleteConflictRule(ctx context.Context, ruleID uuid
 func (r *ConflictRepository) ListConflictRules(ctx context.Context, activeOnly bool) ([]models.SyncConflictRule, error) {
 	query := `
 		SELECT id, name, entity_type, conflict_type, priority, conditions,
-			   resolution_strategy, merge_strategy, is_active, created_by,
+			   resolution_strategy, merge_strategy, is_active, COALESCE(created_by, '') as created_by,
 			   created_at, updated_at
 		FROM sync_conflict_rules
 	`

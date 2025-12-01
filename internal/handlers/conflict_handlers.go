@@ -121,7 +121,7 @@ func (h *ConflictHandler) ResolveConflicts(w http.ResponseWriter, r *http.Reques
 	}
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
-		"message": fmt.Sprintf("Successfully resolved %d conflict(s)", resolved),
+		"message":        fmt.Sprintf("Successfully resolved %d conflict(s)", resolved),
 		"resolved_count": resolved,
 	})
 }

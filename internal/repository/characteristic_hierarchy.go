@@ -24,29 +24,29 @@ type CharacteristicPrice struct {
 
 // CharacteristicName represents a characteristic name in the hierarchy
 type CharacteristicName struct {
-	Name             string  `json:"name"`
-	CharacteristicCount int  `json:"characteristic_count"` // Total characteristic records with this name
-	ProductsUsing    int     `json:"products_using"`       // Number of products using this characteristic
-	TotalStock       int     `json:"total_stock"`          // Sum of all stock for this name
-	AvgPrice         *float64 `json:"avg_price"`           // Average price across all characteristics
-	CommonCurrency   *string `json:"common_currency"`      // Most common currency
+	Name                string   `json:"name"`
+	CharacteristicCount int      `json:"characteristic_count"` // Total characteristic records with this name
+	ProductsUsing       int      `json:"products_using"`       // Number of products using this characteristic
+	TotalStock          int      `json:"total_stock"`          // Sum of all stock for this name
+	AvgPrice            *float64 `json:"avg_price"`            // Average price across all characteristics
+	CommonCurrency      *string  `json:"common_currency"`      // Most common currency
 }
 
 // CharacteristicValue represents an individual characteristic record
 type CharacteristicValue struct {
-	ID              uuid.UUID              `json:"id"`
-	ProductID       uuid.UUID              `json:"product_id"`
-	ProductName     *string                `json:"product_name,omitempty"`
-	ProductCode     *string                `json:"product_code,omitempty"`
-	UltraID         string                 `json:"ultra_id"`
-	Code            *string                `json:"code"`
-	Reference       *string                `json:"reference"`
-	Name            string                 `json:"name"`
-	Prices          []CharacteristicPrice  `json:"prices"` // Typed price array
-	StockWarehouse  int                    `json:"stock_warehouse"`
-	StockShowroom   int                    `json:"stock_showroom"`
-	StockTotal      int                    `json:"stock_total"`
-	IsActive        bool                   `json:"is_active"`
+	ID             uuid.UUID             `json:"id"`
+	ProductID      uuid.UUID             `json:"product_id"`
+	ProductName    *string               `json:"product_name,omitempty"`
+	ProductCode    *string               `json:"product_code,omitempty"`
+	UltraID        string                `json:"ultra_id"`
+	Code           *string               `json:"code"`
+	Reference      *string               `json:"reference"`
+	Name           string                `json:"name"`
+	Prices         []CharacteristicPrice `json:"prices"` // Typed price array
+	StockWarehouse int                   `json:"stock_warehouse"`
+	StockShowroom  int                   `json:"stock_showroom"`
+	StockTotal     int                   `json:"stock_total"`
+	IsActive       bool                  `json:"is_active"`
 }
 
 // ============================================================================

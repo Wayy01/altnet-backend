@@ -25,51 +25,51 @@ type SyncSnapshot struct {
 
 // SyncSnapshotData represents entity data stored in a snapshot
 type SyncSnapshotData struct {
-	ID             uuid.UUID              `json:"id"`
-	SnapshotID     uuid.UUID              `json:"snapshot_id"`
-	EntityType     string                 `json:"entity_type"`
-	EntityID       uuid.UUID              `json:"entity_id"`
-	EntityUltraID  string                 `json:"entity_ultra_id,omitempty"`
-	SnapshotData   map[string]interface{} `json:"snapshot_data"`
-	CreatedAt      time.Time              `json:"created_at"`
+	ID            uuid.UUID              `json:"id"`
+	SnapshotID    uuid.UUID              `json:"snapshot_id"`
+	EntityType    string                 `json:"entity_type"`
+	EntityID      uuid.UUID              `json:"entity_id"`
+	EntityUltraID string                 `json:"entity_ultra_id,omitempty"`
+	SnapshotData  map[string]interface{} `json:"snapshot_data"`
+	CreatedAt     time.Time              `json:"created_at"`
 }
 
 // SyncRollback represents a rollback operation
 type SyncRollback struct {
-	ID                 uuid.UUID              `json:"id"`
-	OriginalSyncLogID  uuid.UUID              `json:"original_sync_log_id"`
-	SnapshotID         uuid.UUID              `json:"snapshot_id"`
-	RollbackType       string                 `json:"rollback_type"` // 'full', 'partial', 'selective'
-	RollbackScope      map[string]interface{} `json:"rollback_scope"`
-	InitiatedBy        string                 `json:"initiated_by,omitempty"`
-	Status             string                 `json:"status"` // 'pending', 'in_progress', 'completed', 'failed'
-	StartedAt          time.Time              `json:"started_at"`
-	CompletedAt        *time.Time             `json:"completed_at,omitempty"`
-	EntitiesRestored   int                    `json:"entities_restored"`
-	Errors             []string               `json:"errors"`
-	Metadata           map[string]interface{} `json:"metadata"`
+	ID                uuid.UUID              `json:"id"`
+	OriginalSyncLogID uuid.UUID              `json:"original_sync_log_id"`
+	SnapshotID        uuid.UUID              `json:"snapshot_id"`
+	RollbackType      string                 `json:"rollback_type"` // 'full', 'partial', 'selective'
+	RollbackScope     map[string]interface{} `json:"rollback_scope"`
+	InitiatedBy       string                 `json:"initiated_by,omitempty"`
+	Status            string                 `json:"status"` // 'pending', 'in_progress', 'completed', 'failed'
+	StartedAt         time.Time              `json:"started_at"`
+	CompletedAt       *time.Time             `json:"completed_at,omitempty"`
+	EntitiesRestored  int                    `json:"entities_restored"`
+	Errors            []string               `json:"errors"`
+	Metadata          map[string]interface{} `json:"metadata"`
 }
 
 // RollbackRequest represents a request to rollback a sync
 type RollbackRequest struct {
-	SyncLogID     uuid.UUID `json:"sync_log_id"`
-	RollbackType  string    `json:"rollback_type"` // 'full', 'partial', 'selective'
-	EntityTypes   []string  `json:"entity_types,omitempty"` // For selective rollback
-	EntityIDs     []uuid.UUID `json:"entity_ids,omitempty"` // For selective rollback
-	ConfirmHash   string    `json:"confirm_hash"` // Security confirmation
-	InitiatedBy   string    `json:"initiated_by,omitempty"`
+	SyncLogID    uuid.UUID   `json:"sync_log_id"`
+	RollbackType string      `json:"rollback_type"`          // 'full', 'partial', 'selective'
+	EntityTypes  []string    `json:"entity_types,omitempty"` // For selective rollback
+	EntityIDs    []uuid.UUID `json:"entity_ids,omitempty"`   // For selective rollback
+	ConfirmHash  string      `json:"confirm_hash"`           // Security confirmation
+	InitiatedBy  string      `json:"initiated_by,omitempty"`
 }
 
 // RollbackPreview represents a preview of what will be rolled back
 type RollbackPreview struct {
-	SnapshotID       uuid.UUID              `json:"snapshot_id"`
-	SnapshotAge      time.Duration          `json:"snapshot_age"`
-	TotalEntities    int                    `json:"total_entities"`
-	EntitiesByType   map[string]int         `json:"entities_by_type"`
-	AffectedRecords  int                    `json:"affected_records"`
-	EstimatedTime    time.Duration          `json:"estimated_time"`
-	Warnings         []string               `json:"warnings"`
-	ConfirmHash      string                 `json:"confirm_hash"`
+	SnapshotID      uuid.UUID      `json:"snapshot_id"`
+	SnapshotAge     time.Duration  `json:"snapshot_age"`
+	TotalEntities   int            `json:"total_entities"`
+	EntitiesByType  map[string]int `json:"entities_by_type"`
+	AffectedRecords int            `json:"affected_records"`
+	EstimatedTime   time.Duration  `json:"estimated_time"`
+	Warnings        []string       `json:"warnings"`
+	ConfirmHash     string         `json:"confirm_hash"`
 }
 
 // ============================================================================

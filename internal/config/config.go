@@ -10,10 +10,10 @@ import (
 )
 
 type Config struct {
-	Database      DatabaseConfig
-	Ultra         UltraConfig
-	Server        ServerConfig
-	Logging       LoggingConfig
+	Database       DatabaseConfig
+	Ultra          UltraConfig
+	Server         ServerConfig
+	Logging        LoggingConfig
 	LibreTranslate LibreTranslateConfig
 }
 
@@ -31,15 +31,15 @@ type DatabaseConfig struct {
 }
 
 type UltraConfig struct {
-	APIURL          string
-	Username        string
-	Password        string
-	Timeout         time.Duration
-	RequestInterval time.Duration
-	MaxRetries      int
-	PollInterval    time.Duration
-	PollTimeout     time.Duration
-	XMLParserURL    string
+	APIURL           string
+	Username         string
+	Password         string
+	Timeout          time.Duration
+	RequestInterval  time.Duration
+	MaxRetries       int
+	PollInterval     time.Duration
+	PollTimeout      time.Duration
+	XMLParserURL     string
 	XMLParserEnabled bool
 }
 

@@ -17,15 +17,15 @@ import (
 type RequestType string
 
 const (
-	RequestTypeProducts      RequestType = "NOMENCLATURE"
-	RequestTypeBrands        RequestType = "BRAND"
-	RequestTypeCategories    RequestType = "NOMENCLATURETYPELIST"
-	RequestTypePrices        RequestType = "PRICELIST"
-	RequestTypeStock         RequestType = "BALANCE"
-	RequestTypeProperties    RequestType = "PROPERTIES"
-	RequestTypeRates         RequestType = "RATES"
-	RequestTypeParentList    RequestType = "PARENTLIST"
-	RequestTypeOrderStatus   RequestType = "ORDERSSTAT"
+	RequestTypeProducts    RequestType = "NOMENCLATURE"
+	RequestTypeBrands      RequestType = "BRAND"
+	RequestTypeCategories  RequestType = "NOMENCLATURETYPELIST"
+	RequestTypePrices      RequestType = "PRICELIST"
+	RequestTypeStock       RequestType = "BALANCE"
+	RequestTypeProperties  RequestType = "PROPERTIES"
+	RequestTypeRates       RequestType = "RATES"
+	RequestTypeParentList  RequestType = "PARENTLIST"
+	RequestTypeOrderStatus RequestType = "ORDERSSTAT"
 )
 
 // Client represents Ultra B2B API client
@@ -37,7 +37,7 @@ type Client struct {
 // NewClient creates a new Ultra API client
 func NewClient(cfg config.UltraConfig) *Client {
 	return &Client{
-		config: cfg,
+		config:     cfg,
 		httpClient: &http.Client{
 			// No timeout - allow requests to run indefinitely
 		},

@@ -18,10 +18,10 @@ type PropertyGroup struct {
 	GroupName            string  `json:"group_name"`
 	GroupNameRU          *string `json:"group_name_ru"`
 	GroupNameRO          *string `json:"group_name_ro"`
-	PropertyCount        int     `json:"property_count"`        // Number of unique property names
-	ValueCount           int     `json:"value_count"`           // Total property records
-	ProductsUsing        int     `json:"products_using"`        // Number of products using this group
-	CommonIsFilter       bool    `json:"common_is_filter"`      // Most common is_filter value
+	PropertyCount        int     `json:"property_count"`         // Number of unique property names
+	ValueCount           int     `json:"value_count"`            // Total property records
+	ProductsUsing        int     `json:"products_using"`         // Number of products using this group
+	CommonIsFilter       bool    `json:"common_is_filter"`       // Most common is_filter value
 	CommonIsModification bool    `json:"common_is_modification"` // Most common is_modification value
 }
 
@@ -44,23 +44,23 @@ type PropertyName struct {
 
 // PropertyValue represents a value for a property name
 type PropertyValue struct {
-	ID                 uuid.UUID  `json:"id"`
-	ProductID          uuid.UUID  `json:"product_id"`
-	ProductName        *string    `json:"product_name,omitempty"`
-	ProductCode        *string    `json:"product_code,omitempty"`
-	GroupName          *string    `json:"group_name"`
-	PropertyName       string     `json:"property_name"`
-	PropertyCode       *string    `json:"property_code"`
-	Value              *string    `json:"value"`
-	ValueType          *string    `json:"value_type"`
-	SortOrder          int        `json:"sort_order"`
-	IsFilter           bool       `json:"is_filter"`
-	IsModification     bool       `json:"is_modification"`
+	ID             uuid.UUID `json:"id"`
+	ProductID      uuid.UUID `json:"product_id"`
+	ProductName    *string   `json:"product_name,omitempty"`
+	ProductCode    *string   `json:"product_code,omitempty"`
+	GroupName      *string   `json:"group_name"`
+	PropertyName   string    `json:"property_name"`
+	PropertyCode   *string   `json:"property_code"`
+	Value          *string   `json:"value"`
+	ValueType      *string   `json:"value_type"`
+	SortOrder      int       `json:"sort_order"`
+	IsFilter       bool      `json:"is_filter"`
+	IsModification bool      `json:"is_modification"`
 }
 
 // DeletionImpact represents the impact of deleting a group/property
 type DeletionImpact struct {
-	RecordsToDelete int `json:"records_to_delete"`
+	RecordsToDelete  int `json:"records_to_delete"`
 	ProductsAffected int `json:"products_affected"`
 }
 

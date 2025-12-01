@@ -96,9 +96,9 @@ const (
 
 // Error messages
 const (
-	ErrInvalidEntityType       = "invalid entity type: must be one of brand, category, product, property, characteristic"
-	ErrInvalidRollbackType     = "invalid rollback type: must be one of full, partial, selective"
+	ErrInvalidEntityType         = "invalid entity type: must be one of brand, category, product, property, characteristic"
+	ErrInvalidRollbackType       = "invalid rollback type: must be one of full, partial, selective"
 	ErrInvalidResolutionStrategy = "invalid resolution strategy: must be one of local_wins, remote_wins, merge, manual, skip"
-	ErrInvalidConflictType     = "invalid conflict type: must be one of concurrent_modification, deleted_upstream, validation_error"
-	ErrMissingSecretKey        = "ROLLBACK_SECRET_KEY environment variable not set"
+	ErrInvalidConflictType       = "invalid conflict type: must be one of concurrent_modification, deleted_upstream, validation_error"
+	ErrMissingSecretKey          = "ROLLBACK_SECRET_KEY environment variable not set"
 )

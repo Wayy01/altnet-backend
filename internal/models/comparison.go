@@ -14,18 +14,18 @@ import (
 
 // SyncComparison represents a comparison between local and remote data
 type SyncComparison struct {
-	ID              uuid.UUID              `json:"id"`
-	SyncRequestID   uuid.UUID              `json:"sync_request_id,omitempty"`
-	Step            SyncStep               `json:"step"`
-	TotalLocal      int                    `json:"total_local"`
-	TotalRemote     int                    `json:"total_remote"`
-	ToInsert        int                    `json:"to_insert"`
-	ToUpdate        int                    `json:"to_update"`
-	ToDelete        int                    `json:"to_delete"` // If deletions are enabled
-	Unchanged       int                    `json:"unchanged"`
-	Conflicts       int                    `json:"conflicts"`
-	ComparedAt      time.Time              `json:"compared_at"`
-	DiffDetails     []EntityDiff           `json:"diff_details,omitempty"`
+	ID            uuid.UUID    `json:"id"`
+	SyncRequestID uuid.UUID    `json:"sync_request_id,omitempty"`
+	Step          SyncStep     `json:"step"`
+	TotalLocal    int          `json:"total_local"`
+	TotalRemote   int          `json:"total_remote"`
+	ToInsert      int          `json:"to_insert"`
+	ToUpdate      int          `json:"to_update"`
+	ToDelete      int          `json:"to_delete"` // If deletions are enabled
+	Unchanged     int          `json:"unchanged"`
+	Conflicts     int          `json:"conflicts"`
+	ComparedAt    time.Time    `json:"compared_at"`
+	DiffDetails   []EntityDiff `json:"diff_details,omitempty"`
 }
 
 // EntityDiff represents differences for a single entity
@@ -50,10 +50,10 @@ type FieldDiff struct {
 
 // ComparisonRequest represents a request to compare local and remote data
 type ComparisonRequest struct {
-	SelectedSteps []SyncStep               `json:"selected_steps"`
-	FieldConfig   map[SyncStep]FieldConfig `json:"field_config,omitempty"`
-	IncludeDetails bool                    `json:"include_details"` // Include field-level diffs
-	DetailLimit    int                     `json:"detail_limit,omitempty"` // Limit diff details returned
+	SelectedSteps  []SyncStep               `json:"selected_steps"`
+	FieldConfig    map[SyncStep]FieldConfig `json:"field_config,omitempty"`
+	IncludeDetails bool                     `json:"include_details"`        // Include field-level diffs
+	DetailLimit    int                      `json:"detail_limit,omitempty"` // Limit diff details returned
 }
 
 // ============================================================================

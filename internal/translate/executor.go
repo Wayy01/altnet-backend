@@ -484,7 +484,9 @@ func (e *Executor) executePropertyTranslation(ctx context.Context, job *models.T
 	log.Printf("Starting property group translation...")
 	if err := processItems(
 		true,
-		func() ([]string, error) { return e.repo.GetUntranslatedPropertyGroups(ctx, job.TargetLanguage, batchSize) },
+		func() ([]string, error) {
+			return e.repo.GetUntranslatedPropertyGroups(ctx, job.TargetLanguage, batchSize)
+		},
 		func(name string, translated *string) error {
 			return e.repo.UpdatePropertyGroupTranslation(ctx, name, translated, job.TargetLanguage)
 		},
@@ -497,7 +499,9 @@ func (e *Executor) executePropertyTranslation(ctx context.Context, job *models.T
 	log.Printf("Starting property name translation...")
 	if err := processItems(
 		false,
-		func() ([]string, error) { return e.repo.GetUntranslatedPropertyNames(ctx, job.TargetLanguage, batchSize) },
+		func() ([]string, error) {
+			return e.repo.GetUntranslatedPropertyNames(ctx, job.TargetLanguage, batchSize)
+		},
 		func(name string, translated *string) error {
 			return e.repo.UpdatePropertyNameTranslation(ctx, name, translated, job.TargetLanguage)
 		},

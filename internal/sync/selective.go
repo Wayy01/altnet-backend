@@ -38,11 +38,11 @@ func NewSelectiveSync(repo *repository.Repository, syncConfigRepo *repository.Sy
 
 // SyncResult holds the results of a selective sync
 type SyncResult struct {
-	SyncLogID     uuid.UUID
-	Duration      time.Duration
-	TotalChanges  int
-	StepResults   map[models.SyncStep]*StepResult
-	Errors        []string
+	SyncLogID    uuid.UUID
+	Duration     time.Duration
+	TotalChanges int
+	StepResults  map[models.SyncStep]*StepResult
+	Errors       []string
 }
 
 // StepResult holds results for a single sync step
@@ -474,10 +474,10 @@ func (s *SelectiveSync) updateSyncProgress(ctx context.Context, syncLogID uuid.U
 		syncLogID,
 		stepNumber,
 		string(step),
-		"completed",         // status
-		100.0,              // progress_percentage
-		totalItems,         // items_total
-		totalItems,         // items_processed (all items are processed when step completes)
+		"completed", // status
+		100.0,       // progress_percentage
+		totalItems,  // items_total
+		totalItems,  // items_processed (all items are processed when step completes)
 		stepResult.Extracted,
 		stepResult.Inserted,
 		stepResult.Updated,

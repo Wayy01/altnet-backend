@@ -17,10 +17,10 @@ import (
 
 // RollbackHandler contains all rollback-related HTTP handlers
 type RollbackHandler struct {
-	repo           *repository.Repository
-	fetcher        *ultra.Fetcher
-	rollbackRepo   *repository.RollbackRepository
-	selectiveSync  *sync.SelectiveSync
+	repo          *repository.Repository
+	fetcher       *ultra.Fetcher
+	rollbackRepo  *repository.RollbackRepository
+	selectiveSync *sync.SelectiveSync
 }
 
 // NewRollbackHandler creates a new RollbackHandler instance

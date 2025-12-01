@@ -27,7 +27,7 @@ type Handler struct {
 	fetcher        *ultra.Fetcher
 	selectiveSync  *internalSync.SelectiveSync
 	syncManager    *internalSync.SyncManager // Manages active syncs
-	syncMutex      sync.Mutex // Global lock to prevent concurrent syncs
+	syncMutex      sync.Mutex                // Global lock to prevent concurrent syncs
 }
 
 // New creates a new Handler instance
@@ -218,10 +218,10 @@ func (h *Handler) GetBrandProducts(w http.ResponseWriter, r *http.Request) {
 
 // BulkUpdateBrandProductsRequest represents the request body for bulk updating brand products
 type BulkUpdateBrandProductsRequest struct {
-	IsActive    bool                    `json:"is_active"`
-	PriceFilter  *string                `json:"price_filter,omitempty"`
-	StockFilter  *string                `json:"stock_filter,omitempty"`
-	StatusFilter *string                `json:"status_filter,omitempty"`
+	IsActive     bool    `json:"is_active"`
+	PriceFilter  *string `json:"price_filter,omitempty"`
+	StockFilter  *string `json:"stock_filter,omitempty"`
+	StatusFilter *string `json:"status_filter,omitempty"`
 }
 
 // BulkUpdateBrandProducts handles PATCH /api/v1/brands/{id}/products/bulk
@@ -480,10 +480,10 @@ func (h *Handler) GetCategoryProducts(w http.ResponseWriter, r *http.Request) {
 
 // BulkUpdateCategoryProductsRequest represents the request body for bulk updating category products
 type BulkUpdateCategoryProductsRequest struct {
-	IsActive    bool                    `json:"is_active"`
-	PriceFilter  *string                `json:"price_filter,omitempty"`
-	StockFilter  *string                `json:"stock_filter,omitempty"`
-	StatusFilter *string                `json:"status_filter,omitempty"`
+	IsActive     bool    `json:"is_active"`
+	PriceFilter  *string `json:"price_filter,omitempty"`
+	StockFilter  *string `json:"stock_filter,omitempty"`
+	StatusFilter *string `json:"status_filter,omitempty"`
 }
 
 // BulkUpdateCategoryProducts handles PATCH /api/v1/categories/{id}/products/bulk
@@ -2230,9 +2230,9 @@ func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 // BulkUpdateRequest represents a bulk update operation request
 type BulkUpdateRequest struct {
-	IDs      []uuid.UUID       `json:"ids,omitempty"`
-	Filter   *ProductFilter    `json:"filter,omitempty"`
-	IsActive *bool             `json:"is_active"`
+	IDs      []uuid.UUID    `json:"ids,omitempty"`
+	Filter   *ProductFilter `json:"filter,omitempty"`
+	IsActive *bool          `json:"is_active"`
 }
 
 // ProductFilter represents filter criteria for products
@@ -2369,8 +2369,8 @@ func (h *Handler) BulkDeleteProducts(w http.ResponseWriter, r *http.Request) {
 // BulkUpdateBrandsRequest represents a bulk update operation request for brands
 // Supports both specific IDs and filter-based updates
 type BulkUpdateBrandsRequest struct {
-	IDs      []uuid.UUID `json:"ids,omitempty"`
-	Filter   *struct {
+	IDs    []uuid.UUID `json:"ids,omitempty"`
+	Filter *struct {
 		Search      string `json:"search"`
 		HasProducts string `json:"has_products"`
 		IsActive    string `json:"is_active"` // Filter by current active status: "true", "false", or "" for all
@@ -3129,13 +3129,13 @@ func (h *Handler) GetChangeSummary(w http.ResponseWriter, r *http.Request) {
 
 // ConfigInfo represents application configuration info
 type ConfigInfo struct {
-	DatabaseName    string            `json:"database_name"`
-	DatabaseHost    string            `json:"database_host"`
-	APIVersion      string            `json:"api_version"`
-	Environment     string            `json:"environment"`
-	Features        map[string]bool   `json:"features"`
-	Limits          map[string]int    `json:"limits"`
-	ExchangeRates   []*models.ExchangeRate `json:"exchange_rates"`
+	DatabaseName  string                 `json:"database_name"`
+	DatabaseHost  string                 `json:"database_host"`
+	APIVersion    string                 `json:"api_version"`
+	Environment   string                 `json:"environment"`
+	Features      map[string]bool        `json:"features"`
+	Limits        map[string]int         `json:"limits"`
+	ExchangeRates []*models.ExchangeRate `json:"exchange_rates"`
 }
 
 // GetConfig handles GET /api/v1/config
@@ -3164,9 +3164,9 @@ func (h *Handler) GetConfig(w http.ResponseWriter, r *http.Request) {
 			"sync_management": true,
 		},
 		Limits: map[string]int{
-			"pagination_max":    100,
+			"pagination_max":     100,
 			"bulk_operation_max": 100,
-			"export_max":        10000,
+			"export_max":         10000,
 		},
 		ExchangeRates: rates,
 	}

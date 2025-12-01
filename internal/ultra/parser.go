@@ -11,7 +11,7 @@ import (
 
 var (
 	// Regex patterns for fixing malformed XML
-	digitPattern        = regexp.MustCompile(`</?[0-9][-a-zA-Z0-9_:.]*>`)  // Match tags starting with digits (only valid tag name chars)
+	digitPattern        = regexp.MustCompile(`</?[0-9][-a-zA-Z0-9_:.]*>`) // Match tags starting with digits (only valid tag name chars)
 	singleLetterPattern = regexp.MustCompile(`<([A-Z])(\s|>)`)
 	ampersandPattern    = regexp.MustCompile(`&([A-Za-z][A-Za-z0-9]*)([^;\w])`)
 )
@@ -94,9 +94,9 @@ func ParseXML(xmlData string, v interface{}) error {
 
 	// Try lenient decoding: decode XML and skip syntax errors if possible
 	decoder := xml.NewDecoder(strings.NewReader(fixed))
-	decoder.Strict = false // Enable non-strict mode
+	decoder.Strict = false                // Enable non-strict mode
 	decoder.AutoClose = xml.HTMLAutoClose // Auto-close tags like HTML
-	decoder.Entity = xml.HTMLEntity // Use HTML entity map
+	decoder.Entity = xml.HTMLEntity       // Use HTML entity map
 
 	if err := decoder.Decode(v); err != nil {
 		return fmt.Errorf("unmarshal XML: %w", err)

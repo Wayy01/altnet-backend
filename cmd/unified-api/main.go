@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -59,14 +60,53 @@ func main() {
 	realtimeSyncRepo := repository.NewRealtimeSyncRepository(db.Pool)
 	sourceRepo := repository.NewSourceRepository(db.Pool)
 	translationRepo := repository.NewTranslationRepository(db.Pool)
+	scheduleRepo := repository.NewScheduleRepository(db.Pool)
+	notificationRepo := repository.NewNotificationRepository(db.Pool)
+	performanceRepo := repository.NewPerformanceRepository(db.Pool)
+	filterRepo := repository.NewFilterRepository(db.Pool)
+	rollbackRepo := repository.NewRollbackRepository(db.Pool)
+	conflictRepo := repository.NewConflictRepository(db.Pool)
 	handler := handlers.New(repo, syncConfigRepo, fetcher, syncManager)
 	realtimeSyncHandler := handlers.NewRealtimeSyncHandlers(realtimeSyncRepo, repo)
 	syncControlHandler := handlers.NewSyncControlHandlers(repo, realtimeSyncRepo, syncManager)
 	sourceHandler := handlers.NewSourceHandler(sourceRepo)
 	translationHandler := handlers.NewTranslationHandler(translationRepo, cfg.LibreTranslate.URL)
+	notificationHandler := handlers.NewNotificationHandler(notificationRepo)
+	performanceHandler := handlers.NewPerformanceHandler(performanceRepo)
+	filterHandler := handlers.NewFilterHandler(filterRepo)
+	conflictHandler := handlers.NewConflictHandler(conflictRepo)
+
+	// Create selective sync for rollback handler
+	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher, syncManager)
+	rollbackHandler := handlers.NewRollbackHandler(repo, fetcher, rollbackRepo, selectiveSync)
+
+	// Create sync notifier for notification events
+	_ = internalSync.NewNotifier(notificationRepo)
+
+	// Create scheduler (optional background execution)
+	scheduler := internalSync.NewScheduler(scheduleRepo, syncConfigRepo, nil)
+
+	// Start scheduler if ENABLE_SCHEDULER env var is set
+	if os.Getenv("ENABLE_SCHEDULER") == "true" {
+		scheduler.Start()
+		defer scheduler.Stop()
+
+		// Recalculate next run times for all active schedules on startup
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if count, err := scheduler.RecalculateNextRuns(ctx); err != nil {
+				log.Printf("Warning: Failed to recalculate schedule next runs: %v", err)
+			} else {
+				log.Printf("Recalculated next run times for %d schedules", count)
+			}
+		}()
+	}
+
+	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, notificationHandler, performanceHandler, filterHandler, rollbackHandler, conflictHandler)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -127,7 +167,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, notificationHandler *handlers.NotificationHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, rollbackHandler *handlers.RollbackHandler, conflictHandler *handlers.ConflictHandler) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -275,6 +315,56 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/sync/{id}/cancel", syncControlHandler.CancelRunningSync).Methods("POST", "OPTIONS")
 	api.HandleFunc("/sync/{id}/status", syncControlHandler.UpdateSyncStatus).Methods("PATCH", "OPTIONS")
 
+	// Sync schedules (specific routes before parameterized routes)
+	api.HandleFunc("/sync/schedules", scheduleHandler.ListSchedules).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/schedules", scheduleHandler.CreateSchedule).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/schedules/{id}", scheduleHandler.GetSchedule).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/schedules/{id}", scheduleHandler.UpdateSchedule).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/sync/schedules/{id}", scheduleHandler.DeleteSchedule).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/sync/schedules/{id}/toggle", scheduleHandler.ToggleSchedule).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/schedules/{id}/runs", scheduleHandler.ListScheduleRuns).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/schedules/{id}/test", scheduleHandler.TestSchedule).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/scheduler/status", scheduleHandler.GetSchedulerStatus).Methods("GET", "OPTIONS")
+
+	// Sync entity filters (specific routes before parameterized routes)
+	api.HandleFunc("/sync/filters", filterHandler.ListFilters).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/filters", filterHandler.CreateFilter).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/filters/entity-types", filterHandler.GetEntityTypes).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/filters/active", filterHandler.GetActiveFilters).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/filters/by-entity/{entity_type}", filterHandler.GetFiltersByEntityType).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/filters/{id}", filterHandler.GetFilter).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/filters/{id}", filterHandler.UpdateFilter).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/sync/filters/{id}", filterHandler.DeleteFilter).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/sync/filters/{id}/toggle", filterHandler.ToggleFilter).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/filters/{id}/test", filterHandler.TestFilter).Methods("POST", "OPTIONS")
+
+	// Sync analytics (performance metrics)
+	api.HandleFunc("/sync/analytics", performanceHandler.GetAnalyticsSummary).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/analytics/metrics", performanceHandler.GetMetrics).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/analytics/metrics/{sync_log_id}", performanceHandler.GetMetricsBySyncLog).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/analytics/trends", performanceHandler.GetTrends).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/analytics/bottlenecks", performanceHandler.GetBottlenecks).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/analytics/by-step", performanceHandler.GetStatsByStep).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/analytics/throughput", performanceHandler.GetThroughputStats).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/analytics/aggregations", performanceHandler.GetAggregations).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/analytics/export", performanceHandler.ExportMetrics).Methods("GET", "OPTIONS")
+
+	// Sync rollback endpoints
+	api.HandleFunc("/sync/rollbacks", rollbackHandler.ListRollbacks).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/rollback", rollbackHandler.ExecuteRollback).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/rollback/preview/{sync_log_id}", rollbackHandler.GetRollbackPreview).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/rollback/{rollback_id}", rollbackHandler.GetRollbackStatus).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/selective-enhanced", rollbackHandler.ExecuteSelectiveSyncWithSnapshot).Methods("POST", "OPTIONS")
+
+	// Sync conflict resolution endpoints
+	api.HandleFunc("/sync/conflicts", conflictHandler.ListConflicts).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/conflicts/resolve", conflictHandler.ResolveConflicts).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/conflicts/{id}", conflictHandler.GetConflict).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/conflict-rules", conflictHandler.ListConflictRules).Methods("GET", "OPTIONS")
+	api.HandleFunc("/sync/conflict-rules", conflictHandler.CreateConflictRule).Methods("POST", "OPTIONS")
+	api.HandleFunc("/sync/conflict-rules/{id}", conflictHandler.UpdateConflictRule).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/sync/conflict-rules/{id}", conflictHandler.DeleteConflictRule).Methods("DELETE", "OPTIONS")
+
 	// CRUD operations - Products (bulk routes must come before {id} routes)
 	api.HandleFunc("/products", handler.CreateProduct).Methods("POST", "OPTIONS")
 	api.HandleFunc("/products/bulk", handler.BulkUpdateProducts).Methods("PATCH", "OPTIONS")
@@ -289,7 +379,6 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/upload/image/{uuid}", handler.DeleteUploadedImage).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/upload/video/{uuid}", handler.DeleteUploadedVideo).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/upload/info/{type}/{uuid}", handler.GetUploadedFile).Methods("GET", "OPTIONS")
-
 
 	// Export endpoints
 	api.HandleFunc("/export/products", handler.ExportProducts).Methods("GET", "OPTIONS")
@@ -312,6 +401,17 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/translate/jobs/{id}/logs", translationHandler.GetTranslationLogs).Methods("GET", "OPTIONS")
 	api.HandleFunc("/translate/stats", translationHandler.GetTranslationStats).Methods("GET", "OPTIONS")
 	api.HandleFunc("/translate/stream/{id}", translationHandler.StreamTranslationProgress).Methods("GET", "OPTIONS")
+
+	// Notification endpoints (specific routes before parameterized routes)
+	api.HandleFunc("/notifications", notificationHandler.ListNotifications).Methods("GET", "OPTIONS")
+	api.HandleFunc("/notifications/count", notificationHandler.GetUnreadCount).Methods("GET", "OPTIONS")
+	api.HandleFunc("/notifications/stats", notificationHandler.GetNotificationStats).Methods("GET", "OPTIONS")
+	api.HandleFunc("/notifications/stream", notificationHandler.StreamNotifications).Methods("GET", "OPTIONS")
+	api.HandleFunc("/notifications/read-all", notificationHandler.MarkAllAsRead).Methods("POST", "OPTIONS")
+	api.HandleFunc("/notifications/read", notificationHandler.DeleteAllRead).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/notifications/{id}", notificationHandler.GetNotification).Methods("GET", "OPTIONS")
+	api.HandleFunc("/notifications/{id}/read", notificationHandler.MarkAsRead).Methods("POST", "OPTIONS")
+	api.HandleFunc("/notifications/{id}", notificationHandler.DeleteNotification).Methods("DELETE", "OPTIONS")
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

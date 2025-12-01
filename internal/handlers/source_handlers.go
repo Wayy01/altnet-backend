@@ -197,4 +197,3 @@ func (h *SourceHandler) DeleteSource(w http.ResponseWriter, r *http.Request) {
 		"message": "Source deleted successfully",
 	})
 }
-

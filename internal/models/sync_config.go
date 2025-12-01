@@ -10,13 +10,13 @@ import (
 type SyncStep string
 
 const (
-	SyncStepBrands         SyncStep = "brands"
-	SyncStepCategories     SyncStep = "categories"
-	SyncStepProducts       SyncStep = "products"
-	SyncStepProperties     SyncStep = "properties"
-	SyncStepPrices         SyncStep = "prices"
-	SyncStepStock          SyncStep = "stock"
-	SyncStepExchangeRates  SyncStep = "exchange_rates"
+	SyncStepBrands        SyncStep = "brands"
+	SyncStepCategories    SyncStep = "categories"
+	SyncStepProducts      SyncStep = "products"
+	SyncStepProperties    SyncStep = "properties"
+	SyncStepPrices        SyncStep = "prices"
+	SyncStepStock         SyncStep = "stock"
+	SyncStepExchangeRates SyncStep = "exchange_rates"
 )
 
 // AllSyncSteps returns all available sync steps in execution order
@@ -34,23 +34,23 @@ func AllSyncSteps() []SyncStep {
 
 // FieldConfig defines which fields to sync for a specific step
 type FieldConfig struct {
-	IncludeFields    []string `json:"include_fields,omitempty"`    // If set, only these fields are synced
-	ExcludeFields    []string `json:"exclude_fields,omitempty"`    // Fields to exclude from sync
-	UpdateNullValues bool     `json:"update_null_values"`          // Whether to update fields with null values
+	IncludeFields    []string `json:"include_fields,omitempty"` // If set, only these fields are synced
+	ExcludeFields    []string `json:"exclude_fields,omitempty"` // Fields to exclude from sync
+	UpdateNullValues bool     `json:"update_null_values"`       // Whether to update fields with null values
 }
 
 // SyncConfiguration represents a reusable sync configuration
 type SyncConfiguration struct {
-	ID            uuid.UUID              `json:"id"`
-	Name          string                 `json:"name"`
-	Description   string                 `json:"description,omitempty"`
-	SelectedSteps []SyncStep             `json:"selected_steps"`
+	ID            uuid.UUID                `json:"id"`
+	Name          string                   `json:"name"`
+	Description   string                   `json:"description,omitempty"`
+	SelectedSteps []SyncStep               `json:"selected_steps"`
 	FieldConfig   map[SyncStep]FieldConfig `json:"field_config"`
-	IsTemplate    bool                   `json:"is_template"`
-	CreatedBy     string                 `json:"created_by,omitempty"`
-	CreatedAt     time.Time              `json:"created_at"`
-	UpdatedAt     time.Time              `json:"updated_at"`
-	LastUsedAt    *time.Time             `json:"last_used_at,omitempty"`
+	IsTemplate    bool                     `json:"is_template"`
+	CreatedBy     string                   `json:"created_by,omitempty"`
+	CreatedAt     time.Time                `json:"created_at"`
+	UpdatedAt     time.Time                `json:"updated_at"`
+	LastUsedAt    *time.Time               `json:"last_used_at,omitempty"`
 }
 
 // SyncChange represents a single change made during a selective sync
@@ -58,10 +58,10 @@ type SyncChange struct {
 	ID            uuid.UUID     `json:"id"`
 	SyncLogID     uuid.UUID     `json:"sync_log_id"`
 	Step          SyncStep      `json:"step"`
-	EntityType    string        `json:"entity_type"`    // 'brand', 'category', 'product', etc.
+	EntityType    string        `json:"entity_type"` // 'brand', 'category', 'product', etc.
 	EntityID      uuid.UUID     `json:"entity_id"`
 	EntityUltraID string        `json:"entity_ultra_id,omitempty"`
-	ChangeType    string        `json:"change_type"`    // 'insert', 'update', 'skip'
+	ChangeType    string        `json:"change_type"` // 'insert', 'update', 'skip'
 	FieldsChanged []FieldChange `json:"fields_changed"`
 	CreatedAt     time.Time     `json:"created_at"`
 }
@@ -76,13 +76,13 @@ type FieldChange struct {
 
 // SelectiveSyncRequest represents a request to perform a selective sync
 type SelectiveSyncRequest struct {
-	SyncLogID        *uuid.UUID               `json:"sync_log_id,omitempty"` // Pre-set sync ID for async execution
-	SelectedSteps    []SyncStep               `json:"selected_steps"`
-	FieldConfig      map[SyncStep]FieldConfig `json:"field_config,omitempty"`
-	SaveAsTemplate   bool                     `json:"save_as_template,omitempty"`
-	TemplateName     string                   `json:"template_name,omitempty"`
-	TemplateDesc     string                   `json:"template_description,omitempty"`
-	ConfigurationID  *uuid.UUID               `json:"configuration_id,omitempty"`
+	SyncLogID       *uuid.UUID               `json:"sync_log_id,omitempty"` // Pre-set sync ID for async execution
+	SelectedSteps   []SyncStep               `json:"selected_steps"`
+	FieldConfig     map[SyncStep]FieldConfig `json:"field_config,omitempty"`
+	SaveAsTemplate  bool                     `json:"save_as_template,omitempty"`
+	TemplateName    string                   `json:"template_name,omitempty"`
+	TemplateDesc    string                   `json:"template_description,omitempty"`
+	ConfigurationID *uuid.UUID               `json:"configuration_id,omitempty"`
 }
 
 // SyncFieldSchema defines the schema for syncable fields
@@ -95,27 +95,27 @@ type SyncFieldSchema struct {
 type FieldDefinition struct {
 	Name         string   `json:"name"`
 	DisplayName  string   `json:"display_name"`
-	Type         string   `json:"type"`          // 'string', 'number', 'boolean', 'jsonb', 'uuid'
+	Type         string   `json:"type"` // 'string', 'number', 'boolean', 'jsonb', 'uuid'
 	Required     bool     `json:"required"`
 	Description  string   `json:"description,omitempty"`
-	Group        string   `json:"group,omitempty"`    // For grouping fields in UI
-	DefaultSync  bool     `json:"default_sync"`       // Whether field is synced by default
+	Group        string   `json:"group,omitempty"`        // For grouping fields in UI
+	DefaultSync  bool     `json:"default_sync"`           // Whether field is synced by default
 	Dependencies []string `json:"dependencies,omitempty"` // Fields that must be included with this one
 }
 
 // SyncChangeSummary provides aggregated statistics for a sync
 type SyncChangeSummary struct {
-	SyncLogID     uuid.UUID          `json:"sync_log_id"`
-	TotalChanges  int                `json:"total_changes"`
-	ByStep        map[SyncStep]int   `json:"by_step"`
-	ByChangeType  map[string]int     `json:"by_change_type"`
-	ByEntityType  map[string]int     `json:"by_entity_type"`
+	SyncLogID         uuid.UUID         `json:"sync_log_id"`
+	TotalChanges      int               `json:"total_changes"`
+	ByStep            map[SyncStep]int  `json:"by_step"`
+	ByChangeType      map[string]int    `json:"by_change_type"`
+	ByEntityType      map[string]int    `json:"by_entity_type"`
 	MostChangedFields []FieldChangeStat `json:"most_changed_fields"`
 }
 
 // FieldChangeStat tracks how many times a field was changed
 type FieldChangeStat struct {
-	FieldName   string `json:"field_name"`
-	ChangeCount int    `json:"change_count"`
+	FieldName   string   `json:"field_name"`
+	ChangeCount int      `json:"change_count"`
 	Step        SyncStep `json:"step"`
 }

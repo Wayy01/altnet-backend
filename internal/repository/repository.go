@@ -154,9 +154,9 @@ type EnhancedCreateProductRequest struct {
 	SourceID   *uuid.UUID `json:"source_id"` // Product source (Ultra, Manual, etc.)
 
 	// Media
-	MainImageURL *string      `json:"main_image_url"`
-	Images       []ImageData  `json:"images"`
-	Videos       []VideoData  `json:"videos"`
+	MainImageURL *string       `json:"main_image_url"`
+	Images       []ImageData   `json:"images"`
+	Videos       []VideoData   `json:"videos"`
 	Barcodes     []BarcodeData `json:"barcodes"`
 
 	// Pricing (product-level)
@@ -2385,16 +2385,16 @@ func (r *Repository) GetProductProperties(ctx context.Context, productID uuid.UU
 
 // PropertyFilter represents filtering options for properties
 type PropertyFilter struct {
-	ProductID       *uuid.UUID
-	PropertyName    string
-	GroupName       string
-	ValueType       string
-	IsFilter        *bool
-	IsModification  *bool
-	Search          string
-	CreatedAfter    *time.Time
-	CreatedBefore   *time.Time
-	SortBy          string // "name_asc", "name_desc", "sort_order_asc", "created_desc", "updated_desc"
+	ProductID      *uuid.UUID
+	PropertyName   string
+	GroupName      string
+	ValueType      string
+	IsFilter       *bool
+	IsModification *bool
+	Search         string
+	CreatedAfter   *time.Time
+	CreatedBefore  *time.Time
+	SortBy         string // "name_asc", "name_desc", "sort_order_asc", "created_desc", "updated_desc"
 }
 
 // ListProperties returns a paginated list of properties with optional filtering
@@ -2905,12 +2905,12 @@ func (r *Repository) BulkDeleteProperties(ctx context.Context, ids []uuid.UUID) 
 
 // PropertyStats represents property statistics
 type PropertyStats struct {
-	TotalProperties        int                `json:"total_properties"`
-	UniqueGroups           int                `json:"unique_groups"`
-	FilterProperties       int                `json:"filter_properties"`
-	ModificationProperties int                `json:"modification_properties"`
-	ByType                 map[string]int     `json:"by_type"`
-	UniqueProductsCount    int                `json:"unique_products_count"`
+	TotalProperties        int            `json:"total_properties"`
+	UniqueGroups           int            `json:"unique_groups"`
+	FilterProperties       int            `json:"filter_properties"`
+	ModificationProperties int            `json:"modification_properties"`
+	ByType                 map[string]int `json:"by_type"`
+	UniqueProductsCount    int            `json:"unique_products_count"`
 }
 
 // GetPropertyStats returns statistics about properties
@@ -3736,15 +3736,15 @@ func (r *Repository) GetPriceSummary(ctx context.Context) (map[string]interface{
 	}
 
 	return map[string]interface{}{
-		"min_price":      minPrice,
-		"max_price":      maxPrice,
-		"avg_price":      avgPrice,
-		"median_price":   medianPrice,
+		"min_price":    minPrice,
+		"max_price":    maxPrice,
+		"avg_price":    avgPrice,
+		"median_price": medianPrice,
 		"distribution": map[string]int{
-			"under_100":      under100,
-			"100_to_500":     range100_500,
-			"500_to_1000":    range500_1000,
-			"over_1000":      over1000,
+			"under_100":   under100,
+			"100_to_500":  range100_500,
+			"500_to_1000": range500_1000,
+			"over_1000":   over1000,
 		},
 	}, nil
 }

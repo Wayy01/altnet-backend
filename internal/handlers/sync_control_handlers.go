@@ -17,9 +17,9 @@ import (
 
 // SyncControlHandlers handles sync cancellation and status management endpoints
 type SyncControlHandlers struct {
-	repo             *repository.Repository
-	realtimeRepo     *repository.RealtimeSyncRepository
-	syncManager      *internalSync.SyncManager // Manages active syncs for cancellation
+	repo         *repository.Repository
+	realtimeRepo *repository.RealtimeSyncRepository
+	syncManager  *internalSync.SyncManager // Manages active syncs for cancellation
 }
 
 // NewSyncControlHandlers creates a new sync control handlers instance
@@ -153,11 +153,11 @@ type UpdateSyncStatusRequest struct {
 
 // UpdateSyncStatusResponse represents a status update response
 type UpdateSyncStatusResponse struct {
-	SyncLogID   uuid.UUID `json:"sync_log_id"`
-	OldStatus   string    `json:"old_status"`
-	NewStatus   string    `json:"new_status"`
-	Message     string    `json:"message"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	SyncLogID uuid.UUID `json:"sync_log_id"`
+	OldStatus string    `json:"old_status"`
+	NewStatus string    `json:"new_status"`
+	Message   string    `json:"message"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // UpdateSyncStatus manually updates the status of a sync log
@@ -257,11 +257,11 @@ func (h *SyncControlHandlers) UpdateSyncStatus(w http.ResponseWriter, r *http.Re
 	h.logEntry(ctx, syncLogID, &stepNumber, models.LogLevelWarn,
 		fmt.Sprintf("Manual status update: %s → %s. Reason: %s", oldStatus, req.Status, req.Reason),
 		map[string]interface{}{
-			"old_status":   oldStatus,
-			"new_status":   req.Status,
-			"reason":       req.Reason,
-			"updated_by":   "user",
-			"updated_via":  "api",
+			"old_status":      oldStatus,
+			"new_status":      req.Status,
+			"reason":          req.Reason,
+			"updated_by":      "user",
+			"updated_via":     "api",
 			"manual_override": true,
 		})
 

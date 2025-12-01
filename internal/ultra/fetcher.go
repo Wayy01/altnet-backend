@@ -182,18 +182,18 @@ type ProductListXML struct {
 }
 
 type ProductXML struct {
-	UUID              string `xml:"UUID"`
-	Name              string `xml:"name"`
-	Code              string `xml:"code"`
-	Article           string `xml:"article"`
-	Parent            string `xml:"parent"`
-	NomenclatureType  string `xml:"nomenclatureType"`
-	Brand             string `xml:"brand"`
-	Active            string `xml:"active"`
-	Service           string `xml:"service"`
-	Warranty          string `xml:"warranty"`
-	MainImage         string `xml:"mainImage"`
-	Object            string `xml:"object"`
+	UUID               string `xml:"UUID"`
+	Name               string `xml:"name"`
+	Code               string `xml:"code"`
+	Article            string `xml:"article"`
+	Parent             string `xml:"parent"`
+	NomenclatureType   string `xml:"nomenclatureType"`
+	Brand              string `xml:"brand"`
+	Active             string `xml:"active"`
+	Service            string `xml:"service"`
+	Warranty           string `xml:"warranty"`
+	MainImage          string `xml:"mainImage"`
+	Object             string `xml:"object"`
 	CharacteristicList []struct {
 		UUID      string `xml:"UUID"`
 		Name      string `xml:"name"`

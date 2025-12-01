@@ -117,30 +117,30 @@ type Category struct {
 
 // Product represents a product in the database
 type Product struct {
-	ID              uuid.UUID  `json:"id"`
-	UltraID         string     `json:"ultra_id"`
-	Code            *string    `json:"code"`
-	Article         *string    `json:"article"`
-	Name            string     `json:"name"`
-	Slug            string     `json:"slug"`
-	Description     *string    `json:"description"`
-	BrandID    *uuid.UUID `json:"brand_id"`
-	CategoryID *uuid.UUID `json:"category_id"`
-	ParentID   *uuid.UUID `json:"parent_id"`
-	SourceID   *uuid.UUID `json:"source_id"`
-	MainImageURL    *string    `json:"main_image_url"`
-	Images          JSONBArray `json:"images"`
-	Videos          JSONBArray `json:"videos"`
-	Warranty        *string    `json:"warranty"`
-	Barcodes        JSONBArray `json:"barcodes"`
-	PriceMin        *float64   `json:"price_min"`
-	PriceMax        *float64   `json:"price_max"`
-	TotalStock      int        `json:"total_stock"`
-	IsInStock       bool       `json:"is_in_stock"`
-	IsActive        bool       `json:"is_active"`
-	IsService       bool       `json:"is_service"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID           uuid.UUID  `json:"id"`
+	UltraID      string     `json:"ultra_id"`
+	Code         *string    `json:"code"`
+	Article      *string    `json:"article"`
+	Name         string     `json:"name"`
+	Slug         string     `json:"slug"`
+	Description  *string    `json:"description"`
+	BrandID      *uuid.UUID `json:"brand_id"`
+	CategoryID   *uuid.UUID `json:"category_id"`
+	ParentID     *uuid.UUID `json:"parent_id"`
+	SourceID     *uuid.UUID `json:"source_id"`
+	MainImageURL *string    `json:"main_image_url"`
+	Images       JSONBArray `json:"images"`
+	Videos       JSONBArray `json:"videos"`
+	Warranty     *string    `json:"warranty"`
+	Barcodes     JSONBArray `json:"barcodes"`
+	PriceMin     *float64   `json:"price_min"`
+	PriceMax     *float64   `json:"price_max"`
+	TotalStock   int        `json:"total_stock"`
+	IsInStock    bool       `json:"is_in_stock"`
+	IsActive     bool       `json:"is_active"`
+	IsService    bool       `json:"is_service"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 
 	// Multi-currency prices
 	Prices   JSONBArray `json:"prices"`
@@ -170,20 +170,20 @@ type Product struct {
 
 // Property represents a product property/specification
 type Property struct {
-	ID             uuid.UUID  `json:"id"`
-	ProductID      uuid.UUID  `json:"product_id"`
-	PropertyUUID   *string    `json:"property_uuid"`
-	PropertyName   string     `json:"property_name"`
-	PropertyCode   *string    `json:"property_code"`
-	Value          *string    `json:"value"`
-	ValueType      *string    `json:"value_type"`
-	GroupUUID      *string    `json:"group_uuid"`
-	GroupName      *string    `json:"group_name"`
-	SortOrder      int        `json:"sort_order"`
-	IsFilter       bool       `json:"is_filter"`
-	IsModification bool       `json:"is_modification"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID             uuid.UUID `json:"id"`
+	ProductID      uuid.UUID `json:"product_id"`
+	PropertyUUID   *string   `json:"property_uuid"`
+	PropertyName   string    `json:"property_name"`
+	PropertyCode   *string   `json:"property_code"`
+	Value          *string   `json:"value"`
+	ValueType      *string   `json:"value_type"`
+	GroupUUID      *string   `json:"group_uuid"`
+	GroupName      *string   `json:"group_name"`
+	SortOrder      int       `json:"sort_order"`
+	IsFilter       bool      `json:"is_filter"`
+	IsModification bool      `json:"is_modification"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 
 	// Translation fields (for group_name and property_name, NOT values)
 	PropertyNameRU *string `json:"property_name_ru,omitempty"`
@@ -307,12 +307,12 @@ type ExchangeRate struct {
 // ProductWithDetails includes related brand and category info
 type ProductWithDetails struct {
 	*Product
-	Brand           *Brand           `json:"brand,omitempty"`
-	Category        *Category        `json:"category,omitempty"`
-	Properties      []*Property      `json:"properties,omitempty"`
+	Brand           *Brand            `json:"brand,omitempty"`
+	Category        *Category         `json:"category,omitempty"`
+	Properties      []*Property       `json:"properties,omitempty"`
 	Characteristics []*Characteristic `json:"characteristics,omitempty"`
-	VariantCount    int              `json:"variant_count"`
-	PropertyCount   int              `json:"property_count"`
+	VariantCount    int               `json:"variant_count"`
+	PropertyCount   int               `json:"property_count"`
 }
 
 // CategoryWithChildren includes child categories
@@ -436,9 +436,9 @@ type ProductSource struct {
 // TranslationJob represents a translation job for tracking progress
 type TranslationJob struct {
 	ID              uuid.UUID  `json:"id"`
-	EntityType      string     `json:"entity_type"`      // 'products', 'categories', 'properties'
-	TargetLanguage  string     `json:"target_language"`  // 'ru', 'ro'
-	Status          string     `json:"status"`           // 'pending', 'running', 'completed', 'failed', 'cancelled'
+	EntityType      string     `json:"entity_type"`     // 'products', 'categories', 'properties'
+	TargetLanguage  string     `json:"target_language"` // 'ru', 'ro'
+	Status          string     `json:"status"`          // 'pending', 'running', 'completed', 'failed', 'cancelled'
 	TotalItems      int        `json:"total_items"`
 	TranslatedItems int        `json:"translated_items"`
 	FailedItems     int        `json:"failed_items"`
@@ -468,8 +468,8 @@ type TranslationLog struct {
 
 // TranslationStats represents translation statistics for the dashboard
 type TranslationStats struct {
-	Products   TranslationEntityStats `json:"products"`
-	Categories TranslationEntityStats `json:"categories"`
+	Products   TranslationEntityStats   `json:"products"`
+	Categories TranslationEntityStats   `json:"categories"`
 	Properties TranslationPropertyStats `json:"properties"`
 }
 
@@ -484,16 +484,16 @@ type TranslationEntityStats struct {
 
 // TranslationPropertyStats represents translation stats for properties
 type TranslationPropertyStats struct {
-	TotalGroups         int `json:"total_groups"`
-	TotalNames          int `json:"total_names"`
-	GroupsTranslatedRU  int `json:"groups_translated_ru"`
-	GroupsTranslatedRO  int `json:"groups_translated_ro"`
-	NamesTranslatedRU   int `json:"names_translated_ru"`
-	NamesTranslatedRO   int `json:"names_translated_ro"`
-	GroupsPendingRU     int `json:"groups_pending_ru"`
-	GroupsPendingRO     int `json:"groups_pending_ro"`
-	NamesPendingRU      int `json:"names_pending_ru"`
-	NamesPendingRO      int `json:"names_pending_ro"`
+	TotalGroups        int `json:"total_groups"`
+	TotalNames         int `json:"total_names"`
+	GroupsTranslatedRU int `json:"groups_translated_ru"`
+	GroupsTranslatedRO int `json:"groups_translated_ro"`
+	NamesTranslatedRU  int `json:"names_translated_ru"`
+	NamesTranslatedRO  int `json:"names_translated_ro"`
+	GroupsPendingRU    int `json:"groups_pending_ru"`
+	GroupsPendingRO    int `json:"groups_pending_ro"`
+	NamesPendingRU     int `json:"names_pending_ru"`
+	NamesPendingRO     int `json:"names_pending_ro"`
 }
 
 // TranslationJobStatus constants
