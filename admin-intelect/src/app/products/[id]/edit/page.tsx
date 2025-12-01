@@ -190,10 +190,11 @@ export default function EditProductPage({ params }: EditProductPageProps) {
     if (!productId) return;
 
     let cancelled = false;
+    const currentProductId = productId; // Capture for closure to satisfy TypeScript
 
     async function loadProduct() {
       try {
-        const product = await api.getProduct(productId);
+        const product = await api.getProduct(currentProductId);
 
         if (cancelled) return;
 

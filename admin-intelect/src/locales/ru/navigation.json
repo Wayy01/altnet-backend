@@ -63,7 +63,11 @@
     "changes": "Изменения",
     "jobs": "Задачи",
     "monitor": "Монитор",
-    "groups": "Группы"
+    "groups": "Группы",
+    "notifications": "Уведомления",
+    "rollbacks": "Откаты",
+    "conflicts": "Конфликты",
+    "schedules": "Расписания"
   },
   "sidebar": {
     "language": "Язык",

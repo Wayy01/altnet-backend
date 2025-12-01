@@ -63,7 +63,11 @@
     "changes": "Modificari",
     "jobs": "Sarcini",
     "monitor": "Monitor",
-    "groups": "Grupuri"
+    "groups": "Grupuri",
+    "notifications": "Notificari",
+    "rollbacks": "Anulari",
+    "conflicts": "Conflicte",
+    "schedules": "Programari"
   },
   "sidebar": {
     "language": "Limba",

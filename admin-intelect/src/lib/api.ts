@@ -74,6 +74,67 @@ import {
   ListChangesResponse,
   ExecuteSyncResponse,
 } from "@/types/selective-sync";
+import {
+  SyncRollback,
+  RollbackPreview,
+  RollbackRequest,
+  ListRollbacksResponse,
+  RollbackPreviewResponse,
+  RollbackStatusResponse,
+  ExecuteRollbackResponse,
+} from "@/types/rollback";
+import {
+  SyncConflict,
+  SyncConflictRule,
+  ConflictResolutionRequest,
+  CreateConflictRuleRequest,
+  UpdateConflictRuleRequest,
+  ListConflictsResponse,
+  GetConflictResponse,
+  ResolveConflictsResponse,
+  ListConflictRulesResponse,
+  ConflictRuleResponse,
+} from "@/types/conflict";
+import {
+  SyncSchedule,
+  SyncScheduleRun,
+  ScheduleCreateRequest,
+  ScheduleUpdateRequest,
+  SchedulesListResponse,
+  ScheduleRunsListResponse,
+  ScheduleToggleResponse,
+  ScheduleTestResponse,
+} from "@/types/schedule";
+import {
+  SyncNotification,
+  NotificationListResponse,
+  NotificationCountResponse,
+  NotificationStats,
+} from "@/types/notification";
+import {
+  AnalyticsSummary,
+  AnalyticsSummaryResponse,
+  PerformanceMetric,
+  PerformanceMetricsResponse,
+  PerformanceMetricsParams,
+  PerformanceTrend,
+  PerformanceTrendsResponse,
+  BottleneckInfo,
+  BottlenecksResponse,
+  StepAverages,
+  StepAveragesResponse,
+  ThroughputStats,
+  ThroughputStatsResponse,
+} from "@/types/analytics";
+import {
+  SyncEntityFilter,
+  FilterCreateRequest,
+  FilterUpdateRequest,
+  FilterTestResult,
+  FiltersListResponse,
+  EntityTypesResponse,
+  FilterToggleResponse,
+} from "@/types/filter";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -138,7 +199,7 @@ class ApiClient {
     const response = await this.fetch<{ data: Product[]; meta: { total: number } }>(
       `/api/v1/products?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   async getProduct(id: string): Promise<ProductDetail> {
@@ -265,7 +326,7 @@ class ApiClient {
     const response = await this.fetch<{ data: Product[]; meta: { total: number } }>(
       `/api/v1/search?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   // Brands
@@ -293,7 +354,7 @@ class ApiClient {
     const response = await this.fetch<{ data: Brand[]; meta: { total: number } }>(
       `/api/v1/brands?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   async getBrand(id: string): Promise<Brand> {
@@ -336,7 +397,7 @@ class ApiClient {
     const response = await this.fetch<{ data: BrandProduct[]; meta: { total: number } }>(
       `/api/v1/brands/${id}/products?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   async bulkUpdateBrandProducts(
@@ -383,7 +444,7 @@ class ApiClient {
     const response = await this.fetch<{ data: Category[]; meta: { total: number } }>(
       `/api/v1/categories?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   async getCategory(id: string): Promise<Category> {
@@ -426,7 +487,7 @@ class ApiClient {
     const response = await this.fetch<{ data: CategoryProduct[]; meta: { total: number } }>(
       `/api/v1/categories/${id}/products?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   async getCategorySubcategories(id: string): Promise<Category[]> {
@@ -634,7 +695,7 @@ class ApiClient {
     const response = await this.fetch<{ data: SyncLog[]; meta: { total: number } }>(
       `/api/v1/sync/logs?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   async getLatestSyncLog(): Promise<SyncLog | null> {
@@ -917,7 +978,7 @@ class ApiClient {
     const response = await this.fetch<{ data: SyncConfiguration[]; meta: { total: number } }>(
       `/api/v1/sync/configs?${params.toString()}`
     );
-    return { configurations: response.data, total: response.meta.total };
+    return { configurations: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   async getSyncConfiguration(id: string): Promise<SyncConfiguration> {
@@ -937,7 +998,7 @@ class ApiClient {
     const response = await this.fetch<{ data: SyncChange[]; meta: { total: number } }>(
       `/api/v1/sync/${syncLogId}/changes?${params.toString()}`
     );
-    return { changes: response.data, total: response.meta.total };
+    return { changes: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   async getSyncChangeSummary(syncLogId: string): Promise<SyncChangeSummary> {
@@ -1588,7 +1649,7 @@ class ApiClient {
     const response = await this.fetch<TranslationJobsResponse>(
       `/api/v1/translate/jobs?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   /**
@@ -1623,7 +1684,7 @@ class ApiClient {
     const response = await this.fetch<TranslationLogsResponse>(
       `/api/v1/translate/jobs/${jobId}/logs?${params.toString()}`
     );
-    return { data: response.data, total: response.meta.total };
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
   }
 
   /**
@@ -1646,6 +1707,631 @@ class ApiClient {
    */
   getTranslationStreamUrl(jobId: string): string {
     return `${this.baseUrl}/api/v1/translate/stream/${jobId}`;
+  }
+
+  // ============================================================================
+  // ROLLBACK METHODS
+  // ============================================================================
+
+  /**
+   * Get a preview of what will be rolled back for a specific sync log
+   */
+  async getRollbackPreview(syncLogId: string): Promise<RollbackPreview> {
+    const response = await this.fetch<RollbackPreviewResponse>(
+      `/api/v1/sync/rollback/preview/${syncLogId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Execute a rollback operation
+   */
+  async executeRollback(request: RollbackRequest): Promise<SyncRollback> {
+    const response = await this.fetch<ExecuteRollbackResponse>(
+      `/api/v1/sync/rollback`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * List all rollback operations with pagination
+   */
+  async listRollbacks(
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: SyncRollback[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<ListRollbacksResponse>(
+      `/api/v1/sync/rollbacks?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get the status of a specific rollback operation
+   */
+  async getRollbackStatus(rollbackId: string): Promise<SyncRollback> {
+    const response = await this.fetch<RollbackStatusResponse>(
+      `/api/v1/sync/rollback/${rollbackId}`
+    );
+    return response.data;
+  }
+
+  // ============================================================================
+  // CONFLICT RESOLUTION METHODS
+  // ============================================================================
+
+  /**
+   * List conflicts with optional filters
+   */
+  async listConflicts(
+    limit = 50,
+    offset = 0,
+    filters?: {
+      sync_log_id?: string;
+      unresolved?: boolean;
+    }
+  ): Promise<{ data: SyncConflict[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    if (filters?.sync_log_id) {
+      params.append("sync_log_id", filters.sync_log_id);
+    }
+    if (filters?.unresolved) {
+      params.append("unresolved", "true");
+    }
+
+    const response = await this.fetch<ListConflictsResponse>(
+      `/api/v1/sync/conflicts?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single conflict by ID
+   */
+  async getConflict(conflictId: string): Promise<SyncConflict> {
+    const response = await this.fetch<GetConflictResponse>(
+      `/api/v1/sync/conflicts/${conflictId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Resolve one or more conflicts
+   */
+  async resolveConflicts(request: ConflictResolutionRequest): Promise<ResolveConflictsResponse> {
+    return this.fetch<ResolveConflictsResponse>(
+      `/api/v1/sync/conflicts/resolve`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    );
+  }
+
+  /**
+   * List conflict rules
+   */
+  async listConflictRules(activeOnly = false): Promise<SyncConflictRule[]> {
+    const params = new URLSearchParams();
+    if (activeOnly) {
+      params.append("active", "true");
+    }
+
+    const response = await this.fetch<ListConflictRulesResponse>(
+      `/api/v1/sync/conflict-rules?${params.toString()}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Create a new conflict rule
+   */
+  async createConflictRule(rule: CreateConflictRuleRequest): Promise<SyncConflictRule> {
+    const response = await this.fetch<ConflictRuleResponse>(
+      `/api/v1/sync/conflict-rules`,
+      {
+        method: "POST",
+        body: JSON.stringify(rule),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing conflict rule
+   */
+  async updateConflictRule(ruleId: string, updates: UpdateConflictRuleRequest): Promise<SyncConflictRule> {
+    const response = await this.fetch<ConflictRuleResponse>(
+      `/api/v1/sync/conflict-rules/${ruleId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(updates),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a conflict rule
+   */
+  async deleteConflictRule(ruleId: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/sync/conflict-rules/${ruleId}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Get count of unresolved conflicts
+   */
+  async getUnresolvedConflictsCount(): Promise<number> {
+    const response = await this.listConflicts(1, 0, { unresolved: true });
+    return response.total;
+  }
+
+  // ============================================================================
+  // SYNC SCHEDULE METHODS
+  // ============================================================================
+
+  /**
+   * List all sync schedules
+   */
+  async listSchedules(
+    limit = 50,
+    offset = 0
+  ): Promise<{ schedules: SyncSchedule[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<SchedulesListResponse & { data?: SyncSchedule[] }>(
+      `/api/v1/sync/schedules?${params.toString()}`
+    );
+    // Backend returns 'data', normalize to 'schedules'
+    return { schedules: response.data ?? response.schedules ?? [], total: response.total ?? 0 };
+  }
+
+  /**
+   * Get a single schedule by ID
+   */
+  async getSchedule(id: string): Promise<SyncSchedule> {
+    const response = await this.fetch<{ data: SyncSchedule }>(
+      `/api/v1/sync/schedules/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Create a new schedule
+   */
+  async createSchedule(request: ScheduleCreateRequest): Promise<SyncSchedule> {
+    const response = await this.fetch<{ data: SyncSchedule }>(
+      `/api/v1/sync/schedules`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing schedule
+   */
+  async updateSchedule(id: string, request: ScheduleUpdateRequest): Promise<SyncSchedule> {
+    const response = await this.fetch<{ data: SyncSchedule }>(
+      `/api/v1/sync/schedules/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(request),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a schedule
+   */
+  async deleteSchedule(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/sync/schedules/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Toggle schedule active status (enable/disable)
+   */
+  async toggleSchedule(id: string): Promise<SyncSchedule> {
+    const response = await this.fetch<ScheduleToggleResponse>(
+      `/api/v1/sync/schedules/${id}/toggle`,
+      {
+        method: "POST",
+      }
+    );
+    return response.schedule;
+  }
+
+  /**
+   * List runs for a specific schedule
+   */
+  async listScheduleRuns(
+    scheduleId: string,
+    limit = 50,
+    offset = 0
+  ): Promise<{ runs: SyncScheduleRun[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<ScheduleRunsListResponse>(
+      `/api/v1/sync/schedules/${scheduleId}/runs?${params.toString()}`
+    );
+    return { runs: response.runs, total: response.total };
+  }
+
+  /**
+   * Test/dry run a schedule to validate configuration
+   */
+  async testSchedule(id: string): Promise<ScheduleTestResponse> {
+    return this.fetch<ScheduleTestResponse>(
+      `/api/v1/sync/schedules/${id}/test`,
+      {
+        method: "POST",
+      }
+    );
+  }
+
+  // ============================================================================
+  // NOTIFICATION METHODS
+  // ============================================================================
+
+  /**
+   * List notifications with optional filters
+   */
+  async listNotifications(
+    limit = 50,
+    offset = 0,
+    unreadOnly = false
+  ): Promise<NotificationListResponse> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (unreadOnly) {
+      params.append("unread_only", "true");
+    }
+
+    return this.fetch<NotificationListResponse>(
+      `/api/v1/notifications?${params.toString()}`
+    );
+  }
+
+  /**
+   * Get a single notification by ID
+   */
+  async getNotification(id: string): Promise<SyncNotification> {
+    const response = await this.fetch<{ data: SyncNotification }>(
+      `/api/v1/notifications/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get unread notification count
+   */
+  async getNotificationCount(): Promise<NotificationCountResponse> {
+    return this.fetch<NotificationCountResponse>(
+      `/api/v1/notifications/count`
+    );
+  }
+
+  /**
+   * Get notification statistics
+   */
+  async getNotificationStats(): Promise<NotificationStats> {
+    const response = await this.fetch<{ data: NotificationStats }>(
+      `/api/v1/notifications/stats`
+    );
+    return response.data;
+  }
+
+  /**
+   * Mark a notification as read
+   */
+  async markNotificationAsRead(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/notifications/${id}/read`,
+      {
+        method: "POST",
+      }
+    );
+  }
+
+  /**
+   * Mark all notifications as read
+   */
+  async markAllNotificationsAsRead(): Promise<{ count: number }> {
+    return this.fetch<{ count: number }>(
+      `/api/v1/notifications/read-all`,
+      {
+        method: "POST",
+      }
+    );
+  }
+
+  /**
+   * Delete a notification
+   */
+  async deleteNotification(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/notifications/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Delete all read notifications
+   */
+  async deleteAllReadNotifications(): Promise<{ count: number }> {
+    return this.fetch<{ count: number }>(
+      `/api/v1/notifications/read`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Create an EventSource for real-time notification updates
+   */
+  createNotificationStream(): EventSource {
+    return new EventSource(`${this.baseUrl}/api/v1/notifications/stream`);
+  }
+
+  /**
+   * Get the SSE URL for notification stream
+   */
+  getNotificationStreamUrl(): string {
+    return `${this.baseUrl}/api/v1/notifications/stream`;
+  }
+
+  // ============================================================================
+  // SYNC ANALYTICS METHODS
+  // ============================================================================
+
+  /**
+   * Get analytics summary (overall stats)
+   */
+  async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+    const response = await this.fetch<AnalyticsSummaryResponse>(
+      `/api/v1/sync/analytics`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get performance metrics with optional filtering
+   */
+  async getPerformanceMetrics(
+    params?: PerformanceMetricsParams
+  ): Promise<{ data: PerformanceMetric[]; total: number }> {
+    const searchParams = new URLSearchParams();
+
+    if (params?.start_date) searchParams.append("start_date", params.start_date);
+    if (params?.end_date) searchParams.append("end_date", params.end_date);
+    if (params?.step) searchParams.append("step", params.step);
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.offset) searchParams.append("offset", params.offset.toString());
+
+    const response = await this.fetch<PerformanceMetricsResponse>(
+      `/api/v1/sync/analytics/metrics?${searchParams.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get performance metrics for a specific sync log
+   */
+  async getPerformanceMetricsForSync(syncLogId: string): Promise<PerformanceMetric[]> {
+    const response = await this.fetch<{ data: PerformanceMetric[] }>(
+      `/api/v1/sync/analytics/metrics/${syncLogId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get performance trends over time (for charts)
+   */
+  async getPerformanceTrends(days: number = 30): Promise<PerformanceTrend[]> {
+    const response = await this.fetch<PerformanceTrendsResponse>(
+      `/api/v1/sync/analytics/trends?days=${days}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get slowest operations (bottlenecks)
+   */
+  async getBottlenecks(limit: number = 10): Promise<BottleneckInfo[]> {
+    const response = await this.fetch<BottlenecksResponse>(
+      `/api/v1/sync/analytics/bottlenecks?limit=${limit}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get statistics grouped by sync step
+   */
+  async getStepAverages(days: number = 30): Promise<StepAverages[]> {
+    const response = await this.fetch<StepAveragesResponse>(
+      `/api/v1/sync/analytics/by-step?days=${days}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get throughput statistics
+   */
+  async getThroughputStats(days: number = 30): Promise<ThroughputStats> {
+    const response = await this.fetch<ThroughputStatsResponse>(
+      `/api/v1/sync/analytics/throughput?days=${days}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Export analytics data as CSV
+   */
+  async exportAnalytics(startDate?: string, endDate?: string): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
+
+    const url = `${this.baseUrl}/api/v1/sync/analytics/export?${params.toString()}`;
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`);
+    }
+
+    return response.blob();
+  }
+
+  /**
+   * Get the URL for analytics CSV export
+   */
+  getAnalyticsExportUrl(startDate?: string, endDate?: string): string {
+    const params = new URLSearchParams();
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
+    return `${this.baseUrl}/api/v1/sync/analytics/export?${params.toString()}`;
+  }
+
+  // ============================================================================
+  // SYNC ENTITY FILTER METHODS
+  // ============================================================================
+
+  /**
+   * List all sync entity filters with pagination
+   */
+  async listFilters(
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: SyncEntityFilter[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<FiltersListResponse>(
+      `/api/v1/sync/filters?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single filter by ID
+   */
+  async getFilter(id: string): Promise<SyncEntityFilter> {
+    const response = await this.fetch<{ data: SyncEntityFilter }>(
+      `/api/v1/sync/filters/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Create a new sync entity filter
+   */
+  async createFilter(request: FilterCreateRequest): Promise<SyncEntityFilter> {
+    const response = await this.fetch<{ data: SyncEntityFilter }>(
+      `/api/v1/sync/filters`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing filter
+   */
+  async updateFilter(id: string, request: FilterUpdateRequest): Promise<SyncEntityFilter> {
+    const response = await this.fetch<{ data: SyncEntityFilter }>(
+      `/api/v1/sync/filters/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(request),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a filter
+   */
+  async deleteFilter(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/sync/filters/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Toggle filter active status (enable/disable)
+   */
+  async toggleFilter(id: string): Promise<SyncEntityFilter> {
+    const response = await this.fetch<FilterToggleResponse>(
+      `/api/v1/sync/filters/${id}/toggle`,
+      {
+        method: "POST",
+      }
+    );
+    return response.filter;
+  }
+
+  /**
+   * Test a filter and get matching count
+   */
+  async testFilter(id: string): Promise<FilterTestResult> {
+    const response = await this.fetch<{ data: FilterTestResult }>(
+      `/api/v1/sync/filters/${id}/test`,
+      {
+        method: "POST",
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get available entity types and their field configurations
+   */
+  async getEntityTypes(): Promise<EntityTypesResponse> {
+    return this.fetch<EntityTypesResponse>(
+      `/api/v1/sync/filters/entity-types`
+    );
   }
 }
 

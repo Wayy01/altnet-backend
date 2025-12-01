@@ -63,7 +63,11 @@
     "changes": "Changes",
     "jobs": "Jobs",
     "monitor": "Monitor",
-    "groups": "Groups"
+    "groups": "Groups",
+    "notifications": "Notifications",
+    "rollbacks": "Rollbacks",
+    "conflicts": "Conflicts",
+    "schedules": "Schedules"
   },
   "sidebar": {
     "language": "Language",
