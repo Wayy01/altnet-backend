@@ -468,6 +468,30 @@ CREATE TABLE translation_logs (
 
 CREATE INDEX idx_translation_logs_job ON translation_logs(job_id);
 
+-- 22. PROPERTY GROUP TRANSLATIONS (Translation lookup table)
+CREATE TABLE property_group_translations (
+    group_name TEXT PRIMARY KEY NOT NULL,
+    name_ru TEXT,
+    name_ro TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_property_group_translations_untranslated_ru ON property_group_translations(group_name) WHERE name_ru IS NULL;
+CREATE INDEX idx_property_group_translations_untranslated_ro ON property_group_translations(group_name) WHERE name_ro IS NULL;
+
+-- 23. PROPERTY NAME TRANSLATIONS (Translation lookup table)
+CREATE TABLE property_name_translations (
+    property_name TEXT PRIMARY KEY NOT NULL,
+    name_ru TEXT,
+    name_ro TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_property_name_translations_untranslated_ru ON property_name_translations(property_name) WHERE name_ru IS NULL;
+CREATE INDEX idx_property_name_translations_untranslated_ro ON property_name_translations(property_name) WHERE name_ro IS NULL;
+
 -- ============================================================================
 -- VIEWS
 -- ============================================================================

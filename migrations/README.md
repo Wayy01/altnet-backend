@@ -36,6 +36,12 @@ This removes:
 
 The `archive/` folder contains the original incremental migrations for reference. These should not be run on new installations - use `000_initial_schema.sql` instead.
 
+**Archived migrations include cleanup migration `015_cleanup_removed_features.sql` which removes:**
+- Rollback tables (`sync_snapshots`, `sync_snapshot_data`, `sync_rollbacks`)
+- Conflict tables (`sync_conflicts`, `sync_conflict_rules`)
+- Notification table (`sync_notifications`)
+- Legacy tables (`data_sources`, `entity_matches`, `sync_runs`)
+
 ## Schema Overview
 
 ### Core Tables
