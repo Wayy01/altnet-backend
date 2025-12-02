@@ -27,8 +27,8 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16.5rem"
-const SIDEBAR_WIDTH_MOBILE = "18rem"
+const SIDEBAR_WIDTH = "17rem"
+const SIDEBAR_WIDTH_MOBILE = "17rem"
 const SIDEBAR_WIDTH_ICON = "3.5rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
@@ -386,7 +386,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-content"
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-1 overflow-auto scroll-smooth scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden scroll-smooth scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent group-data-[collapsible=icon]:overflow-hidden",
         className
       )}
       {...props}
@@ -656,7 +656,7 @@ function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
       className={cn(
-        "border-sidebar-border/50 mx-3.5 flex min-w-0 translate-x-px flex-col gap-0.5 border-l px-2.5 py-1 ml-4",
+        "border-sidebar-border/50 ml-4 mr-1 flex min-w-0 translate-x-px flex-col gap-0.5 border-l px-2 py-1",
         "group-data-[collapsible=icon]:hidden",
         className
       )}

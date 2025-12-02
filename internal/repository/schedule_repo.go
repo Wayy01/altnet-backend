@@ -48,23 +48,18 @@ func (r *ScheduleRepository) CreateSchedule(ctx context.Context, req *models.Sch
 		return nil, fmt.Errorf("marshal retry config: %w", err)
 	}
 
-	notificationConfigJSON, err := json.Marshal(req.NotificationConfig)
-	if err != nil {
-		return nil, fmt.Errorf("marshal notification config: %w", err)
-	}
-
 	query := `
 		INSERT INTO sync_schedules (
 			name, description, configuration_id, cron_expression, timezone,
-			is_active, retry_config, notification_config, created_by
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			is_active, retry_config, created_by
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, name, COALESCE(description, ''), configuration_id, cron_expression, timezone,
 			is_active, last_run_at, next_run_at, COALESCE(last_status, ''), run_count, failure_count,
-			retry_config, notification_config, COALESCE(created_by, ''), created_at, updated_at
+			retry_config, COALESCE(created_by, ''), created_at, updated_at
 	`
 
 	schedule := &models.SyncSchedule{}
-	var retryConfigBytes, notificationConfigBytes []byte
+	var retryConfigBytes []byte
 
 	err = r.pool.QueryRow(ctx, query,
 		req.Name,
@@ -74,7 +69,6 @@ func (r *ScheduleRepository) CreateSchedule(ctx context.Context, req *models.Sch
 		timezone,
 		true, // is_active defaults to true for new schedules
 		retryConfigJSON,
-		notificationConfigJSON,
 		req.CreatedBy,
 	).Scan(
 		&schedule.ID,
@@ -90,7 +84,6 @@ func (r *ScheduleRepository) CreateSchedule(ctx context.Context, req *models.Sch
 		&schedule.RunCount,
 		&schedule.FailureCount,
 		&retryConfigBytes,
-		&notificationConfigBytes,
 		&schedule.CreatedBy,
 		&schedule.CreatedAt,
 		&schedule.UpdatedAt,
@@ -105,11 +98,6 @@ func (r *ScheduleRepository) CreateSchedule(ctx context.Context, req *models.Sch
 			return nil, fmt.Errorf("unmarshal retry config: %w", err)
 		}
 	}
-	if len(notificationConfigBytes) > 0 {
-		if err := json.Unmarshal(notificationConfigBytes, &schedule.NotificationConfig); err != nil {
-			return nil, fmt.Errorf("unmarshal notification config: %w", err)
-		}
-	}
 
 	return schedule, nil
 }
@@ -119,13 +107,13 @@ func (r *ScheduleRepository) GetSchedule(ctx context.Context, id uuid.UUID) (*mo
 	query := `
 		SELECT id, name, COALESCE(description, ''), configuration_id, cron_expression, timezone,
 			is_active, last_run_at, next_run_at, COALESCE(last_status, ''), run_count, failure_count,
-			retry_config, notification_config, COALESCE(created_by, ''), created_at, updated_at
+			retry_config, COALESCE(created_by, ''), created_at, updated_at
 		FROM sync_schedules
 		WHERE id = $1
 	`
 
 	schedule := &models.SyncSchedule{}
-	var retryConfigBytes, notificationConfigBytes []byte
+	var retryConfigBytes []byte
 
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&schedule.ID,
@@ -141,7 +129,6 @@ func (r *ScheduleRepository) GetSchedule(ctx context.Context, id uuid.UUID) (*mo
 		&schedule.RunCount,
 		&schedule.FailureCount,
 		&retryConfigBytes,
-		&notificationConfigBytes,
 		&schedule.CreatedBy,
 		&schedule.CreatedAt,
 		&schedule.UpdatedAt,
@@ -159,11 +146,6 @@ func (r *ScheduleRepository) GetSchedule(ctx context.Context, id uuid.UUID) (*mo
 			return nil, fmt.Errorf("unmarshal retry config: %w", err)
 		}
 	}
-	if len(notificationConfigBytes) > 0 {
-		if err := json.Unmarshal(notificationConfigBytes, &schedule.NotificationConfig); err != nil {
-			return nil, fmt.Errorf("unmarshal notification config: %w", err)
-		}
-	}
 
 	return schedule, nil
 }
@@ -173,7 +155,7 @@ func (r *ScheduleRepository) GetScheduleWithConfig(ctx context.Context, id uuid.
 	query := `
 		SELECT s.id, s.name, COALESCE(s.description, ''), s.configuration_id, s.cron_expression, s.timezone,
 			s.is_active, s.last_run_at, s.next_run_at, COALESCE(s.last_status, ''), s.run_count, s.failure_count,
-			s.retry_config, s.notification_config, COALESCE(s.created_by, ''), s.created_at, s.updated_at,
+			s.retry_config, COALESCE(s.created_by, ''), s.created_at, s.updated_at,
 			c.name as config_name, c.selected_steps
 		FROM sync_schedules s
 		LEFT JOIN sync_configurations c ON s.configuration_id = c.id
@@ -181,7 +163,7 @@ func (r *ScheduleRepository) GetScheduleWithConfig(ctx context.Context, id uuid.
 	`
 
 	schedule := &models.SyncSchedule{}
-	var retryConfigBytes, notificationConfigBytes []byte
+	var retryConfigBytes []byte
 	var configName *string
 	var selectedSteps []string
 
@@ -199,7 +181,6 @@ func (r *ScheduleRepository) GetScheduleWithConfig(ctx context.Context, id uuid.
 		&schedule.RunCount,
 		&schedule.FailureCount,
 		&retryConfigBytes,
-		&notificationConfigBytes,
 		&schedule.CreatedBy,
 		&schedule.CreatedAt,
 		&schedule.UpdatedAt,
@@ -217,11 +198,6 @@ func (r *ScheduleRepository) GetScheduleWithConfig(ctx context.Context, id uuid.
 	if len(retryConfigBytes) > 0 {
 		if err := json.Unmarshal(retryConfigBytes, &schedule.RetryConfig); err != nil {
 			return nil, fmt.Errorf("unmarshal retry config: %w", err)
-		}
-	}
-	if len(notificationConfigBytes) > 0 {
-		if err := json.Unmarshal(notificationConfigBytes, &schedule.NotificationConfig); err != nil {
-			return nil, fmt.Errorf("unmarshal notification config: %w", err)
 		}
 	}
 
@@ -249,7 +225,7 @@ func (r *ScheduleRepository) ListSchedules(ctx context.Context, limit, offset in
 	query := `
 		SELECT s.id, s.name, COALESCE(s.description, ''), s.configuration_id, s.cron_expression, s.timezone,
 			s.is_active, s.last_run_at, s.next_run_at, COALESCE(s.last_status, ''), s.run_count, s.failure_count,
-			s.retry_config, s.notification_config, COALESCE(s.created_by, ''), s.created_at, s.updated_at,
+			s.retry_config, COALESCE(s.created_by, ''), s.created_at, s.updated_at,
 			c.name as config_name, c.selected_steps
 		FROM sync_schedules s
 		LEFT JOIN sync_configurations c ON s.configuration_id = c.id
@@ -266,7 +242,7 @@ func (r *ScheduleRepository) ListSchedules(ctx context.Context, limit, offset in
 	schedules := make([]*models.ScheduleWithConfig, 0)
 	for rows.Next() {
 		schedule := &models.SyncSchedule{}
-		var retryConfigBytes, notificationConfigBytes []byte
+		var retryConfigBytes []byte
 		var configName *string
 		var selectedSteps []string
 
@@ -284,7 +260,6 @@ func (r *ScheduleRepository) ListSchedules(ctx context.Context, limit, offset in
 			&schedule.RunCount,
 			&schedule.FailureCount,
 			&retryConfigBytes,
-			&notificationConfigBytes,
 			&schedule.CreatedBy,
 			&schedule.CreatedAt,
 			&schedule.UpdatedAt,
@@ -299,11 +274,6 @@ func (r *ScheduleRepository) ListSchedules(ctx context.Context, limit, offset in
 		if len(retryConfigBytes) > 0 {
 			if err := json.Unmarshal(retryConfigBytes, &schedule.RetryConfig); err != nil {
 				return nil, 0, fmt.Errorf("unmarshal retry config: %w", err)
-			}
-		}
-		if len(notificationConfigBytes) > 0 {
-			if err := json.Unmarshal(notificationConfigBytes, &schedule.NotificationConfig); err != nil {
-				return nil, 0, fmt.Errorf("unmarshal notification config: %w", err)
 			}
 		}
 
@@ -383,25 +353,15 @@ func (r *ScheduleRepository) UpdateSchedule(ctx context.Context, id uuid.UUID, r
 		argNum++
 	}
 
-	if req.NotificationConfig != nil {
-		notificationConfigJSON, err := json.Marshal(req.NotificationConfig)
-		if err != nil {
-			return nil, fmt.Errorf("marshal notification config: %w", err)
-		}
-		query += fmt.Sprintf(", notification_config = $%d", argNum)
-		args = append(args, notificationConfigJSON)
-		argNum++
-	}
-
 	query += fmt.Sprintf(" WHERE id = $%d", argNum)
 	args = append(args, id)
 
 	query += ` RETURNING id, name, COALESCE(description, ''), configuration_id, cron_expression, timezone,
 		is_active, last_run_at, next_run_at, COALESCE(last_status, ''), run_count, failure_count,
-		retry_config, notification_config, COALESCE(created_by, ''), created_at, updated_at`
+		retry_config, COALESCE(created_by, ''), created_at, updated_at`
 
 	schedule := &models.SyncSchedule{}
-	var retryConfigBytes, notificationConfigBytes []byte
+	var retryConfigBytes []byte
 
 	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&schedule.ID,
@@ -417,7 +377,6 @@ func (r *ScheduleRepository) UpdateSchedule(ctx context.Context, id uuid.UUID, r
 		&schedule.RunCount,
 		&schedule.FailureCount,
 		&retryConfigBytes,
-		&notificationConfigBytes,
 		&schedule.CreatedBy,
 		&schedule.CreatedAt,
 		&schedule.UpdatedAt,
@@ -433,11 +392,6 @@ func (r *ScheduleRepository) UpdateSchedule(ctx context.Context, id uuid.UUID, r
 	if len(retryConfigBytes) > 0 {
 		if err := json.Unmarshal(retryConfigBytes, &schedule.RetryConfig); err != nil {
 			return nil, fmt.Errorf("unmarshal retry config: %w", err)
-		}
-	}
-	if len(notificationConfigBytes) > 0 {
-		if err := json.Unmarshal(notificationConfigBytes, &schedule.NotificationConfig); err != nil {
-			return nil, fmt.Errorf("unmarshal notification config: %w", err)
 		}
 	}
 
@@ -468,11 +422,11 @@ func (r *ScheduleRepository) ToggleSchedule(ctx context.Context, id uuid.UUID) (
 		WHERE id = $1
 		RETURNING id, name, COALESCE(description, ''), configuration_id, cron_expression, timezone,
 			is_active, last_run_at, next_run_at, COALESCE(last_status, ''), run_count, failure_count,
-			retry_config, notification_config, COALESCE(created_by, ''), created_at, updated_at
+			retry_config, COALESCE(created_by, ''), created_at, updated_at
 	`
 
 	schedule := &models.SyncSchedule{}
-	var retryConfigBytes, notificationConfigBytes []byte
+	var retryConfigBytes []byte
 
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&schedule.ID,
@@ -488,7 +442,6 @@ func (r *ScheduleRepository) ToggleSchedule(ctx context.Context, id uuid.UUID) (
 		&schedule.RunCount,
 		&schedule.FailureCount,
 		&retryConfigBytes,
-		&notificationConfigBytes,
 		&schedule.CreatedBy,
 		&schedule.CreatedAt,
 		&schedule.UpdatedAt,
@@ -504,11 +457,6 @@ func (r *ScheduleRepository) ToggleSchedule(ctx context.Context, id uuid.UUID) (
 	if len(retryConfigBytes) > 0 {
 		if err := json.Unmarshal(retryConfigBytes, &schedule.RetryConfig); err != nil {
 			return nil, fmt.Errorf("unmarshal retry config: %w", err)
-		}
-	}
-	if len(notificationConfigBytes) > 0 {
-		if err := json.Unmarshal(notificationConfigBytes, &schedule.NotificationConfig); err != nil {
-			return nil, fmt.Errorf("unmarshal notification config: %w", err)
 		}
 	}
 
@@ -651,7 +599,7 @@ func (r *ScheduleRepository) GetDueSchedules(ctx context.Context) ([]*models.Syn
 	query := `
 		SELECT id, name, COALESCE(description, ''), configuration_id, cron_expression, timezone,
 			is_active, last_run_at, next_run_at, COALESCE(last_status, ''), run_count, failure_count,
-			retry_config, notification_config, COALESCE(created_by, ''), created_at, updated_at
+			retry_config, COALESCE(created_by, ''), created_at, updated_at
 		FROM sync_schedules
 		WHERE is_active = true AND next_run_at IS NOT NULL AND next_run_at <= NOW()
 		ORDER BY next_run_at ASC
@@ -666,7 +614,7 @@ func (r *ScheduleRepository) GetDueSchedules(ctx context.Context) ([]*models.Syn
 	schedules := make([]*models.SyncSchedule, 0)
 	for rows.Next() {
 		schedule := &models.SyncSchedule{}
-		var retryConfigBytes, notificationConfigBytes []byte
+		var retryConfigBytes []byte
 
 		err := rows.Scan(
 			&schedule.ID,
@@ -682,7 +630,6 @@ func (r *ScheduleRepository) GetDueSchedules(ctx context.Context) ([]*models.Syn
 			&schedule.RunCount,
 			&schedule.FailureCount,
 			&retryConfigBytes,
-			&notificationConfigBytes,
 			&schedule.CreatedBy,
 			&schedule.CreatedAt,
 			&schedule.UpdatedAt,
@@ -695,11 +642,6 @@ func (r *ScheduleRepository) GetDueSchedules(ctx context.Context) ([]*models.Syn
 		if len(retryConfigBytes) > 0 {
 			if err := json.Unmarshal(retryConfigBytes, &schedule.RetryConfig); err != nil {
 				return nil, fmt.Errorf("unmarshal retry config: %w", err)
-			}
-		}
-		if len(notificationConfigBytes) > 0 {
-			if err := json.Unmarshal(notificationConfigBytes, &schedule.NotificationConfig); err != nil {
-				return nil, fmt.Errorf("unmarshal notification config: %w", err)
 			}
 		}
 

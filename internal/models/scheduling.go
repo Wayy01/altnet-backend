@@ -25,9 +25,8 @@ type SyncSchedule struct {
 	LastStatus         string                 `json:"last_status,omitempty"`
 	RunCount           int                    `json:"run_count"`
 	FailureCount       int                    `json:"failure_count"`
-	RetryConfig        map[string]interface{} `json:"retry_config"`
-	NotificationConfig map[string]interface{} `json:"notification_config"`
-	CreatedBy          string                 `json:"created_by,omitempty"`
+	RetryConfig map[string]interface{} `json:"retry_config"`
+	CreatedBy   string                 `json:"created_by,omitempty"`
 	CreatedAt          time.Time              `json:"created_at"`
 	UpdatedAt          time.Time              `json:"updated_at"`
 }
@@ -52,9 +51,8 @@ type ScheduleCreateRequest struct {
 	ConfigurationID    *uuid.UUID             `json:"configuration_id,omitempty"`
 	CronExpression     string                 `json:"cron_expression"`
 	Timezone           string                 `json:"timezone"`
-	RetryConfig        map[string]interface{} `json:"retry_config,omitempty"`
-	NotificationConfig map[string]interface{} `json:"notification_config,omitempty"`
-	CreatedBy          string                 `json:"created_by,omitempty"`
+	RetryConfig map[string]interface{} `json:"retry_config,omitempty"`
+	CreatedBy   string                 `json:"created_by,omitempty"`
 }
 
 // ScheduleUpdateRequest represents a request to update a schedule
@@ -64,9 +62,8 @@ type ScheduleUpdateRequest struct {
 	ConfigurationID    *uuid.UUID             `json:"configuration_id,omitempty"`
 	CronExpression     *string                `json:"cron_expression,omitempty"`
 	Timezone           *string                `json:"timezone,omitempty"`
-	IsActive           *bool                  `json:"is_active,omitempty"`
-	RetryConfig        map[string]interface{} `json:"retry_config,omitempty"`
-	NotificationConfig map[string]interface{} `json:"notification_config,omitempty"`
+	IsActive    *bool                  `json:"is_active,omitempty"`
+	RetryConfig map[string]interface{} `json:"retry_config,omitempty"`
 }
 
 // ScheduleWithConfig represents a schedule with its associated configuration
