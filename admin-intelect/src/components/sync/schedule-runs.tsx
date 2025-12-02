@@ -82,13 +82,20 @@ export function ScheduleRuns({
     }
   };
 
+  const calculateDuration = (startedAt: string | null, completedAt: string | null): number | null => {
+    if (!startedAt || !completedAt) return null;
+    const start = new Date(startedAt).getTime();
+    const end = new Date(completedAt).getTime();
+    return Math.round((end - start) / 1000); // Convert to seconds
+  };
+
   const formatDuration = (seconds: number | null): string => {
     if (seconds === null) return "-";
     if (seconds < 60) return `${seconds}s`;
     if (seconds < 3600) {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
-      return `${mins}m ${secs}s`;
+      return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
     }
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -144,7 +151,7 @@ export function ScheduleRuns({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] rounded-xl">
+      <DialogContent className="!max-w-5xl w-[95vw] max-h-[85vh] rounded-xl overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <History className="h-5 w-5" />
@@ -187,79 +194,88 @@ export function ScheduleRuns({
             </div>
           ) : (
             <>
-              <ScrollArea className="h-[400px] rounded-lg border">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur-sm">
-                    <TableRow>
-                      <TableHead className="font-semibold">
-                        {t('schedule.runs.status')}
-                      </TableHead>
-                      <TableHead className="font-semibold">
-                        {t('schedule.runs.triggeredAt')}
-                      </TableHead>
-                      <TableHead className="font-semibold">
-                        {t('schedule.runs.startedAt')}
-                      </TableHead>
-                      <TableHead className="font-semibold">
-                        {t('schedule.runs.duration')}
-                      </TableHead>
-                      <TableHead className="font-semibold">
-                        {t('schedule.runs.attempt')}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {runs.map((run) => (
-                      <TableRow
-                        key={run.id}
-                        className="transition-colors hover:bg-muted/50"
-                      >
-                        <TableCell>{getStatusBadge(run.status)}</TableCell>
-                        <TableCell className="text-sm">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
-                            {formatDateTime(run.triggered_at)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {run.started_at ? (
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Calendar className="h-3.5 w-3.5" />
-                              {formatDateTime(run.started_at)}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {run.duration_seconds !== null ? (
-                            <div className="flex items-center gap-1.5">
-                              <Timer className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="font-mono text-sm">
-                                {formatDuration(run.duration_seconds)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {run.retry_attempt > 0 ? (
-                            <Badge variant="outline" className="gap-1">
-                              <RefreshCw className="h-3 w-3" />
-                              {t('schedule.runs.retry')} #{run.retry_attempt}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">
-                              {t('schedule.runs.initial')}
-                            </span>
-                          )}
-                        </TableCell>
+              <div className="rounded-lg border overflow-hidden">
+                <ScrollArea className="h-[400px]">
+                  <Table className="w-full table-fixed">
+                    <TableHeader className="sticky top-0 bg-muted/50 backdrop-blur-sm">
+                      <TableRow>
+                        <TableHead className="font-semibold w-[100px]">
+                          {t('schedule.runs.status')}
+                        </TableHead>
+                        <TableHead className="font-semibold">
+                          {t('schedule.runs.startedAt')}
+                        </TableHead>
+                        <TableHead className="font-semibold">
+                          {t('schedule.runs.completedAt')}
+                        </TableHead>
+                        <TableHead className="font-semibold w-[80px]">
+                          {t('schedule.runs.duration')}
+                        </TableHead>
+                        <TableHead className="font-semibold w-[80px]">
+                          {t('schedule.runs.attempt')}
+                        </TableHead>
                       </TableRow>
-                    ))}
+                    </TableHeader>
+                  <TableBody>
+                    {runs.map((run) => {
+                      const duration = calculateDuration(run.started_at, run.completed_at);
+                      return (
+                        <TableRow
+                          key={run.id}
+                          className="transition-colors hover:bg-muted/50"
+                        >
+                          <TableCell>{getStatusBadge(run.status)}</TableCell>
+                          <TableCell className="text-sm">
+                            {run.started_at ? (
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <Clock className="h-3.5 w-3.5" />
+                                {formatDateTime(run.started_at)}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {run.completed_at ? (
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {formatDateTime(run.completed_at)}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {duration !== null ? (
+                              <div className="flex items-center gap-1.5">
+                                <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="font-mono text-sm">
+                                  {formatDuration(duration)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {run.retry_attempt > 0 ? (
+                              <Badge variant="outline" className="gap-1">
+                                <RefreshCw className="h-3 w-3" />
+                                {t('schedule.runs.retry')} #{run.retry_attempt}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">
+                                {t('schedule.runs.initial')}
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
-                </Table>
-              </ScrollArea>
+                  </Table>
+                </ScrollArea>
+              </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -310,7 +326,7 @@ export function ScheduleRuns({
                           className="text-sm text-muted-foreground"
                         >
                           <span className="font-mono text-xs">
-                            {new Date(run.triggered_at).toLocaleString()}:
+                            {run.started_at ? new Date(run.started_at).toLocaleString() : "N/A"}:
                           </span>{" "}
                           <span className="text-destructive">
                             {run.error_message}

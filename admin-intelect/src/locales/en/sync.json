@@ -561,6 +561,7 @@
       "status": "Status",
       "triggeredAt": "Triggered At",
       "startedAt": "Started At",
+      "completedAt": "Completed At",
       "duration": "Duration",
       "attempt": "Attempt",
       "retry": "Retry",

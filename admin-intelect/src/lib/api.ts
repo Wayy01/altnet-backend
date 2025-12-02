@@ -1782,10 +1782,10 @@ class ApiClient {
     params.append("limit", limit.toString());
     params.append("offset", offset.toString());
 
-    const response = await this.fetch<ScheduleRunsListResponse>(
+    const response = await this.fetch<{ data: SyncScheduleRun[]; total: number }>(
       `/api/v1/sync/schedules/${scheduleId}/runs?${params.toString()}`
     );
-    return { runs: response.runs, total: response.total };
+    return { runs: response.data, total: response.total };
   }
 
   /**

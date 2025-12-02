@@ -615,6 +615,7 @@
       "status": "Stare",
       "triggeredAt": "Declansat La",
       "startedAt": "Inceput La",
+      "completedAt": "Finalizat La",
       "duration": "Durata",
       "attempt": "Incercare",
       "retry": "Reincercare",
