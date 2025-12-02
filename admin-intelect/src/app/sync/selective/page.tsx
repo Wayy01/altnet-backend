@@ -316,12 +316,18 @@ export default function SelectiveSyncPage() {
   // Filter steps to only show selected ones
   const displaySteps = useMemo(() => {
     if (!progress || !progress.steps) return [];
+    // Use local selectedSteps state for filtering (more reliable than backend response)
+    if (selectedSteps.length > 0) {
+      const selectedSet = new Set(selectedSteps.map(s => s.toLowerCase()));
+      return progress.steps.filter(step => selectedSet.has(step.name.toLowerCase()));
+    }
+    // Fallback to backend's selected_steps if local state is empty
     if (progress.selected_steps && progress.selected_steps.length > 0) {
-      const selectedSet = new Set(progress.selected_steps);
-      return progress.steps.filter(step => selectedSet.has(step.name));
+      const selectedSet = new Set(progress.selected_steps.map(s => s.toLowerCase()));
+      return progress.steps.filter(step => selectedSet.has(step.name.toLowerCase()));
     }
     return progress.steps;
-  }, [progress]);
+  }, [progress, selectedSteps]);
 
   // Grouping trigger button component
   const GroupingTriggerButton = () => {
@@ -452,26 +458,26 @@ export default function SelectiveSyncPage() {
           `}
           style={{ transitionDelay: "100ms" }}
         >
-          <Card className="rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/5 to-blue-500/10 shadow-lg shadow-blue-500/10 overflow-hidden">
+          <Card className="rounded-xl border border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg shadow-primary/10 overflow-hidden">
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" />
-                    <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/20">
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                    <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                    <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 ring-2 ring-primary/30 shadow-lg shadow-primary/20">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold">Sync in Progress</CardTitle>
                     <CardDescription className="mt-0.5 text-sm">
-                      {progress.steps.find((s) => s.status === "running")?.name || "Processing..."}
+                      {displaySteps.find((s) => s.status === "running")?.name || "Processing..."}
                     </CardDescription>
                   </div>
                 </div>
                 <Badge
                   variant="outline"
-                  className="text-blue-600 border-blue-500/30 bg-blue-500/10 font-semibold px-3 py-1.5 shadow-sm tabular-nums"
+                  className="text-primary border-primary/30 bg-primary/10 font-semibold px-3 py-1.5 shadow-sm tabular-nums"
                 >
                   <Zap className="h-3.5 w-3.5 mr-1.5" />
                   {Math.round(overallProgress)}%
@@ -484,11 +490,11 @@ export default function SelectiveSyncPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground font-medium">Overall Progress</span>
-                  <span className="font-semibold tabular-nums text-blue-600">
+                  <span className="font-semibold tabular-nums text-primary">
                     {Math.round(overallProgress)}%
                   </span>
                 </div>
-                <Progress value={overallProgress} className="h-2.5 bg-blue-500/10 shadow-inner" />
+                <Progress value={overallProgress} className="h-2.5 bg-primary/10 shadow-inner" />
               </div>
 
               {/* Step-by-Step Progress */}
@@ -511,7 +517,7 @@ export default function SelectiveSyncPage() {
                           group rounded-xl border p-4 transition-all duration-300
                           ${stepsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
                           ${step.status === "running"
-                            ? "border-blue-500/30 bg-blue-500/5 shadow-md"
+                            ? "border-primary/30 bg-primary/5 shadow-md"
                             : step.status === "completed"
                               ? "border-primary/20 bg-primary/5"
                               : step.status === "failed"
@@ -529,7 +535,7 @@ export default function SelectiveSyncPage() {
                               step.status === "completed"
                                 ? "bg-primary/10 text-primary shadow-primary/20"
                                 : step.status === "running"
-                                  ? "bg-blue-500/10 text-blue-600 shadow-blue-500/20"
+                                  ? "bg-primary/10 text-primary shadow-primary/20"
                                   : step.status === "failed"
                                     ? "bg-destructive/10 text-destructive shadow-destructive/20"
                                     : "bg-muted text-muted-foreground"
@@ -543,7 +549,7 @@ export default function SelectiveSyncPage() {
                               <p className="font-semibold text-sm truncate">{step.name}</p>
                               {isRunning && step.total > 0 && (
                                 <div className="mt-2">
-                                  <div className="flex items-center gap-2 text-xs text-blue-600 font-medium">
+                                  <div className="flex items-center gap-2 text-xs text-primary font-medium">
                                     <span>
                                       {formatNumber(step.count)} / {formatNumber(step.total)} items
                                     </span>
@@ -553,7 +559,7 @@ export default function SelectiveSyncPage() {
                                   </div>
                                   <Progress
                                     value={stepProgress}
-                                    className="h-1.5 mt-1.5 bg-blue-500/10 shadow-inner"
+                                    className="h-1.5 mt-1.5 bg-primary/10 shadow-inner"
                                   />
                                 </div>
                               )}
@@ -730,9 +736,9 @@ export default function SelectiveSyncPage() {
               />
 
               {selectedSteps.length > 0 && (
-                <Alert className="rounded-xl border-blue-500/20 bg-blue-500/5">
-                  <Info className="h-4 w-4 text-blue-600" />
-                  <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
+                <Alert className="rounded-xl border-primary/20 bg-primary/5">
+                  <Info className="h-4 w-4 text-primary" />
+                  <AlertDescription className="text-sm text-foreground/80">
                     Configure field-level settings for each step by clicking the &quot;Configure&quot; button.
                     Steps without configuration will sync all fields by default.
                   </AlertDescription>
