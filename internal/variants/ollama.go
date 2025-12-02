@@ -164,6 +164,8 @@ func (c *OllamaClient) ExtractBaseName(ctx context.Context, productTitle string)
 			continue
 		}
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("ngrok-skip-browser-warning", "true")
+	req.Header.Set("User-Agent", "Mozilla/5.0")
 
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
@@ -272,6 +274,8 @@ func (c *OllamaClient) IsAvailable(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
+	req.Header.Set("ngrok-skip-browser-warning", "true")
+	req.Header.Set("User-Agent", "Mozilla/5.0")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

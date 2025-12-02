@@ -96,10 +96,9 @@ export interface VariantMatrix {
  * Group with full details
  * Complete variant group with all related data
  */
-export interface VariantGroupWithDetails {
-  group: ProductVariantGroup;
+export interface VariantGroupWithDetails extends ProductVariantGroup {
   members: ProductVariantGroupMember[];
-  variant_properties: VariantProperty[];
+  properties: VariantProperty[];
   matrix?: VariantMatrix;
 }
 

@@ -63,12 +63,12 @@ export default function VariantGroupDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [groupId, toast]);
+  }, [groupId]); // Remove toast from dependencies to prevent infinite loop
 
   // Initial load
   useEffect(() => {
     loadGroup();
-  }, [loadGroup]);
+  }, [loadGroup]); // loadGroup already depends on groupId via useCallback
 
   if (loading) {
     return (
@@ -108,297 +108,307 @@ export default function VariantGroupDetailPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div
-        className={cn(
-          "flex flex-col gap-6 p-6 transition-all duration-500 ease-out",
-          contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        )}
-      >
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Link
-            href="/"
-            className="hover:text-foreground transition-colors duration-200 hover:underline underline-offset-4"
-          >
-            Dashboard
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <Link
-            href="/variants"
-            className="hover:text-foreground transition-colors duration-200 hover:underline underline-offset-4"
-          >
-            Variants
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className="text-foreground font-medium truncate max-w-[200px]">
-            {group.group.base_name}
-          </span>
-        </nav>
-
-        {/* Page Header */}
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push("/variants")}
-              className="shrink-0 h-10 w-10 rounded-xl border-border/50 transition-all duration-200 hover:bg-muted hover:border-border hover:-translate-y-0.5 hover:shadow-sm active:scale-95"
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 overflow-x-hidden">
+      {/* Container with max-width */}
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+        <div
+          className={cn(
+            "flex flex-col gap-3 py-3 sm:py-4 transition-all duration-500 ease-out",
+            contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          )}
+        >
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Link
+              href="/"
+              className="hover:text-foreground transition-colors duration-200 hover:underline underline-offset-4"
             >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border shadow-lg bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 border-primary/20">
-                <Layers className="h-7 w-7 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight truncate max-w-[400px]">
-                  {group.group.base_name}
-                </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary" className="font-mono text-xs">
-                    {group.group.member_count} products
-                  </Badge>
+              Dashboard
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <Link
+              href="/variants"
+              className="hover:text-foreground transition-colors duration-200 hover:underline underline-offset-4"
+            >
+              Variants
+            </Link>
+            <ChevronRight className="h-3.5 w-3.5" />
+            <span className="text-foreground font-medium truncate max-w-[200px]">
+              {group.base_name}
+            </span>
+          </nav>
+
+          {/* Page Header - Compact */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => router.push("/variants")}
+                className="shrink-0 h-9 w-9 rounded-xl border-border/50 transition-all duration-200 hover:bg-muted hover:border-border hover:-translate-y-0.5 hover:shadow-sm active:scale-95"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl border shadow-md bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 border-primary/20 transition-all duration-300 hover:shadow-lg hover:scale-105">
+                  <Layers className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate max-w-[300px] sm:max-w-[400px]">
+                    {group.base_name}
+                  </h1>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Badge variant="secondary" className="font-mono text-xs px-2 py-0.5">
+                      {group.member_count} products
+                    </Badge>
+                  </div>
                 </div>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={loadGroup}
+                disabled={loading}
+                size="sm"
+                className="gap-2 transition-all duration-200 hover:bg-muted hover:shadow-sm"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+                Refresh
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={loadGroup}
-              disabled={loading}
-              className="gap-2 transition-all duration-200 hover:bg-muted"
-            >
-              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-              Refresh
-            </Button>
+
+          {/* Group Info - Compact Grid */}
+          <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Basic Info Card */}
+            <Card className="rounded-lg border-border/50 shadow-sm hover:shadow-md transition-all duration-300 hover:border-border">
+              <CardHeader className="pb-2 px-3 pt-3">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-md bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                    <Hash className="h-3 w-3 text-primary" />
+                  </div>
+                  Group Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 px-3 pb-3">
+                <div>
+                  <div className="text-xs text-muted-foreground font-medium mb-1">
+                    Base Name
+                  </div>
+                  <div className="text-sm font-medium truncate">{group.base_name}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground font-medium mb-1">
+                    Normalized
+                  </div>
+                  <div className="text-xs font-mono text-muted-foreground/80 truncate">
+                    {group.base_name_normalized}
+                  </div>
+                </div>
+                <Separator className="bg-border/50" />
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Created {new Date(group.created_at).toLocaleDateString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Variant Properties Card */}
+            <Card className="rounded-lg border-border/50 shadow-sm hover:shadow-md transition-all duration-300 hover:border-border">
+              <CardHeader className="pb-2 px-3 pt-3">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-md bg-gradient-to-br from-blue-500/10 to-blue-500/5 flex items-center justify-center">
+                    <Tags className="h-3 w-3 text-blue-600" />
+                  </div>
+                  Variant Properties
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 pb-3">
+                {!group.properties || group.properties.length === 0 ? (
+                  <div className="text-xs text-muted-foreground py-6 text-center">
+                    No variant properties detected
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto scrollbar-thin">
+                    {group.properties.map((prop) => (
+                      <div
+                        key={prop.id}
+                        className="p-2 rounded-md bg-muted/40 border border-border/30 hover:bg-muted/60 transition-colors duration-200"
+                      >
+                        <div className="font-medium text-[11px] mb-1 truncate">{prop.property_name}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {prop.property_values.slice(0, 3).map((value, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-[10px] font-normal px-1.5 py-0"
+                            >
+                              {value}
+                            </Badge>
+                          ))}
+                          {prop.property_values.length > 3 && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              +{prop.property_values.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats Card */}
+            <Card className="rounded-lg border-border/50 shadow-sm hover:shadow-md transition-all duration-300 hover:border-border">
+              <CardHeader className="pb-2 px-3 pt-3">
+                <CardTitle className="text-xs font-semibold flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-md bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
+                    <Grid3X3 className="h-3 w-3 text-emerald-600" />
+                  </div>
+                  Quick Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 pb-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 rounded-md bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/10 text-center group hover:shadow-sm transition-all duration-200">
+                    <div className="text-lg font-bold text-primary group-hover:scale-110 transition-transform duration-200">
+                      {group.members?.length ?? 0}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground font-medium mt-0.5">Products</div>
+                  </div>
+                  <div className="p-2 rounded-md bg-gradient-to-br from-blue-500/5 to-blue-500/10 border border-blue-500/10 text-center group hover:shadow-sm transition-all duration-200">
+                    <div className="text-lg font-bold text-blue-600 group-hover:scale-110 transition-transform duration-200">
+                      {group.properties?.length ?? 0}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground font-medium mt-0.5">Variant Props</div>
+                  </div>
+                  <div className="p-2 rounded-md bg-gradient-to-br from-amber-500/5 to-amber-500/10 border border-amber-500/10 text-center col-span-2 group hover:shadow-sm transition-all duration-200">
+                    <div className="text-lg font-bold text-amber-600 group-hover:scale-110 transition-transform duration-200">
+                      {group.matrix?.columns.filter((c) => c.is_variant).length ?? 0}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground font-medium mt-0.5">Matrix Columns</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </div>
 
-        {/* Group Info */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* Basic Info Card */}
-          <Card className="rounded-2xl border-border/50 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Hash className="h-4 w-4 text-muted-foreground" />
-                Group Info
-              </CardTitle>
+          {/* Member Products Grid */}
+          <Card className="rounded-lg border-border/50 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300">
+            <CardHeader className="pb-2 px-3 pt-3 bg-gradient-to-r from-muted/20 to-transparent border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
+                  <Package className="h-3.5 w-3.5 text-purple-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-semibold">Member Products</CardTitle>
+                  <CardDescription className="text-[10px] mt-0.5">
+                    {group.members?.length ?? 0} product{(group.members?.length ?? 0) !== 1 ? "s" : ""} in this group
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                  Base Name
-                </div>
-                <div className="text-sm font-medium">{group.group.base_name}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-                  Normalized
-                </div>
-                <div className="text-sm font-mono text-muted-foreground">
-                  {group.group.base_name_normalized}
-                </div>
-              </div>
-              <Separator className="bg-border/50" />
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" />
-                Created {new Date(group.group.created_at).toLocaleDateString()}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Variant Properties Card */}
-          <Card className="rounded-2xl border-border/50 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Tags className="h-4 w-4 text-muted-foreground" />
-                Variant Properties
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {group.variant_properties.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">
-                  No variant properties detected
+            <CardContent className="p-2 sm:p-3">
+              {!group.members || group.members.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                    <Package className="h-6 w-6 text-muted-foreground/30" />
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">No products in this group</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {group.variant_properties.map((prop) => (
-                    <div
-                      key={prop.id}
-                      className="p-3 rounded-lg bg-muted/30 border border-border/30"
-                    >
-                      <div className="font-medium text-sm">{prop.property_name}</div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {prop.property_values.slice(0, 5).map((value, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="outline"
-                            className="text-xs font-normal"
-                          >
-                            {value}
-                          </Badge>
-                        ))}
-                        {prop.property_values.length > 5 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{prop.property_values.length - 5} more
-                          </Badge>
-                        )}
+                <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                  {group.members.map((member) => {
+                    return (
+                      <div
+                        key={member.id}
+                        className="group relative p-2 rounded-md border border-border/50 bg-card hover:border-primary/40 hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
+                        onClick={() => router.push(`/products/${member.id}`)}
+                      >
+                        <div className="aspect-square relative mb-1.5 rounded-md overflow-hidden bg-muted/30 ring-1 ring-border/50">
+                          {member.main_image_url ? (
+                            <Image
+                              src={member.main_image_url}
+                              alt={member.name || "Product"}
+                              fill
+                              className="object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Package className="h-10 w-10 text-muted-foreground/20" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-[11px] line-clamp-2 min-h-[2rem] group-hover:text-primary transition-colors duration-200">
+                            {member.name ?? "Unknown Product"}
+                          </div>
+                          {member.article && (
+                            <div className="text-[9px] text-muted-foreground font-mono mt-0.5 truncate">
+                              {member.article}
+                            </div>
+                          )}
+                          {member.price_min && (
+                            <div className="text-[11px] font-semibold text-primary mt-1">
+                              {member.price_min.toLocaleString()} MDL
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-1 right-1 h-5 w-5 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-background/80 backdrop-blur-sm hover:bg-background/90 rounded-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`/products/${member.id}`, "_blank");
+                          }}
+                        >
+                          <ExternalLink className="h-2.5 w-2.5" />
+                        </Button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Quick Stats Card */}
-          <Card className="rounded-2xl border-border/50 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Grid3X3 className="h-4 w-4 text-muted-foreground" />
-                Quick Stats
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 text-center">
-                  <div className="text-2xl font-bold text-primary">
-                    {group.members.length}
+          {/* Variant Matrix Editor */}
+          {group.matrix && (
+            <Card className="rounded-lg border-border/50 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300">
+              <CardHeader className="pb-2 px-3 pt-3 bg-gradient-to-r from-muted/20 to-transparent border-b border-border/50">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border border-indigo-500/20">
+                    <Grid3X3 className="h-3.5 w-3.5 text-indigo-600" />
                   </div>
-                  <div className="text-xs text-muted-foreground">Products</div>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10 text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {group.variant_properties.length}
+                  <div>
+                    <CardTitle className="text-sm font-semibold">Variant Matrix</CardTitle>
+                    <CardDescription className="text-[10px] mt-0.5">
+                      Visual comparison of product variants across properties
+                    </CardDescription>
                   </div>
-                  <div className="text-xs text-muted-foreground">Variant Props</div>
                 </div>
-                <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/10 text-center col-span-2">
-                  <div className="text-2xl font-bold text-amber-600">
-                    {group.matrix?.columns.filter((c) => c.is_variant).length ?? 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Matrix Columns</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <VariantMatrixEditor matrix={group.matrix} />
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Member Products Grid */}
-        <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-          <CardHeader className="pb-4 bg-gradient-to-r from-muted/30 to-muted/10 border-b border-border/50">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background shadow-sm border border-border/50">
-                <Package className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <CardTitle className="text-lg font-semibold">Member Products</CardTitle>
-                <CardDescription>
-                  {group.members.length} product{group.members.length !== 1 ? "s" : ""} in this group
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            {group.members.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                  <Package className="h-7 w-7 text-muted-foreground/30" />
-                </div>
-                <p className="text-muted-foreground font-medium">No products in this group</p>
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {group.members.map((member) => {
-                  const product = member.product;
-                  return (
-                    <div
-                      key={member.id}
-                      className="group relative p-4 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:shadow-md transition-all duration-200 cursor-pointer"
-                      onClick={() => router.push(`/products/${member.product_id}`)}
-                    >
-                      <div className="aspect-square relative mb-3 rounded-lg overflow-hidden bg-muted/30">
-                        {product?.main_image_url ? (
-                          <Image
-                            src={product.main_image_url}
-                            alt={product.name}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Package className="h-12 w-12 text-muted-foreground/20" />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                          {product?.name ?? "Unknown Product"}
-                        </div>
-                        {product?.code && (
-                          <div className="text-xs text-muted-foreground font-mono mt-1">
-                            {product.code}
-                          </div>
-                        )}
-                        {product?.price_mdl && (
-                          <div className="text-sm font-semibold text-primary mt-2">
-                            {product.price_mdl.toLocaleString()} MDL
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`/products/${member.product_id}`, "_blank");
-                        }}
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Variant Matrix Editor */}
-        {group.matrix && (
-          <Card className="rounded-2xl border-border/50 shadow-sm overflow-hidden">
-            <CardHeader className="pb-4 bg-gradient-to-r from-muted/30 to-muted/10 border-b border-border/50">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background shadow-sm border border-border/50">
-                  <Grid3X3 className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg font-semibold">Variant Matrix</CardTitle>
-                  <CardDescription>
-                    Visual comparison of product variants across properties
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <VariantMatrixEditor matrix={group.matrix} />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Bottom Navigation */}
-        <div className="flex items-center justify-between pt-4 border-t border-border/50">
-          <Button
-            variant="ghost"
-            onClick={() => router.push("/variants")}
-            className="transition-all duration-200 hover:bg-muted"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Variants
-          </Button>
+          {/* Bottom Navigation */}
+          <div className="flex items-center justify-between pt-2 pb-4 border-t border-border/50">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/variants")}
+              size="sm"
+              className="transition-all duration-200 hover:bg-muted hover:shadow-sm gap-2"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to Variants
+            </Button>
+          </div>
         </div>
       </div>
     </div>
