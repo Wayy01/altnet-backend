@@ -663,6 +663,8 @@ export interface PriceSummary {
 // Property Group (Level 1)
 export interface PropertyGroup {
   group_name: string;
+  group_name_ru?: string | null;
+  group_name_ro?: string | null;
   property_count: number;
   value_count: number;
   products_using: number;
@@ -673,7 +675,11 @@ export interface PropertyGroup {
 // Property Name (Level 2)
 export interface PropertyName {
   group_name: string;
+  group_name_ru?: string | null;
+  group_name_ro?: string | null;
   property_name: string;
+  property_name_ru?: string | null;
+  property_name_ro?: string | null;
   property_code: string | null;
   value_count: number;
   unique_value_count: number;

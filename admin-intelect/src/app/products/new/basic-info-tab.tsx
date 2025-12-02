@@ -26,7 +26,7 @@ import { api } from "@/lib/api";
 import { Brand, Category, ProductFormState, ProductSource } from "@/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { useTranslation } from "@/contexts/language-context";
+import { useTranslation, useLocalizedValue } from "@/contexts/language-context";
 
 interface BasicInfoTabProps {
   data: ProductFormState["basicInfo"];
@@ -40,6 +40,7 @@ interface BasicInfoTabProps {
 export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
   const { toast } = useToast();
   const { t } = useTranslation("products");
+  const { localize } = useLocalizedValue();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sources, setSources] = useState<ProductSource[]>([]);
@@ -102,23 +103,27 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter brands based on search
+  // Filter brands based on search (search in all language versions)
   const filteredBrands = useMemo(() => {
     if (!brandSearch.trim()) return brands;
     const searchLower = brandSearch.toLowerCase();
-    return brands.filter((brand) =>
-      brand.name.toLowerCase().includes(searchLower)
-    );
-  }, [brands, brandSearch]);
+    return brands.filter((brand) => {
+      const localizedName = localize(brand, "name").toLowerCase();
+      const baseName = brand.name.toLowerCase();
+      return localizedName.includes(searchLower) || baseName.includes(searchLower);
+    });
+  }, [brands, brandSearch, localize]);
 
-  // Filter categories based on search
+  // Filter categories based on search (search in all language versions)
   const filteredCategories = useMemo(() => {
     if (!categorySearch.trim()) return categories;
     const searchLower = categorySearch.toLowerCase();
-    return categories.filter((category) =>
-      category.name.toLowerCase().includes(searchLower)
-    );
-  }, [categories, categorySearch]);
+    return categories.filter((category) => {
+      const localizedName = localize(category, "name").toLowerCase();
+      const baseName = category.name.toLowerCase();
+      return localizedName.includes(searchLower) || baseName.includes(searchLower);
+    });
+  }, [categories, categorySearch, localize]);
 
   // Filter sources based on search
   const filteredSources = useMemo(() => {
@@ -340,7 +345,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                       {t("basicInfo.loadingBrands")}
                     </span>
                   ) : selectedBrand ? (
-                    <span className="truncate">{selectedBrand.name}</span>
+                    <span className="truncate">{localize(selectedBrand, "name")}</span>
                   ) : (
                     t("basicInfo.selectBrand")
                   )}
@@ -419,7 +424,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                               <Check className="h-3 w-3" />
                             )}
                           </div>
-                          <span className="truncate">{brand.name}</span>
+                          <span className="truncate">{localize(brand, "name")}</span>
                           {brand.product_count !== undefined && brand.product_count > 0 && (
                             <span className="ml-auto text-xs text-muted-foreground tabular-nums">
                               {brand.product_count}
@@ -468,7 +473,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                       {t("basicInfo.loadingCategories")}
                     </span>
                   ) : selectedCategory ? (
-                    <span className="truncate">{selectedCategory.name}</span>
+                    <span className="truncate">{localize(selectedCategory, "name")}</span>
                   ) : (
                     t("basicInfo.selectCategory")
                   )}
@@ -547,7 +552,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                               <Check className="h-3 w-3" />
                             )}
                           </div>
-                          <span className="truncate">{category.name}</span>
+                          <span className="truncate">{localize(category, "name")}</span>
                           {category.product_count !== undefined && category.product_count > 0 && (
                             <span className="ml-auto text-xs text-muted-foreground tabular-nums">
                               {category.product_count}

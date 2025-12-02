@@ -45,9 +45,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { api } from "@/lib/api";
-import { CreatePropertyData } from "@/types";
+import { CreatePropertyData, PropertyGroup, PropertyName } from "@/types";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "@/contexts/language-context";
+import { useTranslation, useLocalizedValue } from "@/contexts/language-context";
 
 interface PropertiesTabProps {
   properties: CreatePropertyData[];
@@ -79,8 +79,9 @@ const emptyProperty: CreatePropertyData = {
  */
 export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
   const { t } = useTranslation("products");
-  const [groupOptions, setGroupOptions] = useState<string[]>([]);
-  const [propertyNameOptions, setPropertyNameOptions] = useState<Record<string, string[]>>({});
+  const { localizeGroupName, localizePropertyName } = useLocalizedValue();
+  const [groupOptions, setGroupOptions] = useState<PropertyGroup[]>([]);
+  const [propertyNameOptions, setPropertyNameOptions] = useState<Record<string, PropertyName[]>>({});
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [isLoadingGroups, setIsLoadingGroups] = useState(true);
   const [sectionsVisible, setSectionsVisible] = useState(false);
@@ -101,7 +102,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
   useEffect(() => {
     const loadGroups = async () => {
       try {
-        const groups = await api.getPropertyGroupOptions();
+        const groups = await api.getPropertyGroupOptionsWithLocalization();
         setGroupOptions(groups);
       } catch (error) {
         console.error("Failed to load property groups:", error);
@@ -117,30 +118,36 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
     if (propertyNameOptions[groupName]) return;
 
     try {
-      const names = await api.getPropertyNameOptions(groupName);
+      const names = await api.getPropertyNameOptionsWithLocalization(groupName);
       setPropertyNameOptions((prev) => ({ ...prev, [groupName]: names }));
     } catch (error) {
       console.error("Failed to load property names:", error);
     }
   };
 
-  // Filter groups based on search
+  // Filter groups based on search (search in all language versions)
   const getFilteredGroups = (index: number) => {
     const search = groupSearches[index] || "";
     if (!search.trim()) return groupOptions;
     const searchLower = search.toLowerCase();
-    return groupOptions.filter((group) =>
-      group.toLowerCase().includes(searchLower)
-    );
+    return groupOptions.filter((group) => {
+      const localizedName = localizeGroupName(group).toLowerCase();
+      const baseName = group.group_name.toLowerCase();
+      return localizedName.includes(searchLower) || baseName.includes(searchLower);
+    });
   };
 
-  // Filter names based on search
+  // Filter names based on search (search in all language versions)
   const getFilteredNames = (index: number, groupName: string) => {
     const names = propertyNameOptions[groupName] || [];
     const search = nameSearches[index] || "";
     if (!search.trim()) return names;
     const searchLower = search.toLowerCase();
-    return names.filter((name) => name.toLowerCase().includes(searchLower));
+    return names.filter((propName) => {
+      const localizedName = localizePropertyName(propName).toLowerCase();
+      const baseName = propName.property_name.toLowerCase();
+      return localizedName.includes(searchLower) || baseName.includes(searchLower);
+    });
   };
 
   const addProperty = () => {
@@ -162,7 +169,8 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
     onChange(updatedProperties);
   };
 
-  const handleGroupChange = (index: number, groupName: string | null) => {
+  const handleGroupChange = (index: number, group: PropertyGroup | null) => {
+    const groupName = group?.group_name || null;
     updateProperty(index, { group_name: groupName, property_name: "" });
     if (groupName) {
       loadPropertyNames(groupName);
@@ -171,10 +179,25 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
     setGroupSearches((prev) => ({ ...prev, [index]: "" }));
   };
 
-  const handleNameChange = (index: number, name: string) => {
-    updateProperty(index, { property_name: name });
+  const handleNameChange = (index: number, propName: PropertyName) => {
+    updateProperty(index, { property_name: propName.property_name });
     setNameOpens((prev) => ({ ...prev, [index]: false }));
     setNameSearches((prev) => ({ ...prev, [index]: "" }));
+  };
+
+  // Helper to get localized display name for a group by its base name
+  const getLocalizedGroupDisplay = (groupName: string | null | undefined): string => {
+    if (!groupName) return "";
+    const group = groupOptions.find(g => g.group_name === groupName);
+    return group ? localizeGroupName(group) : groupName;
+  };
+
+  // Helper to get localized display name for a property name
+  const getLocalizedPropertyNameDisplay = (groupName: string | null | undefined, propertyName: string): string => {
+    if (!groupName || !propertyName) return propertyName;
+    const names = propertyNameOptions[groupName] || [];
+    const propName = names.find(n => n.property_name === propertyName);
+    return propName ? localizePropertyName(propName) : propertyName;
   };
 
   // Summary calculations
@@ -281,11 +304,11 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                             variant="outline"
                             className="text-xs bg-muted/50 border-border/50"
                           >
-                            {property.group_name}
+                            {getLocalizedGroupDisplay(property.group_name)}
                           </Badge>
                         )}
                         <span className="font-medium truncate">
-                          {property.property_name || (
+                          {property.property_name ? getLocalizedPropertyNameDisplay(property.group_name, property.property_name) : (
                             <span className="text-muted-foreground">{t("properties.newProperty")}</span>
                           )}
                         </span>
@@ -349,7 +372,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                 !property.group_name && "text-muted-foreground"
                               )}
                             >
-                              {property.group_name || t("properties.selectGroup")}
+                              {getLocalizedGroupDisplay(property.group_name) || t("properties.selectGroup")}
                               <Layers className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
@@ -393,24 +416,24 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                   </CommandItem>
                                   {getFilteredGroups(index).map((group) => (
                                     <CommandItem
-                                      key={group}
-                                      value={group}
+                                      key={group.group_name}
+                                      value={group.group_name}
                                       onSelect={() => handleGroupChange(index, group)}
                                       className="cursor-pointer"
                                     >
                                       <div
                                         className={cn(
                                           "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                          property.group_name === group
+                                          property.group_name === group.group_name
                                             ? "bg-primary text-primary-foreground"
                                             : "opacity-50"
                                         )}
                                       >
-                                        {property.group_name === group && (
+                                        {property.group_name === group.group_name && (
                                           <Check className="h-3 w-3" />
                                         )}
                                       </div>
-                                      <span className="truncate">{group}</span>
+                                      <span className="truncate">{localizeGroupName(group)}</span>
                                     </CommandItem>
                                   ))}
                                 </CommandGroup>
@@ -441,7 +464,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                   !property.property_name && "text-muted-foreground"
                                 )}
                               >
-                                {property.property_name || t("properties.selectProperty")}
+                                {getLocalizedPropertyNameDisplay(property.group_name, property.property_name) || t("properties.selectProperty")}
                                 <Settings2 className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </PopoverTrigger>
@@ -466,26 +489,26 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                     {t("properties.noPropertiesFound")}
                                   </CommandEmpty>
                                   <CommandGroup>
-                                    {getFilteredNames(index, property.group_name!).map((name) => (
+                                    {getFilteredNames(index, property.group_name!).map((propName) => (
                                       <CommandItem
-                                        key={name}
-                                        value={name}
-                                        onSelect={() => handleNameChange(index, name)}
+                                        key={propName.property_name}
+                                        value={propName.property_name}
+                                        onSelect={() => handleNameChange(index, propName)}
                                         className="cursor-pointer"
                                       >
                                         <div
                                           className={cn(
                                             "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                            property.property_name === name
+                                            property.property_name === propName.property_name
                                               ? "bg-primary text-primary-foreground"
                                               : "opacity-50"
                                           )}
                                         >
-                                          {property.property_name === name && (
+                                          {property.property_name === propName.property_name && (
                                             <Check className="h-3 w-3" />
                                           )}
                                         </div>
-                                        <span className="truncate">{name}</span>
+                                        <span className="truncate">{localizePropertyName(propName)}</span>
                                       </CommandItem>
                                     ))}
                                   </CommandGroup>

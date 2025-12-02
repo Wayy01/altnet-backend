@@ -914,7 +914,8 @@ func (r *Repository) GetAllCategories(ctx context.Context) ([]*models.Category, 
 	query := `
 		SELECT c.id, c.ultra_id, c.code, c.name, c.slug, c.image_url,
 		       c.parent_id, COALESCE(parent.name, '') as parent_name,
-		       c.sort_order, c.is_active, c.created_at, c.updated_at
+		       c.sort_order, c.is_active, c.created_at, c.updated_at,
+		       c.name_ru, c.name_ro
 		FROM categories c
 		LEFT JOIN categories parent ON parent.id = c.parent_id
 		ORDER BY c.name ASC
@@ -933,6 +934,7 @@ func (r *Repository) GetAllCategories(ctx context.Context) ([]*models.Category, 
 			&category.ID, &category.UltraID, &category.Code, &category.Name, &category.Slug,
 			&category.ImageURL, &category.ParentID, &category.ParentName, &category.SortOrder,
 			&category.IsActive, &category.CreatedAt, &category.UpdatedAt,
+			&category.NameRU, &category.NameRO,
 		)
 		if err != nil {
 			return nil, err

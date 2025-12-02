@@ -1499,6 +1499,20 @@ class ApiClient {
 
   /**
    * Get all property groups for property creation dropdown
+   * Returns full PropertyGroup objects with localized names
+   */
+  async getPropertyGroupOptionsWithLocalization(): Promise<PropertyGroup[]> {
+    try {
+      const response = await this.getPropertyGroups(1000, 0);
+      return response.data;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get all property groups for property creation dropdown (legacy - returns strings)
+   * @deprecated Use getPropertyGroupOptionsWithLocalization instead
    */
   async getPropertyGroupOptions(): Promise<string[]> {
     try {
@@ -1511,6 +1525,20 @@ class ApiClient {
 
   /**
    * Get property names for a group (for cascading dropdown)
+   * Returns full PropertyName objects with localized names
+   */
+  async getPropertyNameOptionsWithLocalization(groupName: string): Promise<PropertyName[]> {
+    try {
+      const response = await this.getPropertyNames(groupName, 1000, 0);
+      return response.data;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get property names for a group (for cascading dropdown) (legacy - returns strings)
+   * @deprecated Use getPropertyNameOptionsWithLocalization instead
    */
   async getPropertyNameOptions(groupName: string): Promise<string[]> {
     try {
