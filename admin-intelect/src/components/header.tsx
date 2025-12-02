@@ -11,7 +11,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { NotificationBell } from "@/components/sync/notification-bell";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "@/contexts/language-context";
 
@@ -39,10 +38,9 @@ export function Header() {
     jobs: "breadcrumbs.jobs",
     monitor: "breadcrumbs.monitor",
     groups: "breadcrumbs.groups",
-    notifications: "breadcrumbs.notifications",
-    rollbacks: "breadcrumbs.rollbacks",
-    conflicts: "breadcrumbs.conflicts",
     schedules: "breadcrumbs.schedules",
+    analytics: "breadcrumbs.analytics",
+    filters: "breadcrumbs.filters",
   };
 
   const getLabel = (segment: string): string => {
@@ -100,7 +98,6 @@ export function Header() {
         </BreadcrumbList>
       </Breadcrumb>
       <div className="ml-auto flex items-center gap-2">
-        <NotificationBell />
         <ThemeToggle />
       </div>
     </header>

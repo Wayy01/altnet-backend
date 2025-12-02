@@ -18,7 +18,14 @@
     "overview": "Prezentare generala",
     "selectiveSync": "Sincronizare selectiva",
     "configurations": "Configuratii",
-    "changeHistory": "Istoric modificari"
+    "changeHistory": "Istoric modificari",
+    "advanced": "Avansat",
+    "rollbacks": "Anulari",
+    "conflicts": "Conflicte",
+    "schedules": "Programari",
+    "notifications": "Notificari",
+    "analytics": "Analize",
+    "filters": "Filtre"
   },
   "create": {
     "product": "Creeaza produs",
@@ -44,7 +51,13 @@
     "createBrand": "Adauga marca noua",
     "createCategory": "Adauga categorie noua",
     "translate": "Traducere continut",
-    "jobs": "Sarcini de traducere"
+    "jobs": "Sarcini de traducere",
+    "rollbacks": "Restaurare date anterioare",
+    "conflicts": "Rezolva conflictele de date",
+    "schedules": "Sarcini programate de sincronizare",
+    "notifications": "Alerte si notificari de sincronizare",
+    "analytics": "Analize de performanta sincronizare",
+    "filters": "Filtre pentru date de sincronizare"
   },
   "breadcrumbs": {
     "dashboard": "Panou de control",
@@ -67,7 +80,9 @@
     "notifications": "Notificari",
     "rollbacks": "Anulari",
     "conflicts": "Conflicte",
-    "schedules": "Programari"
+    "schedules": "Programari",
+    "analytics": "Analize",
+    "filters": "Filtre"
   },
   "sidebar": {
     "language": "Limba",

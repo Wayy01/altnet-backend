@@ -242,28 +242,28 @@ export default function SchedulesPage() {
     switch (schedule.last_status) {
       case "completed":
         return (
-          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 gap-1">
+          <Badge variant="default" className="bg-primary/10 text-primary border-primary/20 gap-1">
             <CheckCircle2 className="h-3 w-3" />
             {t('schedule.status.completed')}
           </Badge>
         );
       case "failed":
         return (
-          <Badge className="bg-red-500/10 text-red-600 border-red-500/20 gap-1">
+          <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20 gap-1">
             <XCircle className="h-3 w-3" />
             {t('schedule.status.failed')}
           </Badge>
         );
       case "running":
         return (
-          <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1">
+          <Badge variant="secondary" className="gap-1">
             <Loader2 className="h-3 w-3 animate-spin" />
             {t('schedule.status.running')}
           </Badge>
         );
       case "pending":
         return (
-          <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20 gap-1">
+          <Badge variant="outline" className="gap-1">
             <Clock className="h-3 w-3" />
             {t('schedule.status.pending')}
           </Badge>

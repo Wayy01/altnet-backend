@@ -619,6 +619,8 @@
     "exportSuccessDescription": "Analytics data has been exported to CSV",
     "exportFailed": "Export Failed",
     "loadFailed": "Failed to load analytics data",
+    "noData": "No data available",
+    "executions": "executions",
     "table": {
       "step": "Step",
       "syncType": "Sync Type",

@@ -19,6 +19,10 @@ import {
   Languages,
   ListChecks,
   RefreshCw,
+  Calendar,
+  TrendingUp,
+  Filter,
+  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -34,6 +38,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -77,6 +84,11 @@ export function AppSidebar() {
   const { t } = useTranslation("navigation");
   const { state } = useSidebar();
   const [syncOpen, setSyncOpen] = useState(pathname.startsWith("/sync"));
+  const [syncAdvancedOpen, setSyncAdvancedOpen] = useState(
+    pathname === "/sync/schedules" ||
+    pathname === "/sync/analytics" ||
+    pathname === "/sync/filters"
+  );
   const [createOpen, setCreateOpen] = useState(
     pathname === "/products/new" ||
     pathname === "/brands/new" ||
@@ -155,6 +167,30 @@ export function AppSidebar() {
       url: "/sync/changes",
       icon: History,
       descriptionKey: "descriptions.changeHistory",
+    },
+  ];
+
+  /**
+   * Advanced sync operation items for nested collapsible sub-section
+   */
+  const syncAdvancedItems: NavItem[] = [
+    {
+      titleKey: "sync.schedules",
+      url: "/sync/schedules",
+      icon: Calendar,
+      descriptionKey: "descriptions.schedules",
+    },
+    {
+      titleKey: "sync.analytics",
+      url: "/sync/analytics",
+      icon: TrendingUp,
+      descriptionKey: "descriptions.analytics",
+    },
+    {
+      titleKey: "sync.filters",
+      url: "/sync/filters",
+      icon: Filter,
+      descriptionKey: "descriptions.filters",
     },
   ];
 
@@ -325,6 +361,52 @@ export function AppSidebar() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
+
+                  {/* Advanced Sub-section - Nested Collapsible */}
+                  <SidebarMenuItem>
+                    <Collapsible open={syncAdvancedOpen} onOpenChange={setSyncAdvancedOpen}>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          tooltip={isCollapsed ? t("sync.advanced") : undefined}
+                          className="group/advanced cursor-pointer"
+                        >
+                          <Wrench className={cn(
+                            "h-4 w-4 transition-colors duration-200",
+                            syncAdvancedOpen ? "text-primary" : "text-muted-foreground group-hover/advanced:text-foreground"
+                          )} />
+                          <span className="font-medium">{t("sync.advanced")}</span>
+                          <ChevronRight className={cn(
+                            "ml-auto h-3.5 w-3.5 text-muted-foreground/50 transition-transform duration-200 ease-out group-hover/advanced:text-muted-foreground",
+                            syncAdvancedOpen && "rotate-90"
+                          )} />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-1 data-[state=open]:slide-in-from-top-1 duration-200">
+                        <SidebarMenuSub>
+                          {syncAdvancedItems.map((item, index) => (
+                            <SidebarMenuSubItem
+                              key={item.titleKey}
+                              className="animate-in fade-in-0 slide-in-from-left-1"
+                              style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'backwards' }}
+                            >
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={isActive(item.url)}
+                              >
+                                <Link href={item.url} className="group/sublink">
+                                  <item.icon className={cn(
+                                    "h-3.5 w-3.5 transition-colors duration-200",
+                                    isActive(item.url) ? "text-primary" : "text-muted-foreground group-hover/sublink:text-foreground"
+                                  )} />
+                                  <span>{t(item.titleKey)}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>

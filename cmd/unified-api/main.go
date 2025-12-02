@@ -13,6 +13,7 @@ import (
 	"ultra-api-testing/internal/config"
 	"ultra-api-testing/internal/database"
 	"ultra-api-testing/internal/handlers"
+	"ultra-api-testing/internal/models"
 	"ultra-api-testing/internal/repository"
 	internalSync "ultra-api-testing/internal/sync"
 	"ultra-api-testing/internal/ultra"
@@ -61,30 +62,45 @@ func main() {
 	sourceRepo := repository.NewSourceRepository(db.Pool)
 	translationRepo := repository.NewTranslationRepository(db.Pool)
 	scheduleRepo := repository.NewScheduleRepository(db.Pool)
-	notificationRepo := repository.NewNotificationRepository(db.Pool)
 	performanceRepo := repository.NewPerformanceRepository(db.Pool)
 	filterRepo := repository.NewFilterRepository(db.Pool)
-	rollbackRepo := repository.NewRollbackRepository(db.Pool)
-	conflictRepo := repository.NewConflictRepository(db.Pool)
 	handler := handlers.New(repo, syncConfigRepo, fetcher, syncManager)
 	realtimeSyncHandler := handlers.NewRealtimeSyncHandlers(realtimeSyncRepo, repo)
 	syncControlHandler := handlers.NewSyncControlHandlers(repo, realtimeSyncRepo, syncManager)
 	sourceHandler := handlers.NewSourceHandler(sourceRepo)
 	translationHandler := handlers.NewTranslationHandler(translationRepo, cfg.LibreTranslate.URL)
-	notificationHandler := handlers.NewNotificationHandler(notificationRepo)
 	performanceHandler := handlers.NewPerformanceHandler(performanceRepo)
 	filterHandler := handlers.NewFilterHandler(filterRepo)
-	conflictHandler := handlers.NewConflictHandler(conflictRepo)
 
-	// Create selective sync for rollback handler
+	// Create selective sync for scheduler
 	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher, syncManager)
-	rollbackHandler := handlers.NewRollbackHandler(repo, fetcher, rollbackRepo, selectiveSync)
 
-	// Create sync notifier for notification events
-	_ = internalSync.NewNotifier(notificationRepo)
+	// Create scheduler with execute callback that triggers actual syncs
+	schedulerConfig := &internalSync.SchedulerConfig{
+		ExecuteCallback: func(ctx context.Context, schedule *models.SyncSchedule, config *models.SyncConfiguration) error {
+			// Convert SyncConfiguration to SelectiveSyncRequest
+			request := &models.SelectiveSyncRequest{
+				SelectedSteps:   config.SelectedSteps,
+				FieldConfig:     config.FieldConfig,
+				ConfigurationID: &config.ID,
+			}
 
-	// Create scheduler (optional background execution)
-	scheduler := internalSync.NewScheduler(scheduleRepo, syncConfigRepo, nil)
+			log.Printf("Scheduler: Executing sync for schedule %s with config %s (steps: %v)",
+				schedule.Name, config.Name, config.SelectedSteps)
+
+			// Execute the selective sync
+			result, err := selectiveSync.ExecuteSelectiveSync(ctx, request)
+			if err != nil {
+				return fmt.Errorf("scheduled sync failed: %w", err)
+			}
+
+			log.Printf("Scheduler: Sync completed for schedule %s - %d total changes in %v",
+				schedule.Name, result.TotalChanges, result.Duration)
+
+			return nil
+		},
+	}
+	scheduler := internalSync.NewScheduler(scheduleRepo, syncConfigRepo, schedulerConfig)
 
 	// Start scheduler if ENABLE_SCHEDULER env var is set
 	if os.Getenv("ENABLE_SCHEDULER") == "true" {
@@ -106,7 +122,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, notificationHandler, performanceHandler, filterHandler, rollbackHandler, conflictHandler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -167,7 +183,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, notificationHandler *handlers.NotificationHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, rollbackHandler *handlers.RollbackHandler, conflictHandler *handlers.ConflictHandler) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -349,22 +365,6 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/sync/analytics/aggregations", performanceHandler.GetAggregations).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sync/analytics/export", performanceHandler.ExportMetrics).Methods("GET", "OPTIONS")
 
-	// Sync rollback endpoints
-	api.HandleFunc("/sync/rollbacks", rollbackHandler.ListRollbacks).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/rollback", rollbackHandler.ExecuteRollback).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/rollback/preview/{sync_log_id}", rollbackHandler.GetRollbackPreview).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/rollback/{rollback_id}", rollbackHandler.GetRollbackStatus).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/selective-enhanced", rollbackHandler.ExecuteSelectiveSyncWithSnapshot).Methods("POST", "OPTIONS")
-
-	// Sync conflict resolution endpoints
-	api.HandleFunc("/sync/conflicts", conflictHandler.ListConflicts).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/conflicts/resolve", conflictHandler.ResolveConflicts).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/conflicts/{id}", conflictHandler.GetConflict).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/conflict-rules", conflictHandler.ListConflictRules).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/conflict-rules", conflictHandler.CreateConflictRule).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/conflict-rules/{id}", conflictHandler.UpdateConflictRule).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/sync/conflict-rules/{id}", conflictHandler.DeleteConflictRule).Methods("DELETE", "OPTIONS")
-
 	// CRUD operations - Products (bulk routes must come before {id} routes)
 	api.HandleFunc("/products", handler.CreateProduct).Methods("POST", "OPTIONS")
 	api.HandleFunc("/products/bulk", handler.BulkUpdateProducts).Methods("PATCH", "OPTIONS")
@@ -401,17 +401,6 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/translate/jobs/{id}/logs", translationHandler.GetTranslationLogs).Methods("GET", "OPTIONS")
 	api.HandleFunc("/translate/stats", translationHandler.GetTranslationStats).Methods("GET", "OPTIONS")
 	api.HandleFunc("/translate/stream/{id}", translationHandler.StreamTranslationProgress).Methods("GET", "OPTIONS")
-
-	// Notification endpoints (specific routes before parameterized routes)
-	api.HandleFunc("/notifications", notificationHandler.ListNotifications).Methods("GET", "OPTIONS")
-	api.HandleFunc("/notifications/count", notificationHandler.GetUnreadCount).Methods("GET", "OPTIONS")
-	api.HandleFunc("/notifications/stats", notificationHandler.GetNotificationStats).Methods("GET", "OPTIONS")
-	api.HandleFunc("/notifications/stream", notificationHandler.StreamNotifications).Methods("GET", "OPTIONS")
-	api.HandleFunc("/notifications/read-all", notificationHandler.MarkAllAsRead).Methods("POST", "OPTIONS")
-	api.HandleFunc("/notifications/read", notificationHandler.DeleteAllRead).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/notifications/{id}", notificationHandler.GetNotification).Methods("GET", "OPTIONS")
-	api.HandleFunc("/notifications/{id}/read", notificationHandler.MarkAsRead).Methods("POST", "OPTIONS")
-	api.HandleFunc("/notifications/{id}", notificationHandler.DeleteNotification).Methods("DELETE", "OPTIONS")
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

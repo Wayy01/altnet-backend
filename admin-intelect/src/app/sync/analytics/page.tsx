@@ -388,7 +388,7 @@ export default function AnalyticsPage() {
           description={t("analytics.throughputTrendDescription")}
           valueKey="avg_throughput"
           formatValue={(v) => formatThroughput(v)}
-          color="hsl(142, 76%, 36%)"
+          color="hsl(var(--primary))"
         />
       </div>
 

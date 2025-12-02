@@ -550,8 +550,8 @@ export default function FiltersPage() {
                             variant="secondary"
                             className={
                               filter.logic === "AND"
-                                ? "bg-blue-500/10 text-blue-700 border-blue-500/20"
-                                : "bg-orange-500/10 text-orange-700 border-orange-500/20"
+                                ? "bg-primary/10 text-primary border-primary/20"
+                                : "bg-secondary text-secondary-foreground border-border"
                             }
                           >
                             {filter.logic}
@@ -844,7 +844,7 @@ export default function FiltersPage() {
               </div>
 
               {testResult.matching_count === 0 && (
-                <div className="flex items-start gap-2 text-amber-600 text-sm p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-start gap-2 text-muted-foreground text-sm p-3 rounded-lg bg-muted/50 border border-border">
                   <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                   <span>{t("filter.testDialog.noMatches")}</span>
                 </div>

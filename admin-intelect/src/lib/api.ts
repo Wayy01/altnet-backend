@@ -75,27 +75,6 @@ import {
   ExecuteSyncResponse,
 } from "@/types/selective-sync";
 import {
-  SyncRollback,
-  RollbackPreview,
-  RollbackRequest,
-  ListRollbacksResponse,
-  RollbackPreviewResponse,
-  RollbackStatusResponse,
-  ExecuteRollbackResponse,
-} from "@/types/rollback";
-import {
-  SyncConflict,
-  SyncConflictRule,
-  ConflictResolutionRequest,
-  CreateConflictRuleRequest,
-  UpdateConflictRuleRequest,
-  ListConflictsResponse,
-  GetConflictResponse,
-  ResolveConflictsResponse,
-  ListConflictRulesResponse,
-  ConflictRuleResponse,
-} from "@/types/conflict";
-import {
   SyncSchedule,
   SyncScheduleRun,
   ScheduleCreateRequest,
@@ -105,12 +84,6 @@ import {
   ScheduleToggleResponse,
   ScheduleTestResponse,
 } from "@/types/schedule";
-import {
-  SyncNotification,
-  NotificationListResponse,
-  NotificationCountResponse,
-  NotificationStats,
-} from "@/types/notification";
 import {
   AnalyticsSummary,
   AnalyticsSummaryResponse,
@@ -125,6 +98,9 @@ import {
   StepAveragesResponse,
   ThroughputStats,
   ThroughputStatsResponse,
+  normalizePerformanceTrend,
+  normalizeStepAverages,
+  normalizeBottleneckInfo,
 } from "@/types/analytics";
 import {
   SyncEntityFilter,
@@ -1710,179 +1686,6 @@ class ApiClient {
   }
 
   // ============================================================================
-  // ROLLBACK METHODS
-  // ============================================================================
-
-  /**
-   * Get a preview of what will be rolled back for a specific sync log
-   */
-  async getRollbackPreview(syncLogId: string): Promise<RollbackPreview> {
-    const response = await this.fetch<RollbackPreviewResponse>(
-      `/api/v1/sync/rollback/preview/${syncLogId}`
-    );
-    return response.data;
-  }
-
-  /**
-   * Execute a rollback operation
-   */
-  async executeRollback(request: RollbackRequest): Promise<SyncRollback> {
-    const response = await this.fetch<ExecuteRollbackResponse>(
-      `/api/v1/sync/rollback`,
-      {
-        method: "POST",
-        body: JSON.stringify(request),
-      }
-    );
-    return response.data;
-  }
-
-  /**
-   * List all rollback operations with pagination
-   */
-  async listRollbacks(
-    limit = 50,
-    offset = 0
-  ): Promise<{ data: SyncRollback[]; total: number }> {
-    const params = new URLSearchParams();
-    params.append("limit", limit.toString());
-    params.append("offset", offset.toString());
-
-    const response = await this.fetch<ListRollbacksResponse>(
-      `/api/v1/sync/rollbacks?${params.toString()}`
-    );
-    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
-  }
-
-  /**
-   * Get the status of a specific rollback operation
-   */
-  async getRollbackStatus(rollbackId: string): Promise<SyncRollback> {
-    const response = await this.fetch<RollbackStatusResponse>(
-      `/api/v1/sync/rollback/${rollbackId}`
-    );
-    return response.data;
-  }
-
-  // ============================================================================
-  // CONFLICT RESOLUTION METHODS
-  // ============================================================================
-
-  /**
-   * List conflicts with optional filters
-   */
-  async listConflicts(
-    limit = 50,
-    offset = 0,
-    filters?: {
-      sync_log_id?: string;
-      unresolved?: boolean;
-    }
-  ): Promise<{ data: SyncConflict[]; total: number }> {
-    const params = new URLSearchParams();
-    params.append("limit", limit.toString());
-    params.append("offset", offset.toString());
-
-    if (filters?.sync_log_id) {
-      params.append("sync_log_id", filters.sync_log_id);
-    }
-    if (filters?.unresolved) {
-      params.append("unresolved", "true");
-    }
-
-    const response = await this.fetch<ListConflictsResponse>(
-      `/api/v1/sync/conflicts?${params.toString()}`
-    );
-    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
-  }
-
-  /**
-   * Get a single conflict by ID
-   */
-  async getConflict(conflictId: string): Promise<SyncConflict> {
-    const response = await this.fetch<GetConflictResponse>(
-      `/api/v1/sync/conflicts/${conflictId}`
-    );
-    return response.data;
-  }
-
-  /**
-   * Resolve one or more conflicts
-   */
-  async resolveConflicts(request: ConflictResolutionRequest): Promise<ResolveConflictsResponse> {
-    return this.fetch<ResolveConflictsResponse>(
-      `/api/v1/sync/conflicts/resolve`,
-      {
-        method: "POST",
-        body: JSON.stringify(request),
-      }
-    );
-  }
-
-  /**
-   * List conflict rules
-   */
-  async listConflictRules(activeOnly = false): Promise<SyncConflictRule[]> {
-    const params = new URLSearchParams();
-    if (activeOnly) {
-      params.append("active", "true");
-    }
-
-    const response = await this.fetch<ListConflictRulesResponse>(
-      `/api/v1/sync/conflict-rules?${params.toString()}`
-    );
-    return response.data;
-  }
-
-  /**
-   * Create a new conflict rule
-   */
-  async createConflictRule(rule: CreateConflictRuleRequest): Promise<SyncConflictRule> {
-    const response = await this.fetch<ConflictRuleResponse>(
-      `/api/v1/sync/conflict-rules`,
-      {
-        method: "POST",
-        body: JSON.stringify(rule),
-      }
-    );
-    return response.data;
-  }
-
-  /**
-   * Update an existing conflict rule
-   */
-  async updateConflictRule(ruleId: string, updates: UpdateConflictRuleRequest): Promise<SyncConflictRule> {
-    const response = await this.fetch<ConflictRuleResponse>(
-      `/api/v1/sync/conflict-rules/${ruleId}`,
-      {
-        method: "PUT",
-        body: JSON.stringify(updates),
-      }
-    );
-    return response.data;
-  }
-
-  /**
-   * Delete a conflict rule
-   */
-  async deleteConflictRule(ruleId: string): Promise<void> {
-    await this.fetch<{ message: string }>(
-      `/api/v1/sync/conflict-rules/${ruleId}`,
-      {
-        method: "DELETE",
-      }
-    );
-  }
-
-  /**
-   * Get count of unresolved conflicts
-   */
-  async getUnresolvedConflictsCount(): Promise<number> {
-    const response = await this.listConflicts(1, 0, { unresolved: true });
-    return response.total;
-  }
-
-  // ============================================================================
   // SYNC SCHEDULE METHODS
   // ============================================================================
 
@@ -1998,121 +1801,6 @@ class ApiClient {
   }
 
   // ============================================================================
-  // NOTIFICATION METHODS
-  // ============================================================================
-
-  /**
-   * List notifications with optional filters
-   */
-  async listNotifications(
-    limit = 50,
-    offset = 0,
-    unreadOnly = false
-  ): Promise<NotificationListResponse> {
-    const params = new URLSearchParams();
-    params.append("limit", limit.toString());
-    params.append("offset", offset.toString());
-    if (unreadOnly) {
-      params.append("unread_only", "true");
-    }
-
-    return this.fetch<NotificationListResponse>(
-      `/api/v1/notifications?${params.toString()}`
-    );
-  }
-
-  /**
-   * Get a single notification by ID
-   */
-  async getNotification(id: string): Promise<SyncNotification> {
-    const response = await this.fetch<{ data: SyncNotification }>(
-      `/api/v1/notifications/${id}`
-    );
-    return response.data;
-  }
-
-  /**
-   * Get unread notification count
-   */
-  async getNotificationCount(): Promise<NotificationCountResponse> {
-    return this.fetch<NotificationCountResponse>(
-      `/api/v1/notifications/count`
-    );
-  }
-
-  /**
-   * Get notification statistics
-   */
-  async getNotificationStats(): Promise<NotificationStats> {
-    const response = await this.fetch<{ data: NotificationStats }>(
-      `/api/v1/notifications/stats`
-    );
-    return response.data;
-  }
-
-  /**
-   * Mark a notification as read
-   */
-  async markNotificationAsRead(id: string): Promise<void> {
-    await this.fetch<{ message: string }>(
-      `/api/v1/notifications/${id}/read`,
-      {
-        method: "POST",
-      }
-    );
-  }
-
-  /**
-   * Mark all notifications as read
-   */
-  async markAllNotificationsAsRead(): Promise<{ count: number }> {
-    return this.fetch<{ count: number }>(
-      `/api/v1/notifications/read-all`,
-      {
-        method: "POST",
-      }
-    );
-  }
-
-  /**
-   * Delete a notification
-   */
-  async deleteNotification(id: string): Promise<void> {
-    await this.fetch<{ message: string }>(
-      `/api/v1/notifications/${id}`,
-      {
-        method: "DELETE",
-      }
-    );
-  }
-
-  /**
-   * Delete all read notifications
-   */
-  async deleteAllReadNotifications(): Promise<{ count: number }> {
-    return this.fetch<{ count: number }>(
-      `/api/v1/notifications/read`,
-      {
-        method: "DELETE",
-      }
-    );
-  }
-
-  /**
-   * Create an EventSource for real-time notification updates
-   */
-  createNotificationStream(): EventSource {
-    return new EventSource(`${this.baseUrl}/api/v1/notifications/stream`);
-  }
-
-  /**
-   * Get the SSE URL for notification stream
-   */
-  getNotificationStreamUrl(): string {
-    return `${this.baseUrl}/api/v1/notifications/stream`;
-  }
-
-  // ============================================================================
   // SYNC ANALYTICS METHODS
   // ============================================================================
 
@@ -2163,7 +1851,8 @@ class ApiClient {
     const response = await this.fetch<PerformanceTrendsResponse>(
       `/api/v1/sync/analytics/trends?days=${days}`
     );
-    return response.data;
+    // Normalize the data to ensure all fields are present
+    return (response.data || []).map(normalizePerformanceTrend);
   }
 
   /**
@@ -2173,7 +1862,8 @@ class ApiClient {
     const response = await this.fetch<BottlenecksResponse>(
       `/api/v1/sync/analytics/bottlenecks?limit=${limit}`
     );
-    return response.data;
+    // Normalize the data to ensure all fields are present
+    return (response.data || []).map(normalizeBottleneckInfo);
   }
 
   /**
@@ -2183,7 +1873,8 @@ class ApiClient {
     const response = await this.fetch<StepAveragesResponse>(
       `/api/v1/sync/analytics/by-step?days=${days}`
     );
-    return response.data;
+    // Normalize the data to ensure all fields are present
+    return (response.data || []).map(normalizeStepAverages);
   }
 
   /**

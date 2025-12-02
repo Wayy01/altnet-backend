@@ -5,18 +5,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  RadialBar,
+  RadialBarChart,
+  PolarAngleAxis,
+} from "recharts";
+import {
   TrendingUp,
   TrendingDown,
-  Clock,
-  Zap,
-  Activity,
   BarChart3,
 } from "lucide-react";
 import { PerformanceTrend, StepAverages } from "@/types/analytics";
 import { useTranslation } from "@/contexts/language-context";
 
 // ============================================================================
-// TREND LINE CHART
+// TREND LINE CHART (using Recharts AreaChart)
 // ============================================================================
 
 interface TrendChartProps {
@@ -25,12 +41,16 @@ interface TrendChartProps {
   title: string;
   description?: string;
   valueKey: keyof PerformanceTrend;
-  secondaryKey?: keyof PerformanceTrend;
   formatValue?: (value: number) => string;
-  formatSecondary?: (value: number) => string;
   color?: string;
-  secondaryColor?: string;
 }
+
+const trendChartConfig = {
+  value: {
+    label: "Value",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
 
 export function TrendChart({
   data,
@@ -38,97 +58,30 @@ export function TrendChart({
   title,
   description,
   valueKey,
-  secondaryKey,
   formatValue = (v) => v.toLocaleString(),
-  formatSecondary,
   color = "hsl(var(--primary))",
-  secondaryColor = "hsl(var(--muted-foreground))",
 }: TrendChartProps) {
   const { t } = useTranslation("sync");
 
   const chartData = useMemo(() => {
-    if (!data || data.length === 0) return { points: [], secondaryPoints: [], maxValue: 0, minValue: 0 };
-
-    const values = data.map((d) => Number(d[valueKey]) || 0);
-    const maxValue = Math.max(...values, 1);
-    const minValue = Math.min(...values, 0);
-    const range = maxValue - minValue || 1;
-
-    const width = 100;
-    const height = 100;
-    const padding = 5;
-
-    const points = data.map((d, i) => {
-      const x = padding + (i / (data.length - 1 || 1)) * (width - padding * 2);
-      const rawValue = Number(d[valueKey]);
-      const value = Number.isFinite(rawValue) ? rawValue : 0;
-      const y = height - padding - ((value - minValue) / range) * (height - padding * 2);
-      // Ensure coordinates are finite numbers to prevent NaN in SVG attributes
-      return {
-        x: Number.isFinite(x) ? x : padding,
-        y: Number.isFinite(y) ? y : height - padding,
-        value,
-        date: d.date,
-      };
-    });
-
-    let secondaryPoints: typeof points = [];
-    if (secondaryKey) {
-      const secondaryValues = data.map((d) => Number(d[secondaryKey]) || 0);
-      const secondaryMax = Math.max(...secondaryValues, 1);
-      const secondaryMin = Math.min(...secondaryValues, 0);
-      const secondaryRange = secondaryMax - secondaryMin || 1;
-
-      secondaryPoints = data.map((d, i) => {
-        const x = padding + (i / (data.length - 1 || 1)) * (width - padding * 2);
-        const rawValue = Number(d[secondaryKey]);
-        const value = Number.isFinite(rawValue) ? rawValue : 0;
-        const y = height - padding - ((value - secondaryMin) / secondaryRange) * (height - padding * 2);
-        // Ensure coordinates are finite numbers to prevent NaN in SVG attributes
-        return {
-          x: Number.isFinite(x) ? x : padding,
-          y: Number.isFinite(y) ? y : height - padding,
-          value,
-          date: d.date,
-        };
-      });
-    }
-
-    return { points, secondaryPoints, maxValue, minValue };
-  }, [data, valueKey, secondaryKey]);
-
-  const trend = useMemo(() => {
-    if (data.length < 2) return { direction: "neutral" as const, percentage: 0 };
-    const first = Number(data[0]?.[valueKey]) || 0;
-    const last = Number(data[data.length - 1]?.[valueKey]) || 0;
-    const change = first > 0 ? ((last - first) / first) * 100 : 0;
-    return {
-      direction: change > 0 ? "up" as const : change < 0 ? "down" as const : "neutral" as const,
-      percentage: Math.abs(change),
-    };
+    if (!data || data.length === 0) return [];
+    return [...data].reverse().map((d) => ({
+      date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      value: Number(d[valueKey]) || 0,
+      fullDate: d.date,
+    }));
   }, [data, valueKey]);
 
-  const pathD = useMemo(() => {
-    if (chartData.points.length < 2) return "";
-    return chartData.points.reduce((path, point, i) => {
-      return i === 0 ? `M ${point.x} ${point.y}` : `${path} L ${point.x} ${point.y}`;
-    }, "");
-  }, [chartData.points]);
-
-  const secondaryPathD = useMemo(() => {
-    if (chartData.secondaryPoints.length < 2) return "";
-    return chartData.secondaryPoints.reduce((path, point, i) => {
-      return i === 0 ? `M ${point.x} ${point.y}` : `${path} L ${point.x} ${point.y}`;
-    }, "");
-  }, [chartData.secondaryPoints]);
-
-  const areaD = useMemo(() => {
-    if (chartData.points.length < 2) return "";
-    const base = pathD;
-    const lastPoint = chartData.points[chartData.points.length - 1];
-    const firstPoint = chartData.points[0];
-    return `${base} L ${lastPoint.x} 100 L ${firstPoint.x} 100 Z`;
-  }, [chartData.points, pathD]);
+  const trend = useMemo(() => {
+    if (chartData.length < 2) return { direction: "neutral" as const, percentage: 0 };
+    const first = chartData[0]?.value || 0;
+    const last = chartData[chartData.length - 1]?.value || 0;
+    const change = first > 0 ? ((last - first) / first) * 100 : 0;
+    return {
+      direction: change > 0 ? ("up" as const) : change < 0 ? ("down" as const) : ("neutral" as const),
+      percentage: Math.abs(change),
+    };
+  }, [chartData]);
 
   if (isLoading) {
     return (
@@ -144,7 +97,7 @@ export function TrendChart({
     );
   }
 
-  const latestValue = data.length > 0 ? Number(data[data.length - 1]?.[valueKey]) || 0 : 0;
+  const latestValue = chartData.length > 0 ? chartData[chartData.length - 1]?.value || 0 : 0;
 
   return (
     <Card className="rounded-xl border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
@@ -179,110 +132,62 @@ export function TrendChart({
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="relative h-40">
-          {data.length === 0 ? (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-              {t("analytics.noData")}
-            </div>
-          ) : (
-            <svg
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              className="w-full h-full"
+        {chartData.length === 0 ? (
+          <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
+            {t("analytics.noData")}
+          </div>
+        ) : (
+          <ChartContainer config={trendChartConfig} className="h-40 w-full">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             >
-              {/* Grid lines */}
               <defs>
-                <linearGradient id={`gradient-${valueKey}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-                  <stop offset="100%" stopColor={color} stopOpacity="0" />
+                <linearGradient id={`fill-${valueKey}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={color} stopOpacity={0.05} />
                 </linearGradient>
               </defs>
-
-              {/* Horizontal grid lines */}
-              {[0, 25, 50, 75, 100].map((y) => (
-                <line
-                  key={y}
-                  x1="5"
-                  y1={y}
-                  x2="95"
-                  y2={y}
-                  stroke="currentColor"
-                  strokeOpacity="0.1"
-                  strokeDasharray="2,2"
-                />
-              ))}
-
-              {/* Area fill */}
-              {areaD && (
-                <path
-                  d={areaD}
-                  fill={`url(#gradient-${valueKey})`}
-                  className="transition-all duration-300"
-                />
-              )}
-
-              {/* Secondary line */}
-              {secondaryPathD && (
-                <path
-                  d={secondaryPathD}
-                  fill="none"
-                  stroke={secondaryColor}
-                  strokeWidth="1.5"
-                  strokeOpacity="0.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="transition-all duration-300"
-                />
-              )}
-
-              {/* Main line */}
-              {pathD && (
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="transition-all duration-300"
-                />
-              )}
-
-              {/* Data points */}
-              {chartData.points.map((point, i) => (
-                <circle
-                  key={i}
-                  cx={point.x}
-                  cy={point.y}
-                  r="2"
-                  fill={color}
-                  className="transition-all duration-300 hover:r-3"
-                />
-              ))}
-            </svg>
-          )}
-        </div>
-
-        {/* Legend */}
-        {secondaryKey && formatSecondary && (
-          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-0.5 rounded-full" style={{ backgroundColor: color }} />
-              <span>{title}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-0.5 rounded-full opacity-50" style={{ backgroundColor: secondaryColor }} />
-              <span>Secondary</span>
-            </div>
-          </div>
-        )}
-
-        {/* Date range */}
-        {data.length > 0 && (
-          <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
-            <span>{new Date(data[0]?.date).toLocaleDateString()}</span>
-            <span>{new Date(data[data.length - 1]?.date).toLocaleDateString()}</span>
-          </div>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                fontSize={10}
+                className="fill-muted-foreground"
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                fontSize={10}
+                width={40}
+                tickFormatter={(v) => formatValue(v)}
+                className="fill-muted-foreground"
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(_, payload) => {
+                      if (payload?.[0]?.payload?.fullDate) {
+                        return new Date(payload[0].payload.fullDate).toLocaleDateString();
+                      }
+                      return "";
+                    }}
+                    formatter={(value) => formatValue(Number(value))}
+                  />
+                }
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={color}
+                strokeWidth={2}
+                fill={`url(#fill-${valueKey})`}
+              />
+            </AreaChart>
+          </ChartContainer>
         )}
       </CardContent>
     </Card>
@@ -290,7 +195,7 @@ export function TrendChart({
 }
 
 // ============================================================================
-// STEP COMPARISON BAR CHART
+// STEP COMPARISON BAR CHART (using Recharts BarChart)
 // ============================================================================
 
 interface StepBarChartProps {
@@ -301,6 +206,13 @@ interface StepBarChartProps {
   valueKey: keyof StepAverages;
   formatValue?: (value: number) => string;
 }
+
+const stepChartConfig = {
+  value: {
+    label: "Value",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
 
 export function StepBarChart({
   data,
@@ -313,19 +225,15 @@ export function StepBarChart({
   const { t } = useTranslation("sync");
 
   const chartData = useMemo(() => {
-    if (!data || data.length === 0) return { bars: [], maxValue: 0 };
-
-    const values = data.map((d) => Number(d[valueKey]) || 0);
-    const maxValue = Math.max(...values, 1);
-
-    const bars = data.map((d) => ({
-      name: d.step_name,
-      value: Number(d[valueKey]) || 0,
-      percentage: (Number(d[valueKey]) / maxValue) * 100,
-      executions: d.total_executions,
-    }));
-
-    return { bars, maxValue };
+    if (!data || data.length === 0) return [];
+    return data
+      .sort((a, b) => a.step_number - b.step_number)
+      .map((d) => ({
+        name: d.step_name,
+        shortName: d.step_name.length > 12 ? d.step_name.slice(0, 12) + "..." : d.step_name,
+        value: Number(d[valueKey]) || 0,
+        executions: d.sync_count || d.total_executions || 0,
+      }));
   }, [data, valueKey]);
 
   if (isLoading) {
@@ -365,45 +273,58 @@ export function StepBarChart({
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        {chartData.bars.length === 0 ? (
+        {chartData.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
             {t("analytics.noData")}
           </div>
         ) : (
-          <div className="space-y-3">
-            {chartData.bars.map((bar, index) => (
-              <div
-                key={bar.name}
-                className="group transition-all duration-200"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium truncate max-w-[60%]">
-                    {bar.name}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {bar.executions} {t("analytics.executions")}
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {formatValue(bar.value)}
-                    </span>
-                  </div>
-                </div>
-                <div className="relative h-6 rounded-lg bg-muted/50 overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 rounded-lg bg-gradient-to-r from-primary/80 to-primary transition-all duration-500 ease-out group-hover:opacity-90"
-                    style={{ width: `${bar.percentage}%` }}
+          <ChartContainer config={stepChartConfig} className="h-[280px] w-full">
+            <BarChart
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} className="stroke-muted" />
+              <XAxis
+                type="number"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                fontSize={10}
+                tickFormatter={(v) => formatValue(v)}
+                className="fill-muted-foreground"
+              />
+              <YAxis
+                type="category"
+                dataKey="shortName"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                fontSize={10}
+                width={80}
+                className="fill-muted-foreground"
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(_, payload) => {
+                      if (payload?.[0]?.payload?.name) {
+                        return `${payload[0].payload.name} (${payload[0].payload.executions} ${t("analytics.executions")})`;
+                      }
+                      return "";
+                    }}
+                    formatter={(value) => formatValue(Number(value))}
                   />
-                  <div className="absolute inset-0 flex items-center px-2">
-                    <span className="text-[10px] font-medium text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                      {bar.percentage.toFixed(1)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                }
+              />
+              <Bar
+                dataKey="value"
+                fill="hsl(var(--primary))"
+                radius={[0, 4, 4, 0]}
+                className="fill-primary"
+              />
+            </BarChart>
+          </ChartContainer>
         )}
       </CardContent>
     </Card>
@@ -457,7 +378,7 @@ export function StatCard({
     default: "bg-muted",
     success: "bg-primary/10 text-primary",
     warning: "bg-destructive/10 text-destructive",
-    info: "bg-blue-500/10 text-blue-600",
+    info: "bg-accent/10 text-accent-foreground",
   };
 
   return (
@@ -499,7 +420,7 @@ export function StatCard({
 }
 
 // ============================================================================
-// MINI SPARKLINE
+// MINI SPARKLINE (using Recharts AreaChart)
 // ============================================================================
 
 interface SparklineProps {
@@ -513,101 +434,89 @@ export function Sparkline({
   color = "hsl(var(--primary))",
   height = 24,
 }: SparklineProps) {
-  const pathD = useMemo(() => {
-    if (!data || data.length < 2) return "";
+  const chartData = useMemo(() => {
+    if (!data || data.length < 2) return [];
+    return data.map((value, i) => ({
+      index: i,
+      value: Number.isFinite(value) ? value : 0,
+    }));
+  }, [data]);
 
-    const max = Math.max(...data, 1);
-    const min = Math.min(...data, 0);
-    const range = max - min || 1;
-
-    const points = data.map((value, i) => {
-      const safeValue = Number.isFinite(value) ? value : 0;
-      const x = (i / (data.length - 1 || 1)) * 100;
-      const y = height - ((safeValue - min) / range) * height;
-      // Ensure coordinates are finite numbers to prevent NaN in SVG attributes
-      return {
-        x: Number.isFinite(x) ? x : 0,
-        y: Number.isFinite(y) ? y : height,
-      };
-    });
-
-    return points.reduce((path, point, i) => {
-      return i === 0 ? `M ${point.x} ${point.y}` : `${path} L ${point.x} ${point.y}`;
-    }, "");
-  }, [data, height]);
-
-  if (data.length < 2) return null;
+  if (chartData.length < 2) return null;
 
   return (
-    <svg
-      viewBox={`0 0 100 ${height}`}
-      preserveAspectRatio="none"
-      className="w-full"
-      style={{ height }}
-    >
-      <path
-        d={pathD}
-        fill="none"
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <ResponsiveContainer width="100%" height={height}>
+      <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="sparklineGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <Area
+          type="monotone"
+          dataKey="value"
+          stroke={color}
+          strokeWidth={1.5}
+          fill="url(#sparklineGradient)"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
 // ============================================================================
-// DONUT CHART FOR SUCCESS RATE
+// DONUT CHART FOR SUCCESS RATE (using Recharts RadialBarChart)
 // ============================================================================
 
 interface DonutChartProps {
   value: number; // percentage 0-100
   label: string;
   size?: number;
-  strokeWidth?: number;
   color?: string;
-  backgroundColor?: string;
 }
 
 export function DonutChart({
   value,
   label,
   size = 120,
-  strokeWidth = 12,
   color = "hsl(var(--primary))",
-  backgroundColor = "hsl(var(--muted))",
 }: DonutChartProps) {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (value / 100) * circumference;
+  const chartData = [
+    {
+      name: label,
+      value: value,
+      fill: color,
+    },
+  ];
 
   return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="-rotate-90">
-        {/* Background circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={backgroundColor}
-          strokeWidth={strokeWidth}
-        />
-        {/* Progress circle */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          className="transition-all duration-500 ease-out"
-        />
-      </svg>
+    <div className="relative" style={{ width: size, height: size }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <RadialBarChart
+          cx="50%"
+          cy="50%"
+          innerRadius="70%"
+          outerRadius="100%"
+          barSize={12}
+          data={chartData}
+          startAngle={90}
+          endAngle={-270}
+        >
+          <PolarAngleAxis
+            type="number"
+            domain={[0, 100]}
+            angleAxisId={0}
+            tick={false}
+          />
+          <RadialBar
+            background={{ fill: "hsl(var(--muted))" }}
+            dataKey="value"
+            cornerRadius={6}
+            fill={color}
+          />
+        </RadialBarChart>
+      </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-bold tabular-nums">{value.toFixed(1)}%</span>
         <span className="text-xs text-muted-foreground">{label}</span>

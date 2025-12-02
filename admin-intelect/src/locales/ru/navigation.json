@@ -18,7 +18,14 @@
     "overview": "Обзор",
     "selectiveSync": "Выборочная синхронизация",
     "configurations": "Конфигурации",
-    "changeHistory": "История изменений"
+    "changeHistory": "История изменений",
+    "advanced": "Расширенные",
+    "rollbacks": "Откаты",
+    "conflicts": "Конфликты",
+    "schedules": "Расписания",
+    "notifications": "Уведомления",
+    "analytics": "Аналитика",
+    "filters": "Фильтры"
   },
   "create": {
     "product": "Создать товар",
@@ -44,7 +51,13 @@
     "createBrand": "Добавить новый бренд",
     "createCategory": "Добавить новую категорию",
     "translate": "Перевод контента",
-    "jobs": "Задачи перевода"
+    "jobs": "Задачи перевода",
+    "rollbacks": "Восстановление предыдущих данных",
+    "conflicts": "Разрешение конфликтов данных",
+    "schedules": "Запланированные задачи синхронизации",
+    "notifications": "Оповещения и уведомления синхронизации",
+    "analytics": "Аналитика производительности синхронизации",
+    "filters": "Фильтры данных синхронизации"
   },
   "breadcrumbs": {
     "dashboard": "Панель управления",
@@ -67,7 +80,9 @@
     "notifications": "Уведомления",
     "rollbacks": "Откаты",
     "conflicts": "Конфликты",
-    "schedules": "Расписания"
+    "schedules": "Расписания",
+    "analytics": "Аналитика",
+    "filters": "Фильтры"
   },
   "sidebar": {
     "language": "Язык",

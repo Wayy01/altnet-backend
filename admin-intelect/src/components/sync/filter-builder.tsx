@@ -291,8 +291,8 @@ export function FilterBuilder({
           className={cn(
             "gap-2 transition-all",
             logic === "AND"
-              ? "border-blue-500/30 bg-blue-500/5 text-blue-700 hover:bg-blue-500/10"
-              : "border-orange-500/30 bg-orange-500/5 text-orange-700 hover:bg-orange-500/10"
+              ? "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+              : "border-accent/30 bg-accent/5 text-accent-foreground hover:bg-accent/10"
           )}
         >
           {logic === "AND" ? (
@@ -335,8 +335,8 @@ export function FilterBuilder({
                         className={cn(
                           "text-xs font-semibold shrink-0",
                           logic === "AND"
-                            ? "border-blue-500/30 bg-blue-500/10 text-blue-700"
-                            : "border-orange-500/30 bg-orange-500/10 text-orange-700"
+                            ? "border-primary/30 bg-primary/10 text-primary"
+                            : "border-accent/30 bg-accent/10 text-accent-foreground"
                         )}
                       >
                         {logic}

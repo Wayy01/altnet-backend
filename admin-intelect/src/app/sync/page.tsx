@@ -29,16 +29,9 @@ import {
   ExternalLink,
   MoreVertical,
   AlertTriangle,
-  Settings,
   FileText,
-  TrendingUp,
   ArrowUp,
   ArrowDown,
-  RotateCcw,
-  GitMerge,
-  Calendar,
-  Bell,
-  Filter,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -182,7 +175,6 @@ export default function SyncPage() {
   const [newStatus, setNewStatus] = useState<"failed" | "cancelled" | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [jumpToPage, setJumpToPage] = useState("");
-  const [unresolvedConflictsCount, setUnresolvedConflictsCount] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const { t } = useTranslation('sync');
@@ -277,16 +269,14 @@ export default function SyncPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [progressResponse, logsResponse, conflictsCount] = await Promise.all([
+      const [progressResponse, logsResponse] = await Promise.all([
         api.getSyncProgress(),
         api.getSyncLogs(pageSize, offset),
-        api.getUnresolvedConflictsCount().catch(() => 0),
       ]);
 
       setSyncProgress(progressResponse);
       setSyncLogs(logsResponse.data);
       setTotal(logsResponse.total);
-      setUnresolvedConflictsCount(conflictsCount);
       setLastUpdated(new Date());
       setError(null);
 
@@ -520,79 +510,6 @@ export default function SyncPage() {
             <Link href="/sync/monitor">
               <Activity className="h-4 w-4 mr-2" />
               {t('actions.realTimeMonitor')}
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
-          >
-            <Link href="/sync/rollbacks">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              {t('actions.rollbacks')}
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className={`transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5 ${
-              unresolvedConflictsCount > 0 ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10" : ""
-            }`}
-          >
-            <Link href="/sync/conflicts">
-              <GitMerge className="h-4 w-4 mr-2" />
-              {t('actions.conflicts')}
-              {unresolvedConflictsCount > 0 && (
-                <Badge variant="destructive" className="ml-1.5 px-1.5 py-0 text-[10px] h-5 min-w-5 flex items-center justify-center">
-                  {unresolvedConflictsCount}
-                </Badge>
-              )}
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
-          >
-            <Link href="/sync/schedules">
-              <Calendar className="h-4 w-4 mr-2" />
-              {t('actions.schedules')}
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
-          >
-            <Link href="/sync/notifications">
-              <Bell className="h-4 w-4 mr-2" />
-              {t('actions.notifications')}
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
-          >
-            <Link href="/sync/analytics">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              {t('actions.analytics')}
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
-          >
-            <Link href="/sync/filters">
-              <Filter className="h-4 w-4 mr-2" />
-              {t('actions.filters')}
             </Link>
           </Button>
           <Button

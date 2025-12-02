@@ -673,6 +673,8 @@
     "exportSuccessDescription": "Datele analitice au fost exportate in CSV",
     "exportFailed": "Export Esuat",
     "loadFailed": "Nu s-au putut incarca datele analitice",
+    "noData": "Nu exista date disponibile",
+    "executions": "executii",
     "table": {
       "step": "Pas",
       "syncType": "Tip Sincronizare",

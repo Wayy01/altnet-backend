@@ -18,7 +18,14 @@
     "overview": "Overview",
     "selectiveSync": "Selective Sync",
     "configurations": "Configurations",
-    "changeHistory": "Change History"
+    "changeHistory": "Change History",
+    "advanced": "Advanced",
+    "rollbacks": "Rollbacks",
+    "conflicts": "Conflicts",
+    "schedules": "Schedules",
+    "notifications": "Notifications",
+    "analytics": "Analytics",
+    "filters": "Filters"
   },
   "create": {
     "product": "Create Product",
@@ -44,7 +51,13 @@
     "createBrand": "Add new brand",
     "createCategory": "Add new category",
     "translate": "Translate content",
-    "jobs": "Translation jobs"
+    "jobs": "Translation jobs",
+    "rollbacks": "Restore previous data",
+    "conflicts": "Resolve data conflicts",
+    "schedules": "Scheduled sync tasks",
+    "notifications": "Sync alerts & notifications",
+    "analytics": "Sync performance analytics",
+    "filters": "Sync data filters"
   },
   "breadcrumbs": {
     "dashboard": "Dashboard",
@@ -67,7 +80,9 @@
     "notifications": "Notifications",
     "rollbacks": "Rollbacks",
     "conflicts": "Conflicts",
-    "schedules": "Schedules"
+    "schedules": "Schedules",
+    "analytics": "Analytics",
+    "filters": "Filters"
   },
   "sidebar": {
     "language": "Language",
