@@ -5,9 +5,10 @@
 -- Date: 2025-12-02
 -- ============================================================================
 
--- Drop views first (they depend on tables)
+-- Drop views first (they depend on tables/columns)
 DROP VIEW IF EXISTS unresolved_sync_conflicts CASCADE;
 DROP VIEW IF EXISTS rollback_capable_syncs CASCADE;
+DROP VIEW IF EXISTS active_sync_schedules CASCADE;
 
 -- Drop triggers
 DROP TRIGGER IF EXISTS trigger_sync_conflict_count ON sync_conflicts;
@@ -22,8 +23,20 @@ ALTER TABLE sync_logs DROP COLUMN IF EXISTS conflict_count;
 ALTER TABLE sync_logs DROP COLUMN IF EXISTS conflicts_resolved;
 ALTER TABLE sync_logs DROP COLUMN IF EXISTS rollback_available;
 
--- Drop notification_config from sync_schedules (keeping table, removing unused column)
+-- Drop notification_config from sync_schedules (view depends on it, so drop view first)
 ALTER TABLE sync_schedules DROP COLUMN IF EXISTS notification_config;
+
+-- Recreate active_sync_schedules view without notification_config
+CREATE VIEW active_sync_schedules AS
+SELECT
+    ss.*,
+    sc.name as config_name,
+    sc.selected_steps,
+    sc.field_config
+FROM sync_schedules ss
+LEFT JOIN sync_configurations sc ON ss.configuration_id = sc.id
+WHERE ss.is_active = true
+ORDER BY ss.next_run_at;
 
 -- Drop rollback tables (order matters due to FK constraints)
 DROP TABLE IF EXISTS sync_rollbacks CASCADE;
