@@ -1395,7 +1395,13 @@ class ApiClient {
       throw new Error(`Upload failed: ${response.status} - ${errorText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    const data = result.data as UploadResponse;
+    // Prepend base URL to relative path
+    if (data.url && data.url.startsWith("/")) {
+      data.url = `${this.baseUrl}${data.url}`;
+    }
+    return data;
   }
 
   /**
@@ -1416,7 +1422,13 @@ class ApiClient {
       throw new Error(`Upload failed: ${response.status} - ${errorText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    const data = result.data as UploadResponse;
+    // Prepend base URL to relative path
+    if (data.url && data.url.startsWith("/")) {
+      data.url = `${this.baseUrl}${data.url}`;
+    }
+    return data;
   }
 
   /**
@@ -1439,7 +1451,15 @@ class ApiClient {
       throw new Error(`Upload failed: ${response.status} - ${errorText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    // Prepend base URL to relative paths
+    const data = result.data as UploadResponse[];
+    data.forEach((item) => {
+      if (item.url && item.url.startsWith("/")) {
+        item.url = `${this.baseUrl}${item.url}`;
+      }
+    });
+    return { files: data, failed: result.errors || [] };
   }
 
   /**

@@ -265,7 +265,8 @@
     "mainImageUrlPlaceholder": "https://example.com/image.jpg",
     "images": "Images",
     "videos": "Videos",
-    "totalMedia": "Total Media"
+    "totalMedia": "Total Media",
+    "browseFiles": "Browse Files"
   },
   "variants": {
     "title": "Product Variants",

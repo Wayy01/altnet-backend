@@ -28,6 +28,38 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation, useLocalizedValue } from "@/contexts/language-context";
 
+/**
+ * Form section wrapper with staggered animation - defined outside component to prevent re-renders
+ */
+function FormSection({
+  children,
+  index,
+  className,
+  visible,
+}: {
+  children: React.ReactNode;
+  index: number;
+  className?: string;
+  visible: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "transition-all duration-300 ease-out",
+        visible
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-4",
+        className
+      )}
+      style={{
+        transitionDelay: visible ? `${index * 50}ms` : "0ms",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 interface BasicInfoTabProps {
   data: ProductFormState["basicInfo"];
   onChange: (updates: Partial<ProductFormState["basicInfo"]>) => void;
@@ -219,38 +251,10 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
     onChange({ barcodes: data.barcodes.filter((b) => b !== barcode) });
   };
 
-  /**
-   * Form section wrapper with staggered animation
-   */
-  const FormSection = ({
-    children,
-    index,
-    className,
-  }: {
-    children: React.ReactNode;
-    index: number;
-    className?: string;
-  }) => (
-    <div
-      className={cn(
-        "transition-all duration-300 ease-out",
-        sectionsVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-4",
-        className
-      )}
-      style={{
-        transitionDelay: sectionsVisible ? `${index * 50}ms` : "0ms",
-      }}
-    >
-      {children}
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       {/* Product Name - Required */}
-      <FormSection index={0}>
+      <FormSection index={0} visible={sectionsVisible}>
         <div className="space-y-2">
           <Label htmlFor="name" className="text-sm font-medium">
             {t("basicInfo.title")} <span className="text-destructive">*</span>
@@ -273,7 +277,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Code and Article */}
-      <FormSection index={1}>
+      <FormSection index={1} visible={sectionsVisible}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="code" className="text-sm font-medium">
@@ -317,7 +321,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Brand and Category - Searchable Selectors */}
-      <FormSection index={2}>
+      <FormSection index={2} visible={sectionsVisible}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Brand Selector - Searchable Combobox */}
           <div className="space-y-2">
@@ -578,7 +582,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Source Selector */}
-      <FormSection index={3}>
+      <FormSection index={3} visible={sectionsVisible}>
         <div className="space-y-2">
           <Label htmlFor="source" className="text-sm font-medium flex items-center gap-2">
             <Globe className="h-3.5 w-3.5 text-muted-foreground" />
@@ -754,7 +758,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Description */}
-      <FormSection index={4}>
+      <FormSection index={4} visible={sectionsVisible}>
         <div className="space-y-2">
           <Label htmlFor="description" className="text-sm font-medium">
             {t("basicInfo.description")}
@@ -778,7 +782,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Warranty */}
-      <FormSection index={5}>
+      <FormSection index={5} visible={sectionsVisible}>
         <div className="space-y-2">
           <Label htmlFor="warranty" className="text-sm font-medium">
             {t("basicInfo.warranty")}
@@ -801,7 +805,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Barcodes */}
-      <FormSection index={6}>
+      <FormSection index={6} visible={sectionsVisible}>
         <div className="space-y-3">
           <Label className="text-sm font-medium">{t("basicInfo.barcodes")}</Label>
           <div className="flex gap-2">
@@ -869,7 +873,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Pricing & Stock */}
-      <FormSection index={7}>
+      <FormSection index={7} visible={sectionsVisible}>
         <div className="space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-4 w-4 text-primary" />
@@ -1019,7 +1023,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
       </FormSection>
 
       {/* Status Switches */}
-      <FormSection index={8}>
+      <FormSection index={8} visible={sectionsVisible}>
         <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
           <div className="flex items-center justify-between p-4 border-b border-border/50">
             <div className="space-y-0.5">

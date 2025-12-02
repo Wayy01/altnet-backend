@@ -265,7 +265,8 @@
     "mainImageUrlPlaceholder": "https://example.com/image.jpg",
     "images": "Imagini",
     "videos": "Videoclipuri",
-    "totalMedia": "Total media"
+    "totalMedia": "Total media",
+    "browseFiles": "Alege fisiere"
   },
   "variants": {
     "title": "Variante produs",

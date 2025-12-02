@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import {
   Upload,
@@ -25,6 +25,38 @@ import { api } from "@/lib/api";
 import { ProductFormState, CreateImageData, CreateVideoData } from "@/types";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/language-context";
+
+/**
+ * Section wrapper with staggered animation - defined outside component to prevent re-renders
+ */
+function Section({
+  children,
+  index,
+  className,
+  visible,
+}: {
+  children: React.ReactNode;
+  index: number;
+  className?: string;
+  visible: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "transition-all duration-300 ease-out",
+        visible
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-4",
+        className
+      )}
+      style={{
+        transitionDelay: visible ? `${index * 100}ms` : "0ms",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 interface MediaTabProps {
   data: ProductFormState["media"];
@@ -92,6 +124,28 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
     [data.images, data.main_image_url, onChange, toast]
   );
 
+  // Refs for manual file input triggering
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle file selection from manual input
+  const handleImageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      onDropImages(Array.from(files));
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleVideoInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      onDropVideos(Array.from(files));
+    }
+    e.target.value = '';
+  };
+
   const {
     getRootProps: getImageRootProps,
     getInputProps: getImageInputProps,
@@ -106,6 +160,8 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
     },
     maxSize: 10 * 1024 * 1024, // 10MB
     disabled: isUploadingImage,
+    noClick: true, // We handle click manually
+    noKeyboard: true,
   });
 
   // Video dropzone
@@ -161,6 +217,8 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
     },
     maxSize: 100 * 1024 * 1024, // 100MB
     disabled: isUploadingVideo,
+    noClick: true, // We handle click manually
+    noKeyboard: true,
   });
 
   // Remove handlers
@@ -196,38 +254,10 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
     onChange({ main_image_url: url });
   };
 
-  /**
-   * Section wrapper with staggered animation
-   */
-  const Section = ({
-    children,
-    index,
-    className,
-  }: {
-    children: React.ReactNode;
-    index: number;
-    className?: string;
-  }) => (
-    <div
-      className={cn(
-        "transition-all duration-300 ease-out",
-        sectionsVisible
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-4",
-        className
-      )}
-      style={{
-        transitionDelay: sectionsVisible ? `${index * 100}ms` : "0ms",
-      }}
-    >
-      {children}
-    </div>
-  );
-
   return (
     <div className="space-y-8">
       {/* Images Section */}
-      <Section index={0}>
+      <Section index={0} visible={sectionsVisible}>
         <div className="space-y-4">
           {/* Section Header */}
           <div className="flex items-center justify-between">
@@ -250,8 +280,18 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
           </div>
 
           {/* Image Dropzone */}
+          {/* Hidden file input for click handling */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            multiple
+            onChange={handleImageInputChange}
+            className="hidden"
+          />
           <div
             {...getImageRootProps()}
+            onClick={() => imageInputRef.current?.click()}
             className={cn(
               "relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center",
               "transition-all duration-300 ease-out",
@@ -300,9 +340,18 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                         ? t("media.dropImagesHere")
                         : t("media.dragDropImages")}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mb-3">
                       {t("media.orClickBrowse")}
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 pointer-events-none"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      {t("media.browseFiles")}
+                    </Button>
                   </div>
                 </>
               )}
@@ -385,7 +434,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
       </Section>
 
       {/* Videos Section */}
-      <Section index={1}>
+      <Section index={1} visible={sectionsVisible}>
         <div className="space-y-4">
           {/* Section Header */}
           <div className="flex items-center justify-between">
@@ -408,8 +457,18 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
           </div>
 
           {/* Video Dropzone */}
+          {/* Hidden file input for click handling */}
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime"
+            multiple
+            onChange={handleVideoInputChange}
+            className="hidden"
+          />
           <div
             {...getVideoRootProps()}
+            onClick={() => videoInputRef.current?.click()}
             className={cn(
               "relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center",
               "transition-all duration-300 ease-out",
@@ -458,9 +517,18 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                         ? t("media.dropVideosHere")
                         : t("media.dragDropVideos")}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground mb-3">
                       {t("media.orClickBrowse")}
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 pointer-events-none"
+                    >
+                      <Video className="h-4 w-4" />
+                      {t("media.browseFiles")}
+                    </Button>
                   </div>
                 </>
               )}
@@ -542,7 +610,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
       </Section>
 
       {/* Main Image URL Override */}
-      <Section index={2}>
+      <Section index={2} visible={sectionsVisible}>
         <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted border border-border/50">
@@ -587,7 +655,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
 
       {/* Summary Stats */}
       {(data.images.length > 0 || data.videos.length > 0) && (
-        <Section index={3}>
+        <Section index={3} visible={sectionsVisible}>
           <div className="rounded-xl border border-border/50 bg-muted/30 p-4">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="space-y-1">

@@ -265,7 +265,8 @@
     "mainImageUrlPlaceholder": "https://example.com/image.jpg",
     "images": "Изображения",
     "videos": "Видео",
-    "totalMedia": "Всего медиа"
+    "totalMedia": "Всего медиа",
+    "browseFiles": "Выбрать файлы"
   },
   "variants": {
     "title": "Варианты товара",
