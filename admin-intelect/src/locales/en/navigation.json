@@ -2,6 +2,7 @@
   "menu": {
     "dashboard": "Dashboard",
     "products": "Products",
+    "variants": "Variants",
     "properties": "Properties",
     "groupings": "Groupings",
     "brands": "Brands",
@@ -39,6 +40,7 @@
   "descriptions": {
     "dashboard": "Overview & statistics",
     "products": "Manage product catalog",
+    "variants": "Variant group management",
     "properties": "Product properties",
     "groupings": "Product groupings",
     "brands": "Brand management",
@@ -62,6 +64,7 @@
   "breadcrumbs": {
     "dashboard": "Dashboard",
     "products": "Products",
+    "variants": "Variants",
     "brands": "Brands",
     "categories": "Categories",
     "sync": "Sync Status",

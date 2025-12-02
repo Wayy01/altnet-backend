@@ -17,6 +17,7 @@ import (
 	"ultra-api-testing/internal/repository"
 	internalSync "ultra-api-testing/internal/sync"
 	"ultra-api-testing/internal/ultra"
+	"ultra-api-testing/internal/variants"
 )
 
 func main() {
@@ -72,6 +73,12 @@ func main() {
 	performanceHandler := handlers.NewPerformanceHandler(performanceRepo)
 	filterHandler := handlers.NewFilterHandler(filterRepo)
 
+	// Initialize variant generation components
+	variantRepo := variants.NewRepository(db.Pool)
+	variantGenerator := variants.NewGenerator(variantRepo, &cfg.Ollama)
+	variantHandler := handlers.NewVariantHandler(variantGenerator, variantRepo)
+	defer variantGenerator.Shutdown()
+
 	// Create selective sync for scheduler
 	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher, syncManager)
 
@@ -122,7 +129,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -183,7 +190,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -387,6 +394,18 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/translate/jobs/{id}/logs", translationHandler.GetTranslationLogs).Methods("GET", "OPTIONS")
 	api.HandleFunc("/translate/stats", translationHandler.GetTranslationStats).Methods("GET", "OPTIONS")
 	api.HandleFunc("/translate/stream/{id}", translationHandler.StreamTranslationProgress).Methods("GET", "OPTIONS")
+
+	// Variant generation endpoints
+	api.HandleFunc("/variants/generate", variantHandler.TriggerGeneration).Methods("POST", "OPTIONS")
+	api.HandleFunc("/variants/status", variantHandler.GetGenerationStatus).Methods("GET", "OPTIONS")
+	api.HandleFunc("/variants/stats", variantHandler.GetStats).Methods("GET", "OPTIONS")
+	api.HandleFunc("/variants/jobs", variantHandler.ListJobs).Methods("GET", "OPTIONS")
+	api.HandleFunc("/variants/jobs/{id}", variantHandler.GetJob).Methods("GET", "OPTIONS")
+	api.HandleFunc("/variants/jobs/{id}/cancel", variantHandler.CancelJob).Methods("POST", "OPTIONS")
+	api.HandleFunc("/variants/groups", variantHandler.ListGroups).Methods("GET", "OPTIONS")
+	api.HandleFunc("/variants/groups/{id}", variantHandler.GetGroup).Methods("GET", "OPTIONS")
+	api.HandleFunc("/variants/groups/{id}", variantHandler.DeleteGroup).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/variants/stream/{id}", variantHandler.StreamProgress).Methods("GET", "OPTIONS")
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

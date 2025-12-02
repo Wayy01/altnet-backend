@@ -22,6 +22,7 @@ import {
   TrendingUp,
   Filter,
   Wrench,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -112,6 +113,12 @@ export function AppSidebar() {
       url: "/products",
       icon: Package,
       descriptionKey: "descriptions.products",
+    },
+    {
+      titleKey: "menu.variants",
+      url: "/variants",
+      icon: Layers,
+      descriptionKey: "descriptions.variants",
     },
     {
       titleKey: "menu.properties",

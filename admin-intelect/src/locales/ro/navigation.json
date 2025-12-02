@@ -2,6 +2,7 @@
   "menu": {
     "dashboard": "Panou de control",
     "products": "Produse",
+    "variants": "Variante",
     "properties": "Proprietati",
     "groupings": "Grupari",
     "brands": "Marci",
@@ -39,6 +40,7 @@
   "descriptions": {
     "dashboard": "Prezentare generala si statistici",
     "products": "Gestioneaza catalogul de produse",
+    "variants": "Gestionare grupuri de variante",
     "properties": "Proprietati produse",
     "groupings": "Grupari produse",
     "brands": "Gestionare marci",
@@ -62,6 +64,7 @@
   "breadcrumbs": {
     "dashboard": "Panou de control",
     "products": "Produse",
+    "variants": "Variante",
     "brands": "Marci",
     "categories": "Categorii",
     "sync": "Stare sincronizare",

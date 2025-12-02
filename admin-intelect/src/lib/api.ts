@@ -108,6 +108,16 @@ import {
   EntityTypesResponse,
   FilterToggleResponse,
 } from "@/types/filter";
+import {
+  VariantGenerationJob,
+  VariantStats,
+  VariantStatusResponse,
+  ProductVariantGroup,
+  VariantGroupWithDetails,
+  VariantProgressUpdate,
+  VariantJobsResponse,
+  VariantGroupsResponse,
+} from "@/types/variants";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -1934,6 +1944,170 @@ class ApiClient {
     return this.fetch<EntityTypesResponse>(
       `/api/v1/sync/filters/entity-types`
     );
+  }
+
+  // ============================================================================
+  // VARIANT GENERATION METHODS
+  // ============================================================================
+
+  /**
+   * Trigger variant generation job
+   * Starts a background job that analyzes products and creates variant groups
+   */
+  async triggerVariantGeneration(): Promise<VariantGenerationJob> {
+    const response = await this.fetch<{ data: VariantGenerationJob }>(
+      "/api/v1/variants/generate",
+      {
+        method: "POST",
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get current variant generation status
+   * Returns the active job if one is running
+   */
+  async getVariantStatus(): Promise<VariantStatusResponse> {
+    const response = await this.fetch<{ data: VariantStatusResponse }>(
+      "/api/v1/variants/status"
+    );
+    return response.data;
+  }
+
+  /**
+   * Get variant statistics
+   * Returns counts and status information
+   */
+  async getVariantStats(): Promise<VariantStats> {
+    const response = await this.fetch<{ data: VariantStats }>(
+      "/api/v1/variants/stats"
+    );
+    return response.data;
+  }
+
+  /**
+   * List variant generation jobs with pagination
+   */
+  async getVariantJobs(
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: VariantGenerationJob[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<VariantJobsResponse>(
+      `/api/v1/variants/jobs?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single variant generation job by ID
+   */
+  async getVariantJob(id: string): Promise<VariantGenerationJob> {
+    const response = await this.fetch<{ data: VariantGenerationJob }>(
+      `/api/v1/variants/jobs/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Cancel a running variant generation job
+   */
+  async cancelVariantJob(id: string): Promise<void> {
+    await this.fetch<void>(`/api/v1/variants/jobs/${id}/cancel`, {
+      method: "POST",
+    });
+  }
+
+  /**
+   * List variant groups with search and pagination
+   */
+  async getVariantGroups(
+    params?: {
+      search?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<{ data: ProductVariantGroup[]; total: number }> {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.append("search", params.search);
+    searchParams.append("limit", (params?.limit ?? 50).toString());
+    searchParams.append("offset", (params?.offset ?? 0).toString());
+
+    const response = await this.fetch<VariantGroupsResponse>(
+      `/api/v1/variants/groups?${searchParams.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a variant group with full details
+   * Optionally include the variant matrix for the editor
+   */
+  async getVariantGroup(
+    id: string,
+    includeMatrix = false
+  ): Promise<VariantGroupWithDetails> {
+    const params = new URLSearchParams();
+    if (includeMatrix) {
+      params.append("include_matrix", "true");
+    }
+
+    const response = await this.fetch<{ data: VariantGroupWithDetails }>(
+      `/api/v1/variants/groups/${id}?${params.toString()}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a variant group
+   * This unlinks the products from the group but does not delete the products
+   */
+  async deleteVariantGroup(id: string): Promise<void> {
+    await this.fetch<void>(`/api/v1/variants/groups/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  /**
+   * Create an EventSource for real-time variant generation progress
+   * Returns an unsubscribe function
+   */
+  subscribeToVariantProgress(
+    jobId: string,
+    onProgress: (update: VariantProgressUpdate) => void
+  ): () => void {
+    const eventSource = new EventSource(
+      `${this.baseUrl}/api/v1/variants/stream/${jobId}`
+    );
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data) as VariantProgressUpdate;
+        onProgress(data);
+      } catch (e) {
+        console.error("Error parsing variant progress update:", e);
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
+
+    // Return unsubscribe function
+    return () => {
+      eventSource.close();
+    };
+  }
+
+  /**
+   * Get the SSE URL for variant generation progress
+   */
+  getVariantStreamUrl(jobId: string): string {
+    return `${this.baseUrl}/api/v1/variants/stream/${jobId}`;
   }
 }
 

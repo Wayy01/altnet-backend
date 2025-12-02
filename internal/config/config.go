@@ -15,6 +15,14 @@ type Config struct {
 	Server         ServerConfig
 	Logging        LoggingConfig
 	LibreTranslate LibreTranslateConfig
+	Ollama         OllamaConfig
+}
+
+// OllamaConfig holds configuration for Ollama AI integration
+type OllamaConfig struct {
+	URL     string
+	Model   string
+	Timeout time.Duration
 }
 
 type LibreTranslateConfig struct {
@@ -86,6 +94,11 @@ func Load() (*Config, error) {
 		},
 		LibreTranslate: LibreTranslateConfig{
 			URL: getEnv("LIBRETRANSLATE_URL", "http://localhost:5000"),
+		},
+		Ollama: OllamaConfig{
+			URL:     getEnv("OLLAMA_URL", "http://localhost:11434"),
+			Model:   getEnv("OLLAMA_MODEL", "llama3.2:3b"),
+			Timeout: getDuration("OLLAMA_TIMEOUT", 30*time.Second),
 		},
 	}
 
