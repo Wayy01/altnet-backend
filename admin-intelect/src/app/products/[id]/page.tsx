@@ -1234,7 +1234,6 @@ export default function ProductDetailPage({
               <CopyableField label="Category ID" value={product.category_id} mono />
               <CopyableField label="Source ID" value={product.source_id} mono />
               <CopyableField label="Parent ID" value={product.parent_id} mono />
-              <CopyableField label="Variant Group ID" value={product.variant_group_id} mono />
             </div>
 
             {/* Flags Section */}

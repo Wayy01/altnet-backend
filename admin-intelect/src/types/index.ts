@@ -277,7 +277,6 @@ export interface Product {
   is_group: boolean;
   is_active: boolean;
   is_service: boolean;
-  variant_group_id: string | null;
   created_at: string;
   updated_at: string;
   // Translation fields

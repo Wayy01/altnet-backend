@@ -25,7 +25,6 @@ import {
   AlertCircle,
   Clock,
   Zap,
-  Network,
   ArrowLeft,
   Settings,
   FileText,
@@ -38,7 +37,6 @@ import {
   ArrowRightLeft,
   Database,
   Timer,
-  CalendarClock,
   Activity,
   Info,
   ExternalLink,
@@ -328,70 +326,6 @@ export default function SelectiveSyncPage() {
     }
     return progress.steps;
   }, [progress, selectedSteps]);
-
-  // Grouping trigger button component
-  const GroupingTriggerButton = () => {
-    const [groupingLoading, setGroupingLoading] = useState(false);
-    const [groupingResult, setGroupingResult] = useState<{
-      total_groups: number;
-      total_variants: number;
-    } | null>(null);
-
-    const handleTriggerGrouping = async () => {
-      try {
-        setGroupingLoading(true);
-        const result = await api.triggerProductGrouping();
-        setGroupingResult({
-          total_groups: result.total_groups,
-          total_variants: result.total_variants,
-        });
-        toast.success(result.message || "Product grouping completed successfully");
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to trigger product grouping";
-        toast.error(errorMessage);
-      } finally {
-        setGroupingLoading(false);
-      }
-    };
-
-    return (
-      <div className="space-y-3">
-        <Button
-          onClick={handleTriggerGrouping}
-          disabled={groupingLoading}
-          className="w-full gap-2 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
-        >
-          {groupingLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Grouping Products...
-            </>
-          ) : (
-            <>
-              <Network className="h-4 w-4" />
-              Trigger Product Grouping
-            </>
-          )}
-        </Button>
-        {groupingResult && (
-          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground font-medium">Groups Created</span>
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 tabular-nums">
-                {formatNumber(groupingResult.total_groups)}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground font-medium">Variants Grouped</span>
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 tabular-nums">
-                {formatNumber(groupingResult.total_variants)}
-              </Badge>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -746,45 +680,6 @@ export default function SelectiveSyncPage() {
               )}
             </TabsContent>
           </Tabs>
-        </div>
-      )}
-
-      {/* Post-Processing Operations */}
-      {!syncing && !loading && (
-        <div
-          className={`
-            transition-all duration-300 ease-out
-            ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
-          `}
-          style={{ transitionDelay: "200ms" }}
-        >
-          <Card className="rounded-xl border bg-card shadow-sm overflow-hidden">
-            <CardHeader className="pb-3 bg-muted/30 border-b">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-background shadow-sm">
-                  <Network className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg font-semibold">Post-Processing Operations</CardTitle>
-                  <CardDescription className="text-sm">
-                    Run post-processing operations after sync completion
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-5 space-y-4">
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                  Product Variant Grouping
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Auto-link related products (e.g., storage variants) via parent-child relationships
-                </p>
-              </div>
-              <GroupingTriggerButton />
-            </CardContent>
-          </Card>
         </div>
       )}
 

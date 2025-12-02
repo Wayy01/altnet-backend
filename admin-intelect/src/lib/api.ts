@@ -48,10 +48,6 @@ import {
   PropertyGroupsResponse,
   PropertyNamesResponse,
   PropertyValuesResponse,
-  ProductGrouping,
-  ProductVariant,
-  ProductGroupsResponse,
-  ProductVariantsResponse,
   UploadResponse,
   MultiUploadResponse,
   CreateProductPayload,
@@ -197,10 +193,9 @@ class ApiClient {
   }
 
   /**
-   * Get product variants based on parent_id grouping.
+   * Get product variants based on parent_id relationship.
    * If the product has a parent_id, fetch siblings (products with same parent).
-   * If the product is a parent (has children), fetch its children.
-   * Falls back to variant_group_id if no parent_id grouping exists.
+   * If the product is a parent, fetch its children.
    */
   async getProductVariantsForDetail(productId: string, product: Product): Promise<Product[]> {
     // Helper to deduplicate variants by id
@@ -213,35 +208,7 @@ class ApiClient {
       });
     };
 
-    // Check if this product is part of a parent_id-based group
-    if (product.parent_id) {
-      // This is a child product, fetch all siblings (same parent) including itself
-      try {
-        const response = await this.getGroupingVariants(product.parent_id);
-        // Also include the parent in the list for navigation
-        const parent = await this.getProduct(product.parent_id);
-        const allVariants = [parent as Product, ...response.data.map(v => this.variantToProduct(v))];
-        return deduplicateById(allVariants);
-      } catch {
-        // Fall back to old variant_group_id method
-      }
-    }
-
-    // Check if this product is a parent (is_group flag or has children)
-    if (product.is_group) {
-      try {
-        const response = await this.getGroupingVariants(productId);
-        if (response.data.length > 0) {
-          // Include the parent (current product) and all children
-          const allVariants = [product, ...response.data.map(v => this.variantToProduct(v))];
-          return deduplicateById(allVariants);
-        }
-      } catch {
-        // Fall back to old variant_group_id method
-      }
-    }
-
-    // Fall back to variant_group_id-based variants (old method)
+    // Fetch variants via the variants endpoint
     try {
       const response = await this.fetch<{ data: Product[] }>(
         `/api/v1/products/${productId}/variants`
@@ -250,44 +217,6 @@ class ApiClient {
     } catch {
       return [];
     }
-  }
-
-  /**
-   * Convert ProductVariant to Product format for compatibility with VariantSelector
-   */
-  private variantToProduct(variant: ProductVariant): Product {
-    return {
-      id: variant.id,
-      ultra_id: '',
-      code: variant.code || '',
-      article: variant.article || '',
-      name: variant.name,
-      slug: '',
-      description: null,
-      brand_id: null,
-      category_id: null,
-      parent_id: variant.parent_id,
-      source_id: null,
-      main_image_url: variant.main_image_url || null,
-      images: [],
-      videos: [],
-      warranty: null,
-      barcodes: [],
-      prices: variant.prices || [],
-      price_min: null,
-      price_max: null,
-      price_mdl: variant.price_mdl,
-      price_eur: variant.price_eur,
-      price_usd: variant.price_usd,
-      total_stock: variant.total_stock,
-      is_in_stock: variant.is_in_stock ?? variant.total_stock > 0,
-      is_group: false,
-      is_active: variant.is_active,
-      is_service: false,
-      variant_group_id: null,
-      created_at: '',
-      updated_at: '',
-    };
   }
 
   async searchProducts(
