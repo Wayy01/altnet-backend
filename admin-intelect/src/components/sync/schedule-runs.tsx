@@ -173,7 +173,7 @@ export function ScheduleRuns({
                 </div>
               ))}
             </div>
-          ) : runs.length === 0 ? (
+          ) : !runs || runs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="p-4 rounded-full bg-muted/50 mb-4">
                 <Calendar className="h-10 w-10 text-muted-foreground/50" />
