@@ -290,15 +290,6 @@ func getProductFieldSchema() SyncFieldSchema {
 				Group:       "flags",
 				DefaultSync: true,
 			},
-			{
-				Name:        "is_group",
-				DisplayName: "Is Group",
-				Type:        "boolean",
-				Required:    false,
-				Description: "Whether this is a product group",
-				Group:       "flags",
-				DefaultSync: true,
-			},
 		},
 	}
 }

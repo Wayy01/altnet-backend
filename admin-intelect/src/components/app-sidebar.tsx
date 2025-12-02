@@ -11,7 +11,6 @@ import {
   FileText,
   History,
   Database,
-  Network,
   ChevronRight,
   Activity,
   Sparkles,
@@ -119,12 +118,6 @@ export function AppSidebar() {
       url: "/properties",
       icon: Database,
       descriptionKey: "descriptions.properties",
-    },
-    {
-      titleKey: "menu.groupings",
-      url: "/groupings",
-      icon: Network,
-      descriptionKey: "descriptions.groupings",
     },
     {
       titleKey: "menu.brands",

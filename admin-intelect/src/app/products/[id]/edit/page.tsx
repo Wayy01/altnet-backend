@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import {
   ProductFormState,
-  UpdateProductPayload,
+  UpdateProductFullPayload,
   CreatePropertyData,
   ProductDetail,
 } from "@/types";
@@ -72,6 +72,8 @@ const initialFormState: ProductFormState = {
   variants: {
     parent_id: null,
     is_group: false,
+    variant_type: null,
+    variant_value: null,
   },
 };
 
@@ -236,13 +238,21 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             videos: product.videos || [],
           },
           properties: (product.properties || []).map((prop) => ({
-            group_name: prop.group_name || "",
+            group_name: prop.group_name || null,
             property_name: prop.property_name || "",
+            property_code: prop.property_code || null,
             value: prop.value || "",
+            value_type: prop.value_type || "string",
+            group_uuid: prop.group_uuid || null,
+            sort_order: prop.sort_order ?? 0,
+            is_filter: prop.is_filter ?? false,
+            is_modification: prop.is_modification ?? false,
           })),
           variants: {
             parent_id: product.parent_id || null,
             is_group: product.is_group ?? false,
+            variant_type: (product as { variant_type?: string | null }).variant_type || null,
+            variant_value: (product as { variant_value?: string | null }).variant_value || null,
           },
         });
 
@@ -373,18 +383,57 @@ export default function EditProductPage({ params }: EditProductPageProps) {
     setIsSubmitting(true);
 
     try {
-      const payload: UpdateProductPayload = {
+      // Build full payload including properties
+      const payload: UpdateProductFullPayload = {
+        // Basic Info
         name: formState.basicInfo.name,
         code: formState.basicInfo.code || null,
         article: formState.basicInfo.article || null,
         description: formState.basicInfo.description || null,
         brand_id: formState.basicInfo.brand_id || null,
         category_id: formState.basicInfo.category_id || null,
+        source_id: formState.basicInfo.source_id || null,
+        warranty: formState.basicInfo.warranty || null,
+        barcodes: formState.basicInfo.barcodes || [],
         is_active: formState.basicInfo.is_active,
         is_service: formState.basicInfo.is_service,
+        // Pricing
+        price_mdl: formState.basicInfo.price_mdl,
+        price_eur: formState.basicInfo.price_eur,
+        price_usd: formState.basicInfo.price_usd,
+        total_stock: formState.basicInfo.total_stock,
+        is_in_stock: formState.basicInfo.is_in_stock,
+        // Media
+        main_image_url: formState.media.main_image_url || null,
+        images: formState.media.images.map((img) => ({
+          url: img.url,
+          alt: img.alt || null,
+          sort_order: img.sort_order ?? 0,
+        })),
+        videos: formState.media.videos.map((vid) => ({
+          url: vid.url,
+          title: vid.title || null,
+          description: vid.description || null,
+          sort_order: vid.sort_order ?? 0,
+        })),
+        // Properties - will replace existing properties
+        properties: formState.properties.map((prop) => ({
+          property_name: prop.property_name,
+          property_code: prop.property_code || null,
+          value: prop.value,
+          value_type: prop.value_type || "string",
+          group_uuid: prop.group_uuid || null,
+          group_name: prop.group_name || null,
+          sort_order: prop.sort_order ?? 0,
+          is_filter: prop.is_filter ?? false,
+          is_modification: prop.is_modification ?? false,
+        })),
+        // Variants
+        parent_id: formState.variants.parent_id,
+        is_group: formState.variants.is_group,
       };
 
-      await api.updateProduct(productId, payload);
+      await api.updateProductFull(productId, payload);
 
       toast({
         title: t("toast.productUpdated") || "Product updated",

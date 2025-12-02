@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -15,6 +16,16 @@ import (
 func isActiveFromString(value string) bool {
 	v := strings.ToLower(strings.TrimSpace(value))
 	return v != "false" && v != "0" && v != "no" && v != "n"
+}
+
+// regionCodePattern matches common region codes at the end of product names
+// Patterns: " MD", " EU", " EU/RU", " DE", " RU", " UA", etc.
+var regionCodePattern = regexp.MustCompile(`\s+(MD|EU|DE|RU|UA|EU/RU|RO|PL|CZ|HU|SK|BG|HR|SI|RS|BA|MK|AL|XK|ME|AT|CH|IT|FR|ES|PT|GB|UK|US|CN|JP|KR|TW|HK|SG|AU|NZ|CA|MX|BR|AR|CL|CO|PE|VE|ZA|EG|AE|SA|IL|TR|IN|ID|MY|TH|PH|VN)\s*$`)
+
+// cleanProductName removes region codes from the end of product names
+// Example: "iPhone 16 Pro Max, 256GB Black Titanium MD" -> "iPhone 16 Pro Max, 256GB Black Titanium"
+func cleanProductName(name string) string {
+	return strings.TrimSpace(regionCodePattern.ReplaceAllString(name, ""))
 }
 
 // Fetcher handles fetching and parsing data from Ultra API
@@ -302,8 +313,8 @@ func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.Produc
 			UltraID:         p.UUID,
 			Code:            codePtr,
 			Article:         articlePtr,
-			Name:            p.Name,
-			Description:     articlePtr, // Using article as description
+			Name:            cleanProductName(p.Name), // Strip region codes (MD, EU, etc.)
+			Description:     articlePtr,               // Using article as description
 			BrandUltraID:    brandUltraID,
 			CategoryUltraID: catUltraID,
 			ParentUltraID:   parentUltraID,

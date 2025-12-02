@@ -322,9 +322,6 @@ func (r *Repository) UpdateProductSelective(ctx context.Context, ultraID string,
 		case "is_service":
 			oldValue = existingProduct.IsService
 			wasNull = false
-		case "is_group":
-			oldValue = existingProduct.IsGroup
-			wasNull = false
 		case "images", "barcodes", "prices":
 			// Handle JSONB fields specially
 			var oldJSON []byte

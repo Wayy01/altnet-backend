@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Palette, HardDrive, Pencil } from "lucide-react";
+import { Palette, HardDrive, Cpu, Pencil } from "lucide-react";
 import { Product } from "@/types";
 import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
 
@@ -176,11 +176,13 @@ function parseVariantInfo(name: string): { color: string; memory: string; ram: s
 }
 
 /**
- * Parse all variants and group by color
+ * Parse all variants and group by color, then by RAM
  */
 function parseAndGroupVariants(variants: Product[]): {
   colorGroups: Map<string, ParsedVariant[]>;
+  ramGroups: Map<string, ParsedVariant[]>;
   allColors: string[];
+  allRams: string[];
   parsedVariants: ParsedVariant[];
 } {
   const parsedVariants: ParsedVariant[] = variants.map((product) => {
@@ -203,6 +205,16 @@ function parseAndGroupVariants(variants: Product[]): {
     colorGroups.set(variant.color, existing);
   }
 
+  // Group by RAM
+  const ramGroups = new Map<string, ParsedVariant[]>();
+  for (const variant of parsedVariants) {
+    if (variant.ram) {
+      const existing = ramGroups.get(variant.ram) || [];
+      existing.push(variant);
+      ramGroups.set(variant.ram, existing);
+    }
+  }
+
   // Sort memory options within each color group
   for (const [color, variants] of colorGroups) {
     variants.sort((a, b) => {
@@ -220,7 +232,14 @@ function parseAndGroupVariants(variants: Product[]): {
   // Get all unique colors
   const allColors = Array.from(colorGroups.keys()).sort();
 
-  return { colorGroups, allColors, parsedVariants };
+  // Get all unique RAMs and sort numerically
+  const allRams = Array.from(ramGroups.keys()).sort((a, b) => {
+    const aNum = parseInt(a) || 0;
+    const bNum = parseInt(b) || 0;
+    return aNum - bNum;
+  });
+
+  return { colorGroups, ramGroups, allColors, allRams, parsedVariants };
 }
 
 export function VariantSelector({ variants, currentProductId }: VariantSelectorProps) {
@@ -228,7 +247,7 @@ export function VariantSelector({ variants, currentProductId }: VariantSelectorP
   const { currency, formatPrice } = useCurrency();
 
   // Parse and group variants
-  const { colorGroups, allColors, parsedVariants } = useMemo(
+  const { colorGroups, ramGroups, allColors, allRams, parsedVariants } = useMemo(
     () => parseAndGroupVariants(variants),
     [variants]
   );
@@ -244,27 +263,40 @@ export function VariantSelector({ variants, currentProductId }: VariantSelectorP
     currentVariant?.color || allColors[0] || "Default"
   );
 
-  // Update selected color when current product changes
+  // State for selected RAM (initialize with current product's RAM)
+  const [selectedRam, setSelectedRam] = useState<string>(
+    currentVariant?.ram || allRams[0] || ""
+  );
+
+  // Update selected color and RAM when current product changes
   useEffect(() => {
     if (currentVariant) {
       setSelectedColor(currentVariant.color);
+      if (currentVariant.ram) {
+        setSelectedRam(currentVariant.ram);
+      }
     }
   }, [currentVariant]);
 
-  // Get memory options for selected color
-  const memoryOptions = useMemo(
-    () => colorGroups.get(selectedColor) || [],
-    [colorGroups, selectedColor]
-  );
+  // Get memory options filtered by selected color and RAM
+  const memoryOptions = useMemo(() => {
+    let filtered = colorGroups.get(selectedColor) || [];
+    // If RAM is selected and we have RAM variants, filter by RAM too
+    if (selectedRam && allRams.length > 1) {
+      filtered = filtered.filter((v) => v.ram === selectedRam || !v.ram);
+    }
+    return filtered;
+  }, [colorGroups, selectedColor, selectedRam, allRams]);
 
-  // Check if we have meaningful color/memory variations
+  // Check if we have meaningful color/memory/RAM variations
   const hasMultipleColors = allColors.length > 1;
+  const hasMultipleRams = allRams.length > 1;
   const hasMultipleMemoryOptions = Array.from(colorGroups.values()).some(
     (variants) => variants.length > 1
   );
 
   // If there's only one variant or no meaningful variations, don't show selector
-  if (variants.length <= 1 || (!hasMultipleColors && !hasMultipleMemoryOptions)) {
+  if (variants.length <= 1 || (!hasMultipleColors && !hasMultipleMemoryOptions && !hasMultipleRams)) {
     return null;
   }
 
@@ -276,7 +308,7 @@ export function VariantSelector({ variants, currentProductId }: VariantSelectorP
           Product Variants
         </CardTitle>
         <CardDescription>
-          Select color and storage options
+          Select color, storage, and RAM options
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -309,6 +341,50 @@ export function VariantSelector({ variants, currentProductId }: VariantSelectorP
                       }`}
                     />
                     {color}
+                    {!hasStock && (
+                      <Badge
+                        variant="secondary"
+                        className="ml-2 text-[10px] px-1 py-0"
+                      >
+                        Out
+                      </Badge>
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* RAM Selector */}
+        {hasMultipleRams && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Cpu className="h-3.5 w-3.5" />
+              RAM
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {allRams.map((ram) => {
+                const isSelected = ram === selectedRam;
+                const ramVariants = ramGroups.get(ram) || [];
+                const hasStock = ramVariants.some(
+                  (v) => v.product.total_stock > 0
+                );
+
+                return (
+                  <Button
+                    key={ram}
+                    variant={isSelected ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedRam(ram)}
+                    className="relative"
+                  >
+                    <span
+                      className={`mr-2 h-2 w-2 rounded-full ${
+                        hasStock ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    />
+                    {ram}GB
                     {!hasStock && (
                       <Badge
                         variant="secondary"
@@ -387,9 +463,27 @@ export function VariantSelector({ variants, currentProductId }: VariantSelectorP
         )}
 
         {/* Single color with multiple memory options - show color name */}
-        {!hasMultipleColors && hasMultipleMemoryOptions && selectedColor !== "Default" && (
+        {!hasMultipleColors && !hasMultipleRams && hasMultipleMemoryOptions && selectedColor !== "Default" && (
           <div className="text-xs text-muted-foreground mt-2">
             All variants in {selectedColor}
+          </div>
+        )}
+
+        {/* Show current selection summary when multiple dimensions are selected */}
+        {(hasMultipleColors || hasMultipleRams) && (
+          <div className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
+            {selectedColor !== "Default" && (
+              <span className="flex items-center gap-1">
+                <Palette className="h-3 w-3" />
+                {selectedColor}
+              </span>
+            )}
+            {selectedRam && hasMultipleRams && (
+              <span className="flex items-center gap-1">
+                <Cpu className="h-3 w-3" />
+                {selectedRam}GB RAM
+              </span>
+            )}
           </div>
         )}
       </CardContent>

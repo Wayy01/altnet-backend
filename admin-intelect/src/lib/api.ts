@@ -23,6 +23,7 @@ import {
   SyncLog,
   SyncProgress,
   UpdateProductPayload,
+  UpdateProductFullPayload,
   CreateBrandPayload,
   UpdateBrandPayload,
   CreateCategoryPayload,
@@ -759,6 +760,21 @@ class ApiClient {
     return response.data;
   }
 
+  /**
+   * Update a product with full data including properties replacement
+   * Uses the /full endpoint which handles nested entities in a transaction
+   */
+  async updateProductFull(
+    id: string,
+    payload: UpdateProductFullPayload
+  ): Promise<Product> {
+    const response = await this.fetch<{ data: Product }>(`/api/v1/products/${id}/full`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  }
+
   async deleteProduct(id: string): Promise<void> {
     await this.fetch<void>(`/api/v1/products/${id}`, {
       method: "DELETE",
@@ -1272,107 +1288,6 @@ class ApiClient {
     return response;
   }
 
-  // Product Grouping Hierarchy - Groups (Level 1)
-  async getProductGroupings(
-    limit = 50,
-    offset = 0,
-    search?: string
-  ): Promise<ProductGroupsResponse> {
-    const params = new URLSearchParams();
-    params.append("limit", limit.toString());
-    params.append("offset", offset.toString());
-    if (search) params.append("search", search);
-
-    return await this.fetch<ProductGroupsResponse>(
-      `/api/v1/products/groupings/hierarchy/groups?${params.toString()}`
-    );
-  }
-
-  async getProductGrouping(id: string): Promise<ProductGrouping> {
-    const response = await this.fetch<{ data: ProductGrouping }>(
-      `/api/v1/products/groupings/hierarchy/groups/${id}`
-    );
-    return response.data;
-  }
-
-  async deleteProductGrouping(id: string): Promise<void> {
-    await this.fetch<void>(
-      `/api/v1/products/groupings/hierarchy/groups/${id}`,
-      { method: "DELETE" }
-    );
-  }
-
-  async getProductGroupingDeletionImpact(id: string): Promise<DeletionImpact> {
-    return await this.fetch<DeletionImpact>(
-      `/api/v1/products/groupings/hierarchy/groups/${id}/deletion-impact`
-    );
-  }
-
-  // Product Grouping Hierarchy - Variants (Level 2)
-  async getGroupingVariants(
-    parentId: string,
-    limit = 50,
-    offset = 0,
-    search?: string
-  ): Promise<ProductVariantsResponse> {
-    const params = new URLSearchParams();
-    params.append("limit", limit.toString());
-    params.append("offset", offset.toString());
-    if (search) params.append("search", search);
-
-    return await this.fetch<ProductVariantsResponse>(
-      `/api/v1/products/groupings/hierarchy/groups/${parentId}/variants?${params.toString()}`
-    );
-  }
-
-  async deleteProductVariant(id: string): Promise<void> {
-    await this.fetch<void>(
-      `/api/v1/products/groupings/hierarchy/variants/${id}`,
-      { method: "DELETE" }
-    );
-  }
-
-  async bulkUpdateProductVariants(
-    ids: string[],
-    updates: {
-      is_active?: boolean;
-      parent_id?: string | null;
-    }
-  ): Promise<{ count: number }> {
-    return await this.fetch<{ count: number }>(
-      `/api/v1/products/groupings/hierarchy/variants/bulk`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({ ids, updates }),
-      }
-    );
-  }
-
-  async bulkDeleteProductVariants(ids: string[]): Promise<{ count: number }> {
-    return await this.fetch<{ count: number }>(
-      `/api/v1/products/groupings/hierarchy/variants/bulk`,
-      {
-        method: "DELETE",
-        body: JSON.stringify({ ids }),
-      }
-    );
-  }
-
-  // Product Grouping Post-Processing
-  async triggerProductGrouping(): Promise<{
-    message: string;
-    total_groups: number;
-    total_variants: number;
-  }> {
-    return await this.fetch<{
-      message: string;
-      total_groups: number;
-      total_variants: number;
-    }>(`/api/v1/products/groupings/trigger`, {
-      method: "POST",
-    });
-  }
-
   // ============================================================================
   // UPLOAD METHODS
   // ============================================================================
@@ -1564,6 +1479,25 @@ class ApiClient {
     try {
       const response = await this.getPropertyNames(groupName, 1000, 0);
       return response.data.map((n) => n.property_name);
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Get property values for a group/property combination (for value autocomplete)
+   * Returns unique values as strings for the dropdown
+   */
+  async getPropertyValueOptions(groupName: string, propertyName: string): Promise<string[]> {
+    try {
+      const response = await this.getPropertyValues(groupName, propertyName, 1000, 0);
+      // Extract unique non-null values
+      const uniqueValues = new Set(
+        response.data
+          .map((v) => v.value)
+          .filter((v): v is string => v !== null && v !== "")
+      );
+      return Array.from(uniqueValues).sort();
     } catch {
       return [];
     }

@@ -1145,7 +1145,7 @@ export default function ProductDetailPage({
                 const imageUrl = image.url || image.path_global || '';
                 return (
                   <button
-                    key={image.uuid}
+                    key={image.uuid || `image-${index}`}
                     onClick={() => openGallery(index)}
                     className={`
                       aspect-square relative rounded-xl overflow-hidden border bg-muted

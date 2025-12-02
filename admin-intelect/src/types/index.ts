@@ -788,58 +788,6 @@ export interface CharacteristicValuesResponse {
 }
 
 // ============================================================================
-// PRODUCT GROUPING HIERARCHY TYPES
-// ============================================================================
-
-// Product Grouping (Level 1 - Parent product)
-export interface ProductGrouping {
-  id: string;
-  name: string;
-  code: string | null;
-  article: string | null;
-  brand_name: string | null;
-  category_name: string | null;
-  variant_count: number;
-  price_min: number | null;
-  price_max: number | null;
-  total_stock: number;
-  is_in_stock: boolean;
-  is_active: boolean;
-}
-
-// Product Variant (Level 2 - Child product)
-export interface ProductVariant {
-  id: string;
-  parent_id: string;
-  name: string;
-  code: string | null;
-  article: string | null;
-  prices: ProductPriceEntry[]; // Typed price array matching Product interface
-  price_mdl: number | null;
-  price_eur: number | null;
-  price_usd: number | null;
-  total_stock: number;
-  is_in_stock: boolean;
-  is_active: boolean;
-  main_image_url: string | null;
-}
-
-// Product grouping API responses
-export interface ProductGroupsResponse {
-  data: ProductGrouping[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-export interface ProductVariantsResponse {
-  data: ProductVariant[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-// ============================================================================
 // UPLOAD TYPES
 // ============================================================================
 
@@ -952,11 +900,15 @@ export interface CreateProductPayload {
   is_active?: boolean;
   is_service?: boolean;
 
+  // Variant type info
+  variant_type?: string | null; // color, storage, size, ram, other
+  variant_value?: string | null; // "Black", "256GB", etc.
+
   // Nested entities
   properties?: CreatePropertyData[];
 }
 
-// Update product payload (partial)
+// Update product payload (partial) - for full update with properties
 export interface UpdateProductFullPayload {
   name?: string;
   code?: string | null;
@@ -964,6 +916,7 @@ export interface UpdateProductFullPayload {
   description?: string | null;
   brand_id?: string | null;
   category_id?: string | null;
+  source_id?: string | null;
   parent_id?: string | null;
   main_image_url?: string | null;
   images?: CreateImageData[];
@@ -971,9 +924,16 @@ export interface UpdateProductFullPayload {
   warranty?: string | null;
   barcodes?: string[];
   prices?: CreatePriceData[];
+  price_mdl?: number | null;
+  price_eur?: number | null;
+  price_usd?: number | null;
+  total_stock?: number;
+  is_in_stock?: boolean;
   is_group?: boolean;
   is_active?: boolean;
   is_service?: boolean;
+  // Nested properties - replaces existing properties
+  properties?: CreatePropertyData[];
 }
 
 // Form state for multi-tab product creation
@@ -1013,6 +973,8 @@ export interface ProductFormState {
   variants: {
     parent_id: string | null;
     is_group: boolean;
+    variant_type: string | null; // color, storage, size, ram, other
+    variant_value: string | null; // "Black", "256GB", etc.
   };
 }
 

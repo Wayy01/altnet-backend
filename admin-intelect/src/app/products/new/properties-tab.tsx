@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Plus,
   Trash2,
@@ -13,6 +13,7 @@ import {
   Layers,
   Filter,
   Sparkles,
+  PlusCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
   const { localizeGroupName, localizePropertyName } = useLocalizedValue();
   const [groupOptions, setGroupOptions] = useState<PropertyGroup[]>([]);
   const [propertyNameOptions, setPropertyNameOptions] = useState<Record<string, PropertyName[]>>({});
+  const [propertyValueOptions, setPropertyValueOptions] = useState<Record<string, string[]>>({});
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [isLoadingGroups, setIsLoadingGroups] = useState(true);
   const [sectionsVisible, setSectionsVisible] = useState(false);
@@ -91,6 +93,16 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
   const [groupOpens, setGroupOpens] = useState<Record<number, boolean>>({});
   const [nameSearches, setNameSearches] = useState<Record<number, string>>({});
   const [nameOpens, setNameOpens] = useState<Record<number, boolean>>({});
+  const [valueSearches, setValueSearches] = useState<Record<number, string>>({});
+  const [valueOpens, setValueOpens] = useState<Record<number, boolean>>({});
+
+  // Mode for creating new group/property name
+  const [isCreatingNewGroup, setIsCreatingNewGroup] = useState<Record<number, boolean>>({});
+  const [isCreatingNewName, setIsCreatingNewName] = useState<Record<number, boolean>>({});
+
+  // Refs for input focus
+  const groupInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const nameInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   // Trigger entrance animation
   useEffect(() => {
@@ -125,6 +137,19 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
     }
   };
 
+  // Load property values when property name is selected
+  const loadPropertyValues = async (groupName: string, propertyName: string) => {
+    const key = `${groupName}:${propertyName}`;
+    if (propertyValueOptions[key]) return;
+
+    try {
+      const values = await api.getPropertyValueOptions(groupName, propertyName);
+      setPropertyValueOptions((prev) => ({ ...prev, [key]: values }));
+    } catch (error) {
+      console.error("Failed to load property values:", error);
+    }
+  };
+
   // Filter groups based on search (search in all language versions)
   const getFilteredGroups = (index: number) => {
     const search = groupSearches[index] || "";
@@ -148,6 +173,16 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
       const baseName = propName.property_name.toLowerCase();
       return localizedName.includes(searchLower) || baseName.includes(searchLower);
     });
+  };
+
+  // Filter values based on search
+  const getFilteredValues = (index: number, groupName: string, propertyName: string) => {
+    const key = `${groupName}:${propertyName}`;
+    const values = propertyValueOptions[key] || [];
+    const search = valueSearches[index] || "";
+    if (!search.trim()) return values;
+    const searchLower = search.toLowerCase();
+    return values.filter((value) => value.toLowerCase().includes(searchLower));
   };
 
   const addProperty = () => {
@@ -177,12 +212,51 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
     }
     setGroupOpens((prev) => ({ ...prev, [index]: false }));
     setGroupSearches((prev) => ({ ...prev, [index]: "" }));
+    setIsCreatingNewGroup((prev) => ({ ...prev, [index]: false }));
+  };
+
+  const handleCreateNewGroup = (index: number) => {
+    setIsCreatingNewGroup((prev) => ({ ...prev, [index]: true }));
+    setGroupOpens((prev) => ({ ...prev, [index]: false }));
+    // Focus the input after a short delay to allow DOM update
+    setTimeout(() => {
+      groupInputRefs.current[index]?.focus();
+    }, 50);
+  };
+
+  const handleNewGroupInput = (index: number, value: string) => {
+    updateProperty(index, { group_name: value, property_name: "" });
   };
 
   const handleNameChange = (index: number, propName: PropertyName) => {
+    const property = properties[index];
     updateProperty(index, { property_name: propName.property_name });
     setNameOpens((prev) => ({ ...prev, [index]: false }));
     setNameSearches((prev) => ({ ...prev, [index]: "" }));
+    setIsCreatingNewName((prev) => ({ ...prev, [index]: false }));
+    // Load values for this property
+    if (property.group_name) {
+      loadPropertyValues(property.group_name, propName.property_name);
+    }
+  };
+
+  const handleCreateNewName = (index: number) => {
+    setIsCreatingNewName((prev) => ({ ...prev, [index]: true }));
+    setNameOpens((prev) => ({ ...prev, [index]: false }));
+    // Focus the input after a short delay to allow DOM update
+    setTimeout(() => {
+      nameInputRefs.current[index]?.focus();
+    }, 50);
+  };
+
+  const handleNewNameInput = (index: number, value: string) => {
+    updateProperty(index, { property_name: value });
+  };
+
+  const handleValueSelect = (index: number, value: string) => {
+    updateProperty(index, { value });
+    setValueOpens((prev) => ({ ...prev, [index]: false }));
+    setValueSearches((prev) => ({ ...prev, [index]: "" }));
   };
 
   // Helper to get localized display name for a group by its base name
@@ -354,99 +428,163 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                       {/* Group Selector */}
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t("properties.group")}</Label>
-                        <Popover
-                          open={groupOpens[index] || false}
-                          onOpenChange={(open) =>
-                            setGroupOpens((prev) => ({ ...prev, [index]: open }))
-                          }
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              disabled={isLoadingGroups}
+                        {isCreatingNewGroup[index] ? (
+                          <div className="flex gap-2">
+                            <Input
+                              ref={(el) => { groupInputRefs.current[index] = el; }}
+                              value={property.group_name || ""}
+                              onChange={(e) => handleNewGroupInput(index, e.target.value)}
+                              placeholder={t("properties.typeGroupName")}
                               className={cn(
-                                "w-full h-10 justify-between rounded-lg font-normal",
-                                "transition-all duration-200",
-                                "hover:border-primary/50 hover:bg-muted/30",
-                                !property.group_name && "text-muted-foreground"
+                                "h-10 rounded-lg transition-all duration-200",
+                                "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                                "hover:border-primary/50"
                               )}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 shrink-0"
+                              onClick={() => {
+                                setIsCreatingNewGroup((prev) => ({ ...prev, [index]: false }));
+                                updateProperty(index, { group_name: null });
+                              }}
                             >
-                              {getLocalizedGroupDisplay(property.group_name) || t("properties.selectGroup")}
-                              <Layers className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              <X className="h-4 w-4" />
                             </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                            <Command shouldFilter={false}>
-                              <div className="flex items-center border-b px-3">
-                                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                                <input
-                                  placeholder={t("properties.searchGroups")}
-                                  value={groupSearches[index] || ""}
-                                  onChange={(e) =>
-                                    setGroupSearches((prev) => ({
-                                      ...prev,
-                                      [index]: e.target.value,
-                                    }))
-                                  }
-                                  className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
-                                />
-                              </div>
-                              <CommandList className="max-h-[200px] overflow-y-auto">
-                                <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
-                                  {t("properties.noGroupsFound")}
-                                </CommandEmpty>
-                                <CommandGroup>
-                                  <CommandItem
-                                    value="none"
-                                    onSelect={() => handleGroupChange(index, null)}
-                                    className="cursor-pointer"
-                                  >
-                                    <div
-                                      className={cn(
-                                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                        !property.group_name
-                                          ? "bg-primary text-primary-foreground"
-                                          : "opacity-50"
-                                      )}
-                                    >
-                                      {!property.group_name && <Check className="h-3 w-3" />}
-                                    </div>
-                                    <span className="text-muted-foreground">{t("properties.noGroup")}</span>
-                                  </CommandItem>
-                                  {getFilteredGroups(index).map((group) => (
+                          </div>
+                        ) : (
+                          <Popover
+                            open={groupOpens[index] || false}
+                            onOpenChange={(open) =>
+                              setGroupOpens((prev) => ({ ...prev, [index]: open }))
+                            }
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                disabled={isLoadingGroups}
+                                className={cn(
+                                  "w-full h-10 justify-between rounded-lg font-normal",
+                                  "transition-all duration-200",
+                                  "hover:border-primary/50 hover:bg-muted/30",
+                                  !property.group_name && "text-muted-foreground"
+                                )}
+                              >
+                                {getLocalizedGroupDisplay(property.group_name) || t("properties.selectGroup")}
+                                <Layers className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                              <Command shouldFilter={false}>
+                                <div className="flex items-center border-b px-3">
+                                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                  <input
+                                    placeholder={t("properties.searchGroups")}
+                                    value={groupSearches[index] || ""}
+                                    onChange={(e) =>
+                                      setGroupSearches((prev) => ({
+                                        ...prev,
+                                        [index]: e.target.value,
+                                      }))
+                                    }
+                                    className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                                  />
+                                </div>
+                                <CommandList className="max-h-[300px] overflow-y-auto">
+                                  <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                                    {t("properties.noGroupsFound")}
+                                  </CommandEmpty>
+                                  <CommandGroup>
+                                    {/* Create new group option */}
                                     <CommandItem
-                                      key={group.group_name}
-                                      value={group.group_name}
-                                      onSelect={() => handleGroupChange(index, group)}
+                                      value="__create_new__"
+                                      onSelect={() => handleCreateNewGroup(index)}
+                                      className="cursor-pointer text-primary"
+                                    >
+                                      <PlusCircle className="mr-2 h-4 w-4" />
+                                      <span>{t("properties.createNewGroup")}</span>
+                                    </CommandItem>
+                                    {/* No group option */}
+                                    <CommandItem
+                                      value="none"
+                                      onSelect={() => handleGroupChange(index, null)}
                                       className="cursor-pointer"
                                     >
                                       <div
                                         className={cn(
                                           "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                          property.group_name === group.group_name
+                                          !property.group_name
                                             ? "bg-primary text-primary-foreground"
                                             : "opacity-50"
                                         )}
                                       >
-                                        {property.group_name === group.group_name && (
-                                          <Check className="h-3 w-3" />
-                                        )}
+                                        {!property.group_name && <Check className="h-3 w-3" />}
                                       </div>
-                                      <span className="truncate">{localizeGroupName(group)}</span>
+                                      <span className="text-muted-foreground">{t("properties.noGroup")}</span>
                                     </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                                    {getFilteredGroups(index).map((group) => (
+                                      <CommandItem
+                                        key={group.group_name}
+                                        value={group.group_name}
+                                        onSelect={() => handleGroupChange(index, group)}
+                                        className="cursor-pointer"
+                                      >
+                                        <div
+                                          className={cn(
+                                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                            property.group_name === group.group_name
+                                              ? "bg-primary text-primary-foreground"
+                                              : "opacity-50"
+                                          )}
+                                        >
+                                          {property.group_name === group.group_name && (
+                                            <Check className="h-3 w-3" />
+                                          )}
+                                        </div>
+                                        <span className="truncate">{localizeGroupName(group)}</span>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        )}
                       </div>
 
                       {/* Property Name Selector */}
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t("properties.propertyName")}</Label>
-                        {property.group_name && propertyNameOptions[property.group_name]?.length ? (
+                        {isCreatingNewName[index] ? (
+                          <div className="flex gap-2">
+                            <Input
+                              ref={(el) => { nameInputRefs.current[index] = el; }}
+                              value={property.property_name || ""}
+                              onChange={(e) => handleNewNameInput(index, e.target.value)}
+                              placeholder={t("properties.typePropertyName")}
+                              className={cn(
+                                "h-10 rounded-lg transition-all duration-200",
+                                "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                                "hover:border-primary/50"
+                              )}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 shrink-0"
+                              onClick={() => {
+                                setIsCreatingNewName((prev) => ({ ...prev, [index]: false }));
+                                updateProperty(index, { property_name: "" });
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : property.group_name && propertyNameOptions[property.group_name]?.length ? (
                           <Popover
                             open={nameOpens[index] || false}
                             onOpenChange={(open) =>
@@ -484,11 +622,20 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                     className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
                                   />
                                 </div>
-                                <CommandList className="max-h-[200px] overflow-y-auto">
+                                <CommandList className="max-h-[300px] overflow-y-auto">
                                   <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
                                     {t("properties.noPropertiesFound")}
                                   </CommandEmpty>
                                   <CommandGroup>
+                                    {/* Create new property name option */}
+                                    <CommandItem
+                                      value="__create_new__"
+                                      onSelect={() => handleCreateNewName(index)}
+                                      className="cursor-pointer text-primary"
+                                    >
+                                      <PlusCircle className="mr-2 h-4 w-4" />
+                                      <span>{t("properties.createNewProperty")}</span>
+                                    </CommandItem>
                                     {getFilteredNames(index, property.group_name!).map((propName) => (
                                       <CommandItem
                                         key={propName.property_name}
@@ -517,18 +664,31 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                             </PopoverContent>
                           </Popover>
                         ) : (
-                          <Input
-                            value={property.property_name}
-                            onChange={(e) =>
-                              updateProperty(index, { property_name: e.target.value })
-                            }
-                            placeholder={t("properties.propertyPlaceholder")}
-                            className={cn(
-                              "h-10 rounded-lg transition-all duration-200",
-                              "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                              "hover:border-primary/50"
+                          <div className="flex gap-2">
+                            <Input
+                              value={property.property_name}
+                              onChange={(e) =>
+                                updateProperty(index, { property_name: e.target.value })
+                              }
+                              placeholder={t("properties.propertyPlaceholder")}
+                              className={cn(
+                                "h-10 rounded-lg transition-all duration-200",
+                                "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                                "hover:border-primary/50"
+                              )}
+                            />
+                            {property.group_name && !propertyNameOptions[property.group_name]?.length && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 shrink-0"
+                                onClick={() => loadPropertyNames(property.group_name!)}
+                              >
+                                <Search className="h-4 w-4" />
+                              </Button>
                             )}
-                          />
+                          </div>
                         )}
                       </div>
                     </div>
@@ -537,18 +697,122 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t("properties.value")}</Label>
-                        <Input
-                          value={property.value}
-                          onChange={(e) =>
-                            updateProperty(index, { value: e.target.value })
-                          }
-                          placeholder={t("properties.valuePlaceholder")}
-                          className={cn(
-                            "h-10 rounded-lg transition-all duration-200",
-                            "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                            "hover:border-primary/50"
-                          )}
-                        />
+                        {property.group_name && property.property_name ? (
+                          <Popover
+                            open={valueOpens[index] || false}
+                            onOpenChange={(open) => {
+                              setValueOpens((prev) => ({ ...prev, [index]: open }));
+                              if (open && property.group_name && property.property_name) {
+                                loadPropertyValues(property.group_name, property.property_name);
+                              }
+                            }}
+                          >
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full h-10 justify-between rounded-lg font-normal",
+                                  "transition-all duration-200",
+                                  "hover:border-primary/50 hover:bg-muted/30",
+                                  !property.value && "text-muted-foreground"
+                                )}
+                              >
+                                <span className="truncate">{property.value || t("properties.selectOrTypeValue")}</span>
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                              <Command shouldFilter={false}>
+                                <div className="flex items-center border-b px-3">
+                                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                  <input
+                                    placeholder={t("properties.searchValues")}
+                                    value={valueSearches[index] || ""}
+                                    onChange={(e) => {
+                                      setValueSearches((prev) => ({
+                                        ...prev,
+                                        [index]: e.target.value,
+                                      }));
+                                      // Also update the property value as user types
+                                      updateProperty(index, { value: e.target.value });
+                                    }}
+                                    className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                                  />
+                                </div>
+                                <CommandList className="max-h-[200px] overflow-y-auto">
+                                  {(() => {
+                                    const key = `${property.group_name}:${property.property_name}`;
+                                    const existingValues = propertyValueOptions[key] || [];
+                                    const filteredValues = getFilteredValues(index, property.group_name!, property.property_name);
+                                    const currentSearch = valueSearches[index] || "";
+
+                                    // Show "use typed value" option if user has typed something that's not an exact match
+                                    const showTypedOption = currentSearch && !existingValues.includes(currentSearch);
+
+                                    return (
+                                      <>
+                                        {filteredValues.length === 0 && !showTypedOption && (
+                                          <div className="py-6 text-center text-sm text-muted-foreground">
+                                            {t("properties.noValuesFound")}
+                                            <p className="mt-1 text-xs">{t("properties.typeNewValue")}</p>
+                                          </div>
+                                        )}
+                                        <CommandGroup>
+                                          {showTypedOption && (
+                                            <CommandItem
+                                              value={`__typed__${currentSearch}`}
+                                              onSelect={() => handleValueSelect(index, currentSearch)}
+                                              className="cursor-pointer text-primary"
+                                            >
+                                              <PlusCircle className="mr-2 h-4 w-4" />
+                                              <span>Use &quot;{currentSearch}&quot;</span>
+                                            </CommandItem>
+                                          )}
+                                          {filteredValues.map((value) => (
+                                            <CommandItem
+                                              key={value}
+                                              value={value}
+                                              onSelect={() => handleValueSelect(index, value)}
+                                              className="cursor-pointer"
+                                            >
+                                              <div
+                                                className={cn(
+                                                  "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                                  property.value === value
+                                                    ? "bg-primary text-primary-foreground"
+                                                    : "opacity-50"
+                                                )}
+                                              >
+                                                {property.value === value && (
+                                                  <Check className="h-3 w-3" />
+                                                )}
+                                              </div>
+                                              <span className="truncate">{value}</span>
+                                            </CommandItem>
+                                          ))}
+                                        </CommandGroup>
+                                      </>
+                                    );
+                                  })()}
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <Input
+                            value={property.value}
+                            onChange={(e) =>
+                              updateProperty(index, { value: e.target.value })
+                            }
+                            placeholder={t("properties.valuePlaceholder")}
+                            className={cn(
+                              "h-10 rounded-lg transition-all duration-200",
+                              "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                              "hover:border-primary/50"
+                            )}
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">{t("properties.valueType")}</Label>

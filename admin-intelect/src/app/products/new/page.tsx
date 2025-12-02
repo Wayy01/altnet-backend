@@ -100,6 +100,8 @@ const initialFormState: ProductFormState = {
   variants: {
     parent_id: null,
     is_group: false,
+    variant_type: null,
+    variant_value: null,
   },
 };
 
@@ -211,14 +213,22 @@ export default function CreateProductPage() {
           },
           // Copy all properties from source product
           properties: (product.properties || []).map((prop) => ({
-            group_name: prop.group_name || "",
+            group_name: prop.group_name || null,
             property_name: prop.property_name || "",
+            property_code: prop.property_code || null,
             value: prop.value || "",
+            value_type: prop.value_type || "string",
+            group_uuid: prop.group_uuid || null,
+            sort_order: prop.sort_order ?? 0,
+            is_filter: prop.is_filter ?? false,
+            is_modification: prop.is_modification ?? false,
           })),
           variants: {
             // Auto-link to parent: use source's group if it's already a variant, otherwise use source as parent
             parent_id: product.parent_id || product.id,
             is_group: false,
+            variant_type: null, // Will be set by user in variants tab
+            variant_value: null,
           },
         }));
       } catch (error) {
@@ -363,6 +373,8 @@ export default function CreateProductPage() {
         properties: formState.properties.length > 0 ? formState.properties : undefined,
         parent_id: formState.variants.parent_id,
         is_group: formState.variants.is_group,
+        variant_type: formState.variants.variant_type,
+        variant_value: formState.variants.variant_value,
       };
 
       const product = await api.createProduct(payload);

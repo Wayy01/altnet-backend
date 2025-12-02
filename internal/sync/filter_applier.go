@@ -24,7 +24,7 @@ var allowedFieldsByEntity = map[models.FilterEntityType]map[string]bool{
 		"brand_id": true, "category_id": true, "parent_id": true, "source_id": true,
 		"price_min": true, "price_max": true, "price_mdl": true, "price_eur": true, "price_usd": true,
 		"total_stock": true, "is_in_stock": true, "is_active": true, "is_service": true,
-		"description": true, "main_image_url": true, "warranty": true, "is_group": true,
+		"description": true, "main_image_url": true, "warranty": true,
 		"created_at": true, "updated_at": true,
 	},
 	models.FilterEntityBrands: {

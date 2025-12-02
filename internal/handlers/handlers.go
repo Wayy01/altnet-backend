@@ -1074,26 +1074,6 @@ func (h *Handler) GetProductCharacteristics(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// GetProductVariants handles GET /api/v1/products/{id}/variants
-func (h *Handler) GetProductVariants(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
-	if err != nil {
-		h.respondError(w, http.StatusBadRequest, "Invalid product ID", err.Error())
-		return
-	}
-
-	variants, err := h.repo.GetProductVariants(r.Context(), id)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to fetch variants", err.Error())
-		return
-	}
-
-	h.respondJSON(w, http.StatusOK, map[string]interface{}{
-		"data": variants,
-	})
-}
-
 // SearchProducts handles GET /api/v1/search
 func (h *Handler) SearchProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
@@ -1946,6 +1926,52 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	product, err := h.repo.UpdateProduct(r.Context(), id, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			h.respondError(w, http.StatusNotFound, "Product not found", err.Error())
+			return
+		}
+		h.respondError(w, http.StatusInternalServerError, "Failed to update product", err.Error())
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": product,
+	})
+}
+
+// UpdateProductFull handles PUT /api/v1/products/{id}/full
+// @Summary Update a product with all fields including properties
+// @Description Updates an existing product by ID with full support for properties and characteristics
+// @Tags Products
+// @Accept json
+// @Produce json
+// @Param id path string true "Product ID"
+// @Param product body UpdateProductFullRequest true "Product data with properties"
+// @Success 200 {object} models.Product
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/products/{id}/full [put]
+func (h *Handler) UpdateProductFull(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := uuid.Parse(vars["id"])
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid product ID", err.Error())
+		return
+	}
+
+	var req repository.UpdateProductFullRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Use context with 30 second timeout for the transaction
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	product, err := h.repo.UpdateProductFull(ctx, id, &req)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			h.respondError(w, http.StatusNotFound, "Product not found", err.Error())

@@ -31,14 +31,14 @@ type CreateProductRequest struct {
 
 // UpdateProductRequest represents the request body for updating a product
 type UpdateProductRequest struct {
-	Name        *string    `json:"name"`
-	Code        *string    `json:"code"`
-	Article     *string    `json:"article"`
-	Description *string    `json:"description"`
-	BrandID     *uuid.UUID `json:"brand_id"`
-	CategoryID  *uuid.UUID `json:"category_id"`
-	IsActive    *bool      `json:"is_active"`
-	IsService   *bool      `json:"is_service"`
+	Name         *string    `json:"name"`
+	Code         *string    `json:"code"`
+	Article      *string    `json:"article"`
+	Description  *string    `json:"description"`
+	BrandID    *uuid.UUID `json:"brand_id"`
+	CategoryID *uuid.UUID `json:"category_id"`
+	IsActive   *bool      `json:"is_active"`
+	IsService  *bool      `json:"is_service"`
 }
 
 // CreateBrandRequest represents the request body for creating a brand
@@ -172,9 +172,48 @@ type EnhancedCreateProductRequest struct {
 	// Flags
 	IsActive  bool `json:"is_active"`
 	IsService bool `json:"is_service"`
-	IsGroup   bool `json:"is_group"`
 
 	// Nested Entities
+	Properties      []PropertyCreateData       `json:"properties"`
+	Characteristics []CharacteristicCreateData `json:"characteristics"`
+}
+
+// UpdateProductFullRequest for full product update with all fields including properties
+type UpdateProductFullRequest struct {
+	// Basic Info
+	Name        *string `json:"name"`
+	Code        *string `json:"code"`
+	Article     *string `json:"article"`
+	Description *string `json:"description"`
+	Warranty    *string `json:"warranty"`
+
+	// Relationships
+	BrandID    *uuid.UUID `json:"brand_id"`
+	CategoryID *uuid.UUID `json:"category_id"`
+	ParentID   *uuid.UUID `json:"parent_id"`
+	SourceID   *uuid.UUID `json:"source_id"`
+
+	// Media
+	MainImageURL *string     `json:"main_image_url"`
+	Images       []ImageData `json:"images"`
+	Videos       []VideoData `json:"videos"`
+	Barcodes     []BarcodeData `json:"barcodes"`
+
+	// Pricing (product-level)
+	Prices   []PriceData `json:"prices"`
+	PriceMDL *float64    `json:"price_mdl"`
+	PriceEUR *float64    `json:"price_eur"`
+	PriceUSD *float64    `json:"price_usd"`
+
+	// Stock
+	TotalStock *int  `json:"total_stock"`
+	IsInStock  *bool `json:"is_in_stock"`
+
+	// Flags
+	IsActive  *bool `json:"is_active"`
+	IsService *bool `json:"is_service"`
+
+	// Nested Entities - properties will replace all existing properties
 	Properties      []PropertyCreateData       `json:"properties"`
 	Characteristics []CharacteristicCreateData `json:"characteristics"`
 }
@@ -1474,7 +1513,7 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		       p.parent_id, p.source_id, p.main_image_url, p.images, p.warranty, p.barcodes,
 		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
 		       p.is_active, p.is_service, p.created_at, p.updated_at,
-		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
+		       p.prices, p.price_mdl, p.price_eur, p.price_usd,
 		       p.name_ru, p.name_ro,
 		       b.name AS brand_name, c.name AS category_name, s.name AS source_name
 		FROM products p
@@ -1492,7 +1531,6 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
-		&product.VariantGroupID, &product.IsGroup,
 		&product.NameRU, &product.NameRO,
 		&product.BrandName, &product.CategoryName, &product.SourceName,
 	)
@@ -1509,7 +1547,7 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 		       parent_id, source_id, main_image_url, images, videos, warranty, barcodes,
 		       price_min, price_max, total_stock, is_in_stock,
 		       is_active, is_service, created_at, updated_at,
-		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group,
+		       prices, price_mdl, price_eur, price_usd,
 		       name_ru, name_ro
 		FROM products
 		WHERE ultra_id = $1
@@ -1523,7 +1561,6 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
-		&product.VariantGroupID, &product.IsGroup,
 		&product.NameRU, &product.NameRO,
 	)
 	if err != nil {
@@ -1545,7 +1582,7 @@ func (r *Repository) GetProductsByUltraIDs(ctx context.Context, ultraIDs []strin
 		       parent_id, main_image_url, images, videos, warranty, barcodes,
 		       price_min, price_max, total_stock, is_in_stock,
 		       is_active, is_service, created_at, updated_at,
-		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+		       prices, price_mdl, price_eur, price_usd
 		FROM products
 		WHERE ultra_id = ANY($1)
 	`
@@ -1566,7 +1603,6 @@ func (r *Repository) GetProductsByUltraIDs(ctx context.Context, ultraIDs []strin
 			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
-			&product.VariantGroupID, &product.IsGroup,
 		)
 		if err != nil {
 			return nil, err
@@ -1603,7 +1639,7 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 		       p.parent_id, p.source_id, p.main_image_url, p.images, p.warranty, p.barcodes,
 		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
 		       p.is_active, p.is_service, p.created_at, p.updated_at,
-		       p.prices, p.price_mdl, p.price_eur, p.price_usd, p.variant_group_id, p.is_group,
+		       p.prices, p.price_mdl, p.price_eur, p.price_usd,
 		       p.name_ru, p.name_ro,
 		       b.name as brand_name, c.name as category_name, s.name as source_name
 		FROM products p
@@ -1725,7 +1761,6 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
-			&product.VariantGroupID, &product.IsGroup,
 			&product.NameRU, &product.NameRO,
 			&product.BrandName, &product.CategoryName, &product.SourceName,
 		)
@@ -3086,64 +3121,6 @@ func (r *Repository) GetProductCharacteristics(ctx context.Context, productID uu
 	return characteristics, nil
 }
 
-// GetProductVariants returns all products that share the same variant_group_id as the given product
-func (r *Repository) GetProductVariants(ctx context.Context, productID uuid.UUID) ([]*models.Product, error) {
-	// First, get the variant_group_id of the product
-	var variantGroupID *uuid.UUID
-	err := r.pool.QueryRow(ctx, "SELECT variant_group_id FROM products WHERE id = $1", productID).Scan(&variantGroupID)
-	if err != nil {
-		return nil, fmt.Errorf("product not found: %w", err)
-	}
-
-	// If product has no variant group, return just itself
-	if variantGroupID == nil {
-		product, err := r.GetProduct(ctx, productID)
-		if err != nil {
-			return nil, err
-		}
-		return []*models.Product{product}, nil
-	}
-
-	// Get all products with the same variant_group_id
-	query := `
-		SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
-		       parent_id, main_image_url, images, videos, warranty, barcodes,
-		       price_min, price_max, total_stock, is_in_stock,
-		       is_active, is_service, created_at, updated_at,
-		       prices, price_mdl, price_eur, price_usd, variant_group_id, is_group,
-		       name_ru, name_ro
-		FROM products
-		WHERE variant_group_id = $1
-		ORDER BY name ASC
-	`
-
-	rows, err := r.pool.Query(ctx, query, variantGroupID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	products := make([]*models.Product, 0)
-	for rows.Next() {
-		var product models.Product
-		err := rows.Scan(
-			&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
-			&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
-			&product.ParentID, &product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
-			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
-			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
-			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
-			&product.VariantGroupID, &product.IsGroup,
-			&product.NameRU, &product.NameRO,
-		)
-		if err != nil {
-			return nil, err
-		}
-		products = append(products, &product)
-	}
-
-	return products, nil
-}
 
 // UpdateCharacteristicPrices updates prices for characteristics
 func (r *Repository) UpdateCharacteristicPrices(ctx context.Context, prices []*models.PriceInput) (int, error) {
@@ -3375,91 +3352,6 @@ func (r *Repository) UpdateProductPricesFromJSONB(ctx context.Context) error {
 	return err
 }
 
-// GroupProductVariants groups product variants by base name
-// Products with similar names (e.g., "iPhone 16 128GB" and "iPhone 16 256GB") are grouped together
-// Handles multiple naming patterns:
-// - Standard: "iPhone 16 Pro Max, 512GB Desert Titanium MD"
-// - Samsung RAM/Storage: "Fold7 12/256Gb Jet Black"
-func (r *Repository) GroupProductVariants(ctx context.Context) error {
-	_, err := r.pool.Exec(ctx, `
-		WITH variant_groups AS (
-			SELECT
-				brand_id,
-				category_id,
-				-- Extract base name by removing storage patterns and colors
-				-- Step 1: Remove RAM/Storage patterns like "12/256Gb", "16/1Tb"
-				-- Step 2: Remove standalone storage like ", 512GB", " 256GB"
-				-- Step 3: Remove multi-word colors (Jet Black, Blue Shadow, etc.)
-				-- Step 4: Remove single-word colors (Black, White, Silver, etc.)
-				-- Step 5: Replace remaining commas with space
-				-- Step 6: Clean up multiple spaces
-				trim(regexp_replace(
-					regexp_replace(
-						regexp_replace(
-							regexp_replace(
-								regexp_replace(
-									regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
-									',?\s*\d+\s*(GB|TB)', '', 'gi'
-								),
-								'\s+(Jet Black|Blue Shadow|Silver Shadow|Natural Titanium|Blue Titanium|White Titanium|Black Titanium|Desert Titanium|Space Gray|Space Grey|Rose Gold|Midnight Blue|Midnight Green|Pacific Blue|Sierra Blue|Alpine Green|Deep Purple|Phantom Black|Phantom White|Mystic Bronze|Cosmic Gray|Cosmic Black|Prism White|Prism Black|Cloud Blue|Cloud Pink|Cloud White|Mineral Grey|Mineral Gray|Starlight Blue|Ultramarine Blue|Coral Orange|Ocean Blue)\s*$', '', 'gi'
-							),
-							'\s+(Black|White|Silver|Gold|Blue|Red|Green|Pink|Purple|Yellow|Orange|Gray|Grey|Bronze|Coral|Graphite|Titanium|Cream|Lavender|Mint|Burgundy|Navy|Teal|Brown|Beige|Champagne|Violet|Starlight|Midnight|Product)\s*$', '', 'gi'
-						),
-						',\s*', ' ', 'g'
-					),
-					'\s+', ' ', 'g'
-				)) as base_name,
-				array_agg(id ORDER BY name) as product_ids,
-				count(*) as variant_count
-			FROM products
-			WHERE is_active = true
-			GROUP BY brand_id, category_id,
-			         trim(regexp_replace(
-						regexp_replace(
-							regexp_replace(
-								regexp_replace(
-									regexp_replace(
-										regexp_replace(name, '\d+/\d+\s*(Gb|Tb|GB|TB)', '', 'gi'),
-										',?\s*\d+\s*(GB|TB)', '', 'gi'
-									),
-									'\s+(Jet Black|Blue Shadow|Silver Shadow|Natural Titanium|Blue Titanium|White Titanium|Black Titanium|Desert Titanium|Space Gray|Space Grey|Rose Gold|Midnight Blue|Midnight Green|Pacific Blue|Sierra Blue|Alpine Green|Deep Purple|Phantom Black|Phantom White|Mystic Bronze|Cosmic Gray|Cosmic Black|Prism White|Prism Black|Cloud Blue|Cloud Pink|Cloud White|Mineral Grey|Mineral Gray|Starlight Blue|Ultramarine Blue|Coral Orange|Ocean Blue)\s*$', '', 'gi'
-								),
-								'\s+(Black|White|Silver|Gold|Blue|Red|Green|Pink|Purple|Yellow|Orange|Gray|Grey|Bronze|Coral|Graphite|Titanium|Cream|Lavender|Mint|Burgundy|Navy|Teal|Brown|Beige|Champagne|Violet|Starlight|Midnight|Product)\s*$', '', 'gi'
-							),
-							',\s*', ' ', 'g'
-						),
-						'\s+', ' ', 'g'
-					))
-			HAVING count(*) > 1
-		)
-		UPDATE products p
-		SET
-			variant_group_id = vg.product_ids[1],
-			is_group = (p.id = vg.product_ids[1])
-		FROM variant_groups vg
-		WHERE p.id = ANY(vg.product_ids)
-	`)
-	return err
-}
-
-// GetGroupingStatistics returns statistics about product variant grouping
-func (r *Repository) GetGroupingStatistics(ctx context.Context) (int, int, error) {
-	query := `
-		SELECT
-			COUNT(DISTINCT variant_group_id) as total_groups,
-			COUNT(*) as total_variants
-		FROM products
-		WHERE variant_group_id IS NOT NULL
-	`
-
-	var totalGroups, totalVariants int
-	err := r.pool.QueryRow(ctx, query).Scan(&totalGroups, &totalVariants)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return totalGroups, totalVariants, nil
-}
 
 // ============================================================================
 // SYNC LOG
@@ -3958,7 +3850,7 @@ func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductReques
 		          parent_id, main_image_url, images, videos, warranty, barcodes,
 		          price_min, price_max, total_stock, is_in_stock,
 		          is_active, is_service, created_at, updated_at,
-		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+		          prices, price_mdl, price_eur, price_usd
 	`
 
 	var product models.Product
@@ -3972,7 +3864,6 @@ func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductReques
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
-		&product.VariantGroupID, &product.IsGroup,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create product: %w", err)
@@ -4036,19 +3927,19 @@ func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateP
 			brand_id, category_id, parent_id, source_id,
 			main_image_url, images, videos, barcodes,
 			prices, price_mdl, price_eur, price_usd,
-			total_stock, is_in_stock, is_active, is_service, is_group
+			total_stock, is_in_stock, is_active, is_service
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7,
 			$8, $9, $10, $11,
 			$12, $13, $14, $15,
 			$16, $17, $18, $19,
-			$20, $21, $22, $23, $24
+			$20, $21, $22, $23
 		)
 		RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
 		          parent_id, source_id, main_image_url, images, videos, warranty, barcodes,
 		          price_min, price_max, total_stock, is_in_stock,
 		          is_active, is_service, created_at, updated_at,
-		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+		          prices, price_mdl, price_eur, price_usd
 	`
 
 	var product models.Product
@@ -4057,7 +3948,7 @@ func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateP
 		req.BrandID, req.CategoryID, req.ParentID, req.SourceID,
 		req.MainImageURL, imagesJSON, videosJSON, barcodesJSON,
 		pricesJSON, req.PriceMDL, req.PriceEUR, req.PriceUSD,
-		req.TotalStock, req.IsInStock, req.IsActive, req.IsService, req.IsGroup,
+		req.TotalStock, req.IsInStock, req.IsActive, req.IsService,
 	).Scan(
 		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
 		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
@@ -4065,7 +3956,6 @@ func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateP
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
-		&product.VariantGroupID, &product.IsGroup,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("insert product: %w", err)
@@ -4157,6 +4047,340 @@ func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateP
 	return &product, nil
 }
 
+// UpdateProductFull updates an existing product with all fields including properties and characteristics
+func (r *Repository) UpdateProductFull(ctx context.Context, id uuid.UUID, req *UpdateProductFullRequest) (*models.Product, error) {
+	// Begin transaction with repeatable read isolation for consistency
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// First, verify the product exists
+	var exists bool
+	err = tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM products WHERE id = $1)", id).Scan(&exists)
+	if err != nil {
+		return nil, fmt.Errorf("check product exists: %w", err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("product not found")
+	}
+
+	// Build dynamic update query for product fields
+	updates := make([]string, 0)
+	args := make([]interface{}, 0)
+	argPos := 1
+
+	if req.Name != nil {
+		updates = append(updates, fmt.Sprintf("name = $%d", argPos))
+		args = append(args, *req.Name)
+		argPos++
+
+		// Also update slug
+		updates = append(updates, fmt.Sprintf("slug = $%d", argPos))
+		args = append(args, slug.Make(*req.Name))
+		argPos++
+	}
+
+	if req.Code != nil {
+		updates = append(updates, fmt.Sprintf("code = $%d", argPos))
+		args = append(args, *req.Code)
+		argPos++
+	}
+
+	if req.Article != nil {
+		updates = append(updates, fmt.Sprintf("article = $%d", argPos))
+		args = append(args, *req.Article)
+		argPos++
+	}
+
+	if req.Description != nil {
+		updates = append(updates, fmt.Sprintf("description = $%d", argPos))
+		args = append(args, *req.Description)
+		argPos++
+	}
+
+	if req.Warranty != nil {
+		updates = append(updates, fmt.Sprintf("warranty = $%d", argPos))
+		args = append(args, *req.Warranty)
+		argPos++
+	}
+
+	if req.BrandID != nil {
+		updates = append(updates, fmt.Sprintf("brand_id = $%d", argPos))
+		args = append(args, *req.BrandID)
+		argPos++
+	}
+
+	if req.CategoryID != nil {
+		updates = append(updates, fmt.Sprintf("category_id = $%d", argPos))
+		args = append(args, *req.CategoryID)
+		argPos++
+	}
+
+	if req.ParentID != nil {
+		updates = append(updates, fmt.Sprintf("parent_id = $%d", argPos))
+		args = append(args, *req.ParentID)
+		argPos++
+	}
+
+	if req.SourceID != nil {
+		updates = append(updates, fmt.Sprintf("source_id = $%d", argPos))
+		args = append(args, *req.SourceID)
+		argPos++
+	}
+
+	if req.MainImageURL != nil {
+		updates = append(updates, fmt.Sprintf("main_image_url = $%d", argPos))
+		args = append(args, *req.MainImageURL)
+		argPos++
+	}
+
+	// Handle JSONB arrays - always update if provided (even if empty, to allow clearing)
+	if req.Images != nil {
+		var imagesJSON interface{}
+		if len(req.Images) > 0 {
+			imagesJSON = req.Images
+		} else {
+			imagesJSON = []interface{}{}
+		}
+		updates = append(updates, fmt.Sprintf("images = $%d", argPos))
+		args = append(args, imagesJSON)
+		argPos++
+	}
+
+	if req.Videos != nil {
+		var videosJSON interface{}
+		if len(req.Videos) > 0 {
+			videosJSON = req.Videos
+		} else {
+			videosJSON = []interface{}{}
+		}
+		updates = append(updates, fmt.Sprintf("videos = $%d", argPos))
+		args = append(args, videosJSON)
+		argPos++
+	}
+
+	if req.Barcodes != nil {
+		var barcodesJSON interface{}
+		if len(req.Barcodes) > 0 {
+			barcodesJSON = req.Barcodes
+		} else {
+			barcodesJSON = []interface{}{}
+		}
+		updates = append(updates, fmt.Sprintf("barcodes = $%d", argPos))
+		args = append(args, barcodesJSON)
+		argPos++
+	}
+
+	if req.Prices != nil {
+		var pricesJSON interface{}
+		if len(req.Prices) > 0 {
+			pricesJSON = req.Prices
+		} else {
+			pricesJSON = []interface{}{}
+		}
+		updates = append(updates, fmt.Sprintf("prices = $%d", argPos))
+		args = append(args, pricesJSON)
+		argPos++
+	}
+
+	if req.PriceMDL != nil {
+		updates = append(updates, fmt.Sprintf("price_mdl = $%d", argPos))
+		args = append(args, *req.PriceMDL)
+		argPos++
+	}
+
+	if req.PriceEUR != nil {
+		updates = append(updates, fmt.Sprintf("price_eur = $%d", argPos))
+		args = append(args, *req.PriceEUR)
+		argPos++
+	}
+
+	if req.PriceUSD != nil {
+		updates = append(updates, fmt.Sprintf("price_usd = $%d", argPos))
+		args = append(args, *req.PriceUSD)
+		argPos++
+	}
+
+	if req.TotalStock != nil {
+		updates = append(updates, fmt.Sprintf("total_stock = $%d", argPos))
+		args = append(args, *req.TotalStock)
+		argPos++
+	}
+
+	if req.IsInStock != nil {
+		updates = append(updates, fmt.Sprintf("is_in_stock = $%d", argPos))
+		args = append(args, *req.IsInStock)
+		argPos++
+	}
+
+	if req.IsActive != nil {
+		updates = append(updates, fmt.Sprintf("is_active = $%d", argPos))
+		args = append(args, *req.IsActive)
+		argPos++
+	}
+
+	if req.IsService != nil {
+		updates = append(updates, fmt.Sprintf("is_service = $%d", argPos))
+		args = append(args, *req.IsService)
+		argPos++
+	}
+
+	// Update product if there are any field changes
+	var product models.Product
+	if len(updates) > 0 {
+		updates = append(updates, "updated_at = NOW()")
+		args = append(args, id)
+
+		query := fmt.Sprintf(`
+			UPDATE products SET %s
+			WHERE id = $%d
+			RETURNING id, ultra_id, code, article, name, slug, description, brand_id, category_id,
+			          parent_id, source_id, main_image_url, images, videos, warranty, barcodes,
+			          price_min, price_max, total_stock, is_in_stock,
+			          is_active, is_service, created_at, updated_at,
+			          prices, price_mdl, price_eur, price_usd
+		`, strings.Join(updates, ", "), argPos)
+
+		err = tx.QueryRow(ctx, query, args...).Scan(
+			&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
+			&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
+			&product.ParentID, &product.SourceID, &product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
+			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("update product: %w", err)
+		}
+	} else {
+		// No product field updates, just fetch current product data
+		fetchQuery := `
+			SELECT id, ultra_id, code, article, name, slug, description, brand_id, category_id,
+			       parent_id, source_id, main_image_url, images, videos, warranty, barcodes,
+			       price_min, price_max, total_stock, is_in_stock,
+			       is_active, is_service, created_at, updated_at,
+			       prices, price_mdl, price_eur, price_usd
+			FROM products WHERE id = $1
+		`
+		err = tx.QueryRow(ctx, fetchQuery, id).Scan(
+			&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
+			&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
+			&product.ParentID, &product.SourceID, &product.MainImageURL, &product.Images, &product.Videos, &product.Warranty, &product.Barcodes,
+			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("fetch product: %w", err)
+		}
+	}
+
+	// Handle properties - delete existing and insert new ones if properties array is provided
+	if req.Properties != nil {
+		// Delete existing properties for this product
+		_, err = tx.Exec(ctx, "DELETE FROM properties WHERE product_id = $1", id)
+		if err != nil {
+			return nil, fmt.Errorf("delete existing properties: %w", err)
+		}
+
+		// Insert new properties if any
+		if len(req.Properties) > 0 {
+			propertyQuery := `
+				INSERT INTO properties (
+					product_id, property_uuid, property_name, property_code, value, value_type,
+					group_uuid, group_name, sort_order, is_filter, is_modification
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			`
+			for _, prop := range req.Properties {
+				propertyUUID := uuid.New().String()
+				_, err = tx.Exec(ctx, propertyQuery,
+					product.ID, propertyUUID, prop.PropertyName, prop.PropertyCode, prop.Value, prop.ValueType,
+					prop.GroupUUID, prop.GroupName, prop.SortOrder, prop.IsFilter, prop.IsModification,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("insert property %s: %w", prop.PropertyName, err)
+				}
+			}
+		}
+	}
+
+	// Handle characteristics - delete existing and insert new ones if characteristics array is provided
+	if req.Characteristics != nil {
+		// Delete existing characteristics for this product
+		_, err = tx.Exec(ctx, "DELETE FROM characteristics WHERE product_id = $1", id)
+		if err != nil {
+			return nil, fmt.Errorf("delete existing characteristics: %w", err)
+		}
+
+		// Insert new characteristics if any
+		if len(req.Characteristics) > 0 {
+			charQuery := `
+				INSERT INTO characteristics (
+					product_id, ultra_id, code, reference, name, prices,
+					stock_warehouse, stock_showroom, stock_total, is_active
+				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			`
+			for _, char := range req.Characteristics {
+				charUltraID := fmt.Sprintf("manual-char-%s", uuid.New().String())
+
+				// Convert characteristic prices to JSONB
+				var charPricesJSON interface{}
+				if len(char.Prices) > 0 {
+					charPricesJSON = char.Prices
+				} else {
+					charPricesJSON = []interface{}{}
+				}
+
+				stockTotal := char.StockWarehouse + char.StockShowroom
+
+				_, err = tx.Exec(ctx, charQuery,
+					product.ID, charUltraID, char.Code, char.Reference, char.Name, charPricesJSON,
+					char.StockWarehouse, char.StockShowroom, stockTotal, char.IsActive,
+				)
+				if err != nil {
+					return nil, fmt.Errorf("insert characteristic %s: %w", char.Name, err)
+				}
+			}
+
+			// Update product aggregates if characteristics were added
+			aggregateQuery := `
+				UPDATE products SET
+					price_min = (SELECT MIN((price->>'price')::numeric) FROM characteristics, jsonb_array_elements(prices) AS price WHERE characteristics.product_id = $1 AND prices IS NOT NULL AND jsonb_array_length(prices) > 0),
+					price_max = (SELECT MAX((price->>'price')::numeric) FROM characteristics, jsonb_array_elements(prices) AS price WHERE characteristics.product_id = $1 AND prices IS NOT NULL AND jsonb_array_length(prices) > 0),
+					total_stock = (SELECT COALESCE(SUM(stock_total), 0) FROM characteristics WHERE product_id = $1),
+					is_in_stock = (SELECT COALESCE(SUM(stock_total), 0) > 0 FROM characteristics WHERE product_id = $1),
+					updated_at = NOW()
+				WHERE id = $1
+			`
+			_, err = tx.Exec(ctx, aggregateQuery, product.ID)
+			if err != nil {
+				return nil, fmt.Errorf("update product aggregates: %w", err)
+			}
+
+			// Refresh product data after aggregate update
+			refreshQuery := `
+				SELECT price_min, price_max, total_stock, is_in_stock
+				FROM products WHERE id = $1
+			`
+			err = tx.QueryRow(ctx, refreshQuery, product.ID).Scan(
+				&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("refresh product data: %w", err)
+			}
+		}
+	}
+
+	// Commit transaction
+	if err = tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return &product, nil
+}
+
 // UpdateProduct updates an existing product
 func (r *Repository) UpdateProduct(ctx context.Context, id uuid.UUID, req *UpdateProductRequest) (*models.Product, error) {
 	// Build dynamic update query
@@ -4231,7 +4455,7 @@ func (r *Repository) UpdateProduct(ctx context.Context, id uuid.UUID, req *Updat
 		          parent_id, main_image_url, images, videos, warranty, barcodes,
 		          price_min, price_max, total_stock, is_in_stock,
 		          is_active, is_service, created_at, updated_at,
-		          prices, price_mdl, price_eur, price_usd, variant_group_id, is_group
+		          prices, price_mdl, price_eur, price_usd
 	`, strings.Join(updates, ", "), argPos)
 
 	var product models.Product
@@ -4242,7 +4466,6 @@ func (r *Repository) UpdateProduct(ctx context.Context, id uuid.UUID, req *Updat
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
-		&product.VariantGroupID, &product.IsGroup,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

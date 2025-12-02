@@ -235,7 +235,15 @@
     "isModification": "Это модификация",
     "totalProperties": "Всего свойств",
     "filterProperties": "Фильтровать свойства",
-    "modifications": "Модификации"
+    "modifications": "Модификации",
+    "createNewGroup": "Создать новую группу...",
+    "createNewProperty": "Создать новое свойство...",
+    "typeGroupName": "Введите название группы",
+    "typePropertyName": "Введите название свойства",
+    "selectOrTypeValue": "Выберите или введите значение...",
+    "searchValues": "Поиск значений...",
+    "noValuesFound": "Значения не найдены",
+    "typeNewValue": "Введите новое значение"
   },
   "media": {
     "productImages": "Изображения товара",
@@ -296,7 +304,11 @@
     "isParentGroup2": "Является родительской группой",
     "linkedToParent": "Связан с родителем",
     "yes": "Да",
-    "no": "Нет"
+    "no": "Нет",
+    "variantType": "Тип варианта",
+    "variantTypeDesc": "Выберите, чем этот вариант отличается от родительского товара",
+    "variantValue": "Значение варианта",
+    "variantValueHint": "Введите конкретное значение для этого варианта (например, Черный, 256GB)"
   },
   "navigation": {
     "step": "Шаг {{current}} из {{total}}",

@@ -259,12 +259,6 @@ func runSync(ctx context.Context, fetcher *ultra.Fetcher, repo *repository.Repos
 		log.Printf("Warning: Failed to extract multi-currency prices: %v\n", err)
 	}
 
-	// Group product variants by similar names
-	log.Println("Grouping product variants...")
-	if err := repo.GroupProductVariants(ctx); err != nil {
-		log.Printf("Warning: Failed to group product variants: %v\n", err)
-	}
-
 	// Build sync details
 	syncLog.Details = models.JSONB{
 		"services_synced": []string{"BRAND", "NOMENCLATURETYPELIST", "NOMENCLATURE", "PROPERTIES", "PRICELIST", "BALANCE", "RATES"},

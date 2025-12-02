@@ -73,13 +73,13 @@ func (r *Repository) ListPropertyGroups(ctx context.Context, limit, offset int, 
 	var groups []PropertyGroup
 	var total int
 
-	// Build search condition
-	searchCondition := ""
+	// Build search condition (always filter out NULL group_names)
+	searchCondition := "WHERE group_name IS NOT NULL"
 	searchArgs := []interface{}{}
 	argIndex := 1
 
 	if search != "" {
-		searchCondition = fmt.Sprintf("WHERE group_name ILIKE $%d", argIndex)
+		searchCondition = fmt.Sprintf("WHERE group_name IS NOT NULL AND group_name ILIKE $%d", argIndex)
 		searchArgs = append(searchArgs, "%"+search+"%")
 		argIndex++
 	}

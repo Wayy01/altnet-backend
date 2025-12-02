@@ -230,7 +230,6 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/products/{id}", handler.GetProduct).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/properties", handler.GetProductProperties).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/characteristics", handler.GetProductCharacteristics).Methods("GET", "OPTIONS")
-	api.HandleFunc("/products/{id}/variants", handler.GetProductVariants).Methods("GET", "OPTIONS")
 
 	// Properties (specific routes before parameterized routes)
 	api.HandleFunc("/properties/bulk", handler.BulkUpdateProperties).Methods("PATCH", "OPTIONS")
@@ -275,20 +274,6 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/characteristics/hierarchy/values/bulk-update", handler.BulkUpdateCharacteristicValues).Methods("POST", "OPTIONS")
 	api.HandleFunc("/characteristics/hierarchy/values/bulk-delete", handler.BulkDeleteCharacteristicValues).Methods("POST", "OPTIONS")
 
-	// Product Grouping Hierarchy (Level 1: Groups)
-	api.HandleFunc("/products/groupings/hierarchy/groups", handler.ListProductGroups).Methods("GET", "OPTIONS")
-	api.HandleFunc("/products/groupings/hierarchy/groups/{id}", handler.GetProductGroup).Methods("GET", "OPTIONS")
-	api.HandleFunc("/products/groupings/hierarchy/groups/{id}", handler.DeleteProductGroup).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/products/groupings/hierarchy/groups/{id}/deletion-impact", handler.GetProductGroupDeletionImpact).Methods("GET", "OPTIONS")
-
-	// Product Grouping Hierarchy (Level 2: Variants)
-	api.HandleFunc("/products/groupings/hierarchy/groups/{id}/variants", handler.ListProductVariants).Methods("GET", "OPTIONS")
-	api.HandleFunc("/products/groupings/hierarchy/variants/{id}", handler.DeleteProductVariant).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/products/groupings/hierarchy/variants/bulk", handler.BulkUpdateProductVariants).Methods("PATCH", "OPTIONS")
-	api.HandleFunc("/products/groupings/hierarchy/variants/bulk", handler.BulkDeleteProductVariants).Methods("DELETE", "OPTIONS")
-
-	// Product Grouping Post-Processing
-	api.HandleFunc("/products/groupings/trigger", handler.TriggerProductGrouping).Methods("POST", "OPTIONS")
 
 	// Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
@@ -365,10 +350,11 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/sync/analytics/aggregations", performanceHandler.GetAggregations).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sync/analytics/export", performanceHandler.ExportMetrics).Methods("GET", "OPTIONS")
 
-	// CRUD operations - Products (bulk routes must come before {id} routes)
+	// CRUD operations - Products (bulk routes and /full routes must come before {id} routes)
 	api.HandleFunc("/products", handler.CreateProduct).Methods("POST", "OPTIONS")
 	api.HandleFunc("/products/bulk", handler.BulkUpdateProducts).Methods("PATCH", "OPTIONS")
 	api.HandleFunc("/products/bulk", handler.BulkDeleteProducts).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/products/{id}/full", handler.UpdateProductFull).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/products/{id}", handler.DeleteProduct).Methods("DELETE", "OPTIONS")
 

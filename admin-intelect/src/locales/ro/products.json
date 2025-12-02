@@ -235,7 +235,15 @@
     "isModification": "Este modificare",
     "totalProperties": "Total proprietati",
     "filterProperties": "Filtreaza proprietati",
-    "modifications": "Modificari"
+    "modifications": "Modificari",
+    "createNewGroup": "Creeaza grup nou...",
+    "createNewProperty": "Creeaza proprietate noua...",
+    "typeGroupName": "Introduceti numele grupului",
+    "typePropertyName": "Introduceti numele proprietatii",
+    "selectOrTypeValue": "Selectati sau introduceti valoare...",
+    "searchValues": "Cautare valori...",
+    "noValuesFound": "Nu au fost gasite valori",
+    "typeNewValue": "Introduceti o valoare noua"
   },
   "media": {
     "productImages": "Imagini produs",
@@ -274,6 +282,18 @@
     "autoLinked": "Legat automat ca varianta",
     "automatic": "Automat",
     "autoLinkedDesc": "Acest produs va fi legat automat ca varianta a produsului sursa.",
+    "autoDetected": "Variante detectate automat",
+    "autoDetectedDesc": "Variantele sunt detectate automat din proprietatile produsului. Produsele cu acelasi nume de baza dar cu proprietati diferite de <strong>Culoare</strong>, <strong>Stocare</strong> sau <strong>RAM</strong> vor fi grupate impreuna.",
+    "variantInfo": "Informatii varianta",
+    "linkedToParent": "Legat la produs parinte",
+    "howItWorks": "Cum functioneaza detectarea variantelor",
+    "colorVariants": "Variante de culoare",
+    "colorVariantsDesc": "Detectate din proprietatea \"Colour Name\" in Caracteristici esentiale",
+    "storageVariants": "Variante de stocare",
+    "storageVariantsDesc": "Detectate din proprietatea \"Internal Storage\" in grupul Memorie",
+    "ramVariants": "Variante de RAM",
+    "ramVariantsDesc": "Detectate din proprietatea \"RAM Size\" in grupul Memorie",
+    "groupingDesc": "Produsele cu aceeasi marca, categorie si nume de baza sunt grupate automat",
     "isParentGroup": "Acesta este un produs parinte (grup)",
     "isParentGroupDesc": "Activeaza daca acest produs va avea variante legate de el",
     "parentGroupEnabled": "Acest produs va putea avea alte produse legate ca variante.",
@@ -296,7 +316,11 @@
     "isParentGroup2": "Este grup parinte",
     "linkedToParent": "Legat la parinte",
     "yes": "Da",
-    "no": "Nu"
+    "no": "Nu",
+    "variantType": "Tip varianta",
+    "variantTypeDesc": "Selecteaza cum difera aceasta varianta de produsul parinte",
+    "variantValue": "Valoare varianta",
+    "variantValueHint": "Introdu valoarea specifica pentru aceasta varianta (ex: Negru, 256GB)"
   },
   "navigation": {
     "step": "Pasul {{current}} din {{total}}",

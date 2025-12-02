@@ -14,9 +14,9 @@ import (
 // Constants for property hierarchy handlers
 const (
 	DefaultLimit  = 50
-	MaxGroupLimit = 100
-	MaxNameLimit  = 100
-	MaxValueLimit = 100
+	MaxGroupLimit = 5000  // Increased for dropdown use cases
+	MaxNameLimit  = 5000  // Increased for dropdown use cases
+	MaxValueLimit = 10000 // Increased for value autocomplete
 	QueryTimeout  = 30 * time.Second
 )
 

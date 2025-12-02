@@ -148,10 +148,6 @@ type Product struct {
 	PriceEUR *float64   `json:"price_eur"`
 	PriceUSD *float64   `json:"price_usd"`
 
-	// Variant grouping
-	VariantGroupID *uuid.UUID `json:"variant_group_id"`
-	IsGroup        bool       `json:"is_group"`
-
 	// Translation fields
 	NameRU        *string `json:"name_ru,omitempty"`
 	NameRO        *string `json:"name_ro,omitempty"`

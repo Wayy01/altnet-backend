@@ -235,7 +235,15 @@
     "isModification": "Is modification",
     "totalProperties": "Total Properties",
     "filterProperties": "Filter Properties",
-    "modifications": "Modifications"
+    "modifications": "Modifications",
+    "createNewGroup": "Create new group...",
+    "createNewProperty": "Create new property...",
+    "typeGroupName": "Type group name",
+    "typePropertyName": "Type property name",
+    "selectOrTypeValue": "Select or type value...",
+    "searchValues": "Search values...",
+    "noValuesFound": "No values found",
+    "typeNewValue": "Type to enter a new value"
   },
   "media": {
     "productImages": "Product Images",
@@ -274,6 +282,18 @@
     "autoLinked": "Auto-Linked as Variant",
     "automatic": "Automatic",
     "autoLinkedDesc": "This product will be automatically linked as a variant of the source product.",
+    "autoDetected": "Auto-Detected Variants",
+    "autoDetectedDesc": "Variants are automatically detected from product properties. Products with the same base name but different <strong>Color</strong>, <strong>Storage</strong>, or <strong>RAM</strong> properties will be grouped together.",
+    "variantInfo": "Variant Information",
+    "linkedToParent": "Linked to Parent Product",
+    "howItWorks": "How Variant Detection Works",
+    "colorVariants": "Color variants",
+    "colorVariantsDesc": "Detected from \"Colour Name\" property in Essential Characteristics",
+    "storageVariants": "Storage variants",
+    "storageVariantsDesc": "Detected from \"Internal Storage\" property in Memory group",
+    "ramVariants": "RAM variants",
+    "ramVariantsDesc": "Detected from \"RAM Size\" property in Memory group",
+    "groupingDesc": "Products with the same brand, category, and base name are automatically grouped",
     "isParentGroup": "This is a Parent Product (Group)",
     "isParentGroupDesc": "Enable if this product will have variants linked to it",
     "parentGroupEnabled": "This product will be able to have other products linked as variants.",
@@ -296,7 +316,11 @@
     "isParentGroup2": "Is Parent Group",
     "linkedToParent": "Linked to Parent",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "variantType": "Variant Type",
+    "variantTypeDesc": "Select how this variant differs from the parent product",
+    "variantValue": "Variant Value",
+    "variantValueHint": "Enter the specific value for this variant (e.g., Black, 256GB)"
   },
   "navigation": {
     "step": "Step {{current}} of {{total}}",
