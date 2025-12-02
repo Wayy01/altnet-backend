@@ -49,3 +49,9 @@ temp/
 
 # Build artifacts
 dist/
+
+# User uploads
+uploads/
+
+# Planning files
+task_plan.md
