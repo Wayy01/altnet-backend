@@ -440,15 +440,39 @@ func (s *Scheduler) GetNextRunTime(cronExpr string, timezone string) (time.Time,
 	// Get current time in the specified timezone
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
+		log.Printf("Scheduler: Failed to load timezone %q, using UTC: %v", timezone, err)
 		loc = time.UTC
 	}
-	now := time.Now().In(loc)
 
-	// Calculate next run time in the local timezone, then convert to UTC for storage.
-	// This ensures the time is properly stored in PostgreSQL and can be converted
-	// back to the user's timezone when displayed.
-	next := schedule.Next(now)
-	return next.UTC(), nil
+	nowUTC := time.Now().UTC()
+	nowInTz := nowUTC.In(loc)
+
+	// Calculate next run time in the local timezone
+	next := schedule.Next(nowInTz)
+
+	// Convert to UTC for storage
+	nextUTC := next.UTC()
+
+	// Safeguard: Ensure the next run time is always in the future
+	// This handles edge cases with timezone conversions
+	if !nextUTC.After(nowUTC) {
+		log.Printf("Scheduler: Safeguard - calculated time %s not after now %s, recalculating",
+			nextUTC.Format(time.RFC3339), nowUTC.Format(time.RFC3339))
+
+		// Fallback: Calculate directly from UTC time
+		next = schedule.Next(nowUTC)
+		nextUTC = next.UTC()
+
+		// If still not in the future, keep iterating
+		attempts := 0
+		for !nextUTC.After(nowUTC) && !next.IsZero() && attempts < 100 {
+			next = schedule.Next(next)
+			nextUTC = next.UTC()
+			attempts++
+		}
+	}
+
+	return nextUTC, nil
 }
 
 // GetNextRunTimeAfter calculates the next run time after a specific time
@@ -461,15 +485,30 @@ func (s *Scheduler) GetNextRunTimeAfter(cronExpr string, timezone string, after 
 	// Ensure we're in the right timezone
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
+		log.Printf("Scheduler: Failed to load timezone %q, using UTC: %v", timezone, err)
 		loc = time.UTC
 	}
-	afterInTz := after.In(loc)
 
-	// Calculate next run time in the local timezone, then convert to UTC for storage.
-	// This ensures the time is properly stored in PostgreSQL and can be converted
-	// back to the user's timezone when displayed.
+	afterUTC := after.UTC()
+	afterInTz := afterUTC.In(loc)
+
+	// Calculate next run time in the local timezone
 	next := schedule.Next(afterInTz)
-	return next.UTC(), nil
+	nextUTC := next.UTC()
+
+	// Safeguard: Ensure the next run time is after the specified time
+	if !nextUTC.After(afterUTC) {
+		// Fallback: Calculate directly from UTC time
+		next = schedule.Next(afterUTC)
+		nextUTC = next.UTC()
+
+		for !nextUTC.After(afterUTC) && !next.IsZero() {
+			next = schedule.Next(next)
+			nextUTC = next.UTC()
+		}
+	}
+
+	return nextUTC, nil
 }
 
 // ParseCron parses a cron expression and returns an error if invalid
