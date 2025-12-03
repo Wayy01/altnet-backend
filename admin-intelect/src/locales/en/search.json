@@ -1,0 +1,83 @@
+{
+  "page": {
+    "title": "Search Test",
+    "subtitle": "Compare old PostgreSQL search vs smart Meilisearch quality"
+  },
+  "actions": {
+    "refreshStatus": "Refresh Status",
+    "triggerReindex": "Trigger Manual Reindex",
+    "reindexing": "Reindexing...",
+    "compare": "Compare",
+    "searching": "Searching..."
+  },
+  "index": {
+    "title": "Search Index Status",
+    "healthy": "Healthy",
+    "issuesDetected": "Issues Detected",
+    "documents": "Documents",
+    "pendingUpdates": "Pending Updates",
+    "status": "Status",
+    "indexing": "Indexing...",
+    "idle": "Idle",
+    "lastIndexed": "Last Indexed",
+    "never": "Never",
+    "failedToLoad": "Failed to load index status"
+  },
+  "autocomplete": {
+    "title": "Autocomplete Preview",
+    "subtitle": "Experience lightning-fast search with instant suggestions",
+    "placeholder": "Try searching for iPhone, Samsung, or any product...",
+    "debounce": "150ms debounce",
+    "smartRanking": "Smart ranking",
+    "stockAware": "Stock aware",
+    "responseTime": "Response time",
+    "keyboard": {
+      "navigate": "Navigate",
+      "select": "Select",
+      "close": "Close"
+    },
+    "noResults": "No products found",
+    "adjustSearch": "Try adjusting your search"
+  },
+  "comparison": {
+    "title": "Search Comparison",
+    "subtitle": "Compare old vs smart search side-by-side",
+    "placeholder": "Enter search query...",
+    "testCases": "Try these test cases:",
+    "oldSearch": "Old Search (PostgreSQL)",
+    "smartSearch": "Smart Search (Meilisearch)",
+    "results": "results",
+    "noResults": "No results found"
+  },
+  "testQueries": {
+    "iphone": {
+      "query": "iPhone 15 pro",
+      "description": "Should prioritize main products over accessories"
+    },
+    "typo": {
+      "query": "iphon",
+      "description": "Typo tolerance - should find iPhones despite misspelling"
+    },
+    "property": {
+      "query": "256GB",
+      "description": "Property search - finds products by storage capacity"
+    },
+    "samsung": {
+      "query": "Samsung Galaxy",
+      "description": "Should rank phones before cases/accessories"
+    }
+  },
+  "product": {
+    "main": "Main",
+    "accessory": "Accessory",
+    "inStock": "{{count}} in stock",
+    "outOfStock": "Out of stock"
+  },
+  "toast": {
+    "searchCompleted": "Search completed in {{time}}ms",
+    "searchFailed": "Search failed. Make sure the backend is running.",
+    "statusFailed": "Failed to load search index status",
+    "reindexStarted": "Reindexing started. This may take a few minutes.",
+    "reindexFailed": "Failed to trigger reindex"
+  }
+}

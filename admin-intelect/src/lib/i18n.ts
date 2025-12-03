@@ -24,6 +24,7 @@ export const NAMESPACES = [
   "settings",
   "translate",
   "variants",
+  "search",
 ] as const;
 
 export type TranslationNamespace = (typeof NAMESPACES)[number];

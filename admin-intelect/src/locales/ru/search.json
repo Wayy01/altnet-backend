@@ -1,0 +1,83 @@
+{
+  "page": {
+    "title": "Тест поиска",
+    "subtitle": "Сравнение старого PostgreSQL поиска с умным поиском Meilisearch"
+  },
+  "actions": {
+    "refreshStatus": "Обновить статус",
+    "triggerReindex": "Запустить переиндексацию",
+    "reindexing": "Переиндексация...",
+    "compare": "Сравнить",
+    "searching": "Поиск..."
+  },
+  "index": {
+    "title": "Статус поискового индекса",
+    "healthy": "Работает",
+    "issuesDetected": "Обнаружены проблемы",
+    "documents": "Документы",
+    "pendingUpdates": "Ожидающие обновления",
+    "status": "Статус",
+    "indexing": "Индексация...",
+    "idle": "Ожидание",
+    "lastIndexed": "Последняя индексация",
+    "never": "Никогда",
+    "failedToLoad": "Не удалось загрузить статус индекса"
+  },
+  "autocomplete": {
+    "title": "Предпросмотр автозаполнения",
+    "subtitle": "Мгновенные подсказки при быстром поиске",
+    "placeholder": "Попробуйте найти iPhone, Samsung или любой товар...",
+    "debounce": "Задержка 150мс",
+    "smartRanking": "Умный рейтинг",
+    "stockAware": "Учет наличия",
+    "responseTime": "Время ответа",
+    "keyboard": {
+      "navigate": "Навигация",
+      "select": "Выбрать",
+      "close": "Закрыть"
+    },
+    "noResults": "Товары не найдены",
+    "adjustSearch": "Попробуйте изменить запрос"
+  },
+  "comparison": {
+    "title": "Сравнение поиска",
+    "subtitle": "Сравнение старого и умного поиска",
+    "placeholder": "Введите поисковый запрос...",
+    "testCases": "Попробуйте эти тестовые запросы:",
+    "oldSearch": "Старый поиск (PostgreSQL)",
+    "smartSearch": "Умный поиск (Meilisearch)",
+    "results": "результатов",
+    "noResults": "Результаты не найдены"
+  },
+  "testQueries": {
+    "iphone": {
+      "query": "iPhone 15 pro",
+      "description": "Должен приоритизировать основные продукты над аксессуарами"
+    },
+    "typo": {
+      "query": "iphon",
+      "description": "Толерантность к опечаткам - должен найти iPhone несмотря на ошибку"
+    },
+    "property": {
+      "query": "256GB",
+      "description": "Поиск по свойствам - находит товары по объему памяти"
+    },
+    "samsung": {
+      "query": "Samsung Galaxy",
+      "description": "Должен ранжировать телефоны выше чехлов/аксессуаров"
+    }
+  },
+  "product": {
+    "main": "Основной",
+    "accessory": "Аксессуар",
+    "inStock": "{{count}} в наличии",
+    "outOfStock": "Нет в наличии"
+  },
+  "toast": {
+    "searchCompleted": "Поиск выполнен за {{time}}мс",
+    "searchFailed": "Поиск не удался. Убедитесь, что сервер запущен.",
+    "statusFailed": "Не удалось загрузить статус поискового индекса",
+    "reindexStarted": "Переиндексация запущена. Это может занять несколько минут.",
+    "reindexFailed": "Не удалось запустить переиндексацию"
+  }
+}

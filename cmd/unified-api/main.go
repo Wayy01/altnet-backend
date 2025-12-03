@@ -15,6 +15,7 @@ import (
 	"ultra-api-testing/internal/handlers"
 	"ultra-api-testing/internal/models"
 	"ultra-api-testing/internal/repository"
+	"ultra-api-testing/internal/search"
 	internalSync "ultra-api-testing/internal/sync"
 	"ultra-api-testing/internal/ollama"
 	"ultra-api-testing/internal/ultra"
@@ -101,6 +102,19 @@ func main() {
 	variantHandler := handlers.NewVariantHandler(variantGenerator, variantRepo)
 	defer variantGenerator.Shutdown()
 
+	// Initialize Meilisearch smart search
+	var searchHandler *handlers.SearchHandler
+	searchClient, err := search.NewClient(cfg.Meilisearch)
+	if err != nil {
+		log.Printf("Warning: Meilisearch not available: %v", err)
+		log.Println("Smart search endpoints will not be available")
+	} else {
+		fmt.Printf("Meilisearch connected: %s (index: %s)\n", cfg.Meilisearch.URL, cfg.Meilisearch.IndexName)
+		searchIndexer := search.NewIndexer(searchClient, repo)
+		searchService := search.NewService(searchClient)
+		searchHandler = handlers.NewSearchHandler(searchService, searchIndexer, repo)
+	}
+
 	// Create selective sync for scheduler
 	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher, syncManager)
 
@@ -151,7 +165,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -211,7 +225,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -425,6 +439,15 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/promotions/{id}/products", promotionHandler.AddProductsToPromotion).Methods("POST", "OPTIONS")
 	api.HandleFunc("/promotions/{id}/products", promotionHandler.RemoveProductsFromPromotion).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/promotions/{id}/products/bulk", promotionHandler.BulkAddProductsByFilter).Methods("POST", "OPTIONS")
+
+	// Smart Search endpoints (Meilisearch)
+	if searchHandler != nil {
+		api.HandleFunc("/smart-search", searchHandler.SmartSearch).Methods("GET", "OPTIONS")
+		api.HandleFunc("/smart-search/autocomplete", searchHandler.Autocomplete).Methods("GET", "OPTIONS")
+		api.HandleFunc("/smart-search/compare", searchHandler.CompareSearch).Methods("GET", "OPTIONS")
+		api.HandleFunc("/smart-search/status", searchHandler.GetIndexStatus).Methods("GET", "OPTIONS")
+		api.HandleFunc("/smart-search/reindex", searchHandler.TriggerReindex).Methods("POST", "OPTIONS")
+	}
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

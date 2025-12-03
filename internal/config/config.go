@@ -16,6 +16,14 @@ type Config struct {
 	Logging        LoggingConfig
 	LibreTranslate LibreTranslateConfig
 	Ollama         OllamaConfig
+	Meilisearch    MeilisearchConfig
+}
+
+// MeilisearchConfig holds configuration for Meilisearch smart search
+type MeilisearchConfig struct {
+	URL       string
+	MasterKey string
+	IndexName string
 }
 
 // OllamaConfig holds configuration for Ollama AI integration
@@ -99,6 +107,11 @@ func Load() (*Config, error) {
 			URL:     getEnv("OLLAMA_URL", "http://localhost:11434"),
 			Model:   getEnv("OLLAMA_MODEL", "llama3.2:3b"),
 			Timeout: getDuration("OLLAMA_TIMEOUT", 30*time.Second),
+		},
+		Meilisearch: MeilisearchConfig{
+			URL:       getEnv("MEILISEARCH_URL", "http://localhost:7700"),
+			MasterKey: getEnv("MEILISEARCH_MASTER_KEY", ""),
+			IndexName: getEnv("MEILISEARCH_INDEX_NAME", "products"),
 		},
 	}
 

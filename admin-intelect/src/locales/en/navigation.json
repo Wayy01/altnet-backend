@@ -8,6 +8,7 @@
     "groupings": "Groupings",
     "brands": "Brands",
     "categories": "Categories",
+    "searchTest": "Search Test",
     "settings": "Settings"
   },
   "sections": {
@@ -47,6 +48,7 @@
     "groupings": "Product groupings",
     "brands": "Brand management",
     "categories": "Category hierarchy",
+    "searchTest": "Test smart search quality",
     "syncOverview": "Sync status & logs",
     "selectiveSync": "Custom sync operations",
     "configurations": "Sync templates",

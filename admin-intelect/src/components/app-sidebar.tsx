@@ -24,6 +24,7 @@ import {
   Wrench,
   Layers,
   Tag,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -156,6 +157,12 @@ export function AppSidebar() {
       url: "/categories",
       icon: FolderTree,
       descriptionKey: "descriptions.categories",
+    },
+    {
+      titleKey: "menu.searchTest",
+      url: "/search-test",
+      icon: Search,
+      descriptionKey: "descriptions.searchTest",
     },
   ];
 

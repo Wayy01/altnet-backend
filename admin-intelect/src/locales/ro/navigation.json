@@ -8,6 +8,7 @@
     "groupings": "Grupari",
     "brands": "Marci",
     "categories": "Categorii",
+    "searchTest": "Test căutare",
     "settings": "Setari"
   },
   "sections": {
@@ -47,6 +48,7 @@
     "groupings": "Grupari produse",
     "brands": "Gestionare marci",
     "categories": "Ierarhie categorii",
+    "searchTest": "Testează calitatea căutării inteligente",
     "syncOverview": "Stare sincronizare si jurnale",
     "selectiveSync": "Operatiuni de sincronizare personalizate",
     "configurations": "Sabloane de sincronizare",

@@ -125,6 +125,13 @@ import {
   RemoveProductsFromPromotionPayload,
   BulkAddProductsToPromotionPayload,
 } from "@/types/promotions";
+import {
+  SmartSearchParams,
+  SmartSearchResponse,
+  AutocompleteResponse,
+  SearchComparisonResponse,
+  SearchIndexStatus,
+} from "@/types/search";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -2145,6 +2152,87 @@ class ApiClient {
       {
         method: "POST",
         body: JSON.stringify(filters),
+      }
+    );
+  }
+
+  // ============================================================================
+  // SMART SEARCH METHODS (Meilisearch)
+  // ============================================================================
+
+  /**
+   * Execute smart search query with Meilisearch
+   * Returns ranked, typo-tolerant search results
+   */
+  async smartSearch(params: SmartSearchParams): Promise<SmartSearchResponse> {
+    const searchParams = new URLSearchParams();
+    searchParams.append("q", params.query);
+
+    if (params.brandId) searchParams.append("brand_id", params.brandId);
+    if (params.categoryId) searchParams.append("category_id", params.categoryId);
+    if (params.inStock !== undefined) searchParams.append("in_stock", params.inStock.toString());
+    if (params.productType && params.productType !== "all") searchParams.append("product_type", params.productType);
+    if (params.minPrice !== undefined) searchParams.append("min_price", params.minPrice.toString());
+    if (params.maxPrice !== undefined) searchParams.append("max_price", params.maxPrice.toString());
+    if (params.sort) searchParams.append("sort", params.sort);
+    if (params.limit) searchParams.append("limit", params.limit.toString());
+    if (params.offset) searchParams.append("offset", params.offset.toString());
+
+    const response = await this.fetch<{ data: SmartSearchResponse }>(
+      `/api/v1/smart-search?${searchParams.toString()}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get fast autocomplete suggestions (optimized for dropdown)
+   * Returns top matches with minimal data for fast rendering
+   */
+  async autocomplete(query: string, limit = 10): Promise<AutocompleteResponse> {
+    const params = new URLSearchParams();
+    params.append("q", query);
+    params.append("limit", limit.toString());
+
+    const response = await this.fetch<{ data: AutocompleteResponse }>(
+      `/api/v1/smart-search/autocomplete?${params.toString()}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Compare old PostgreSQL search vs new Meilisearch side-by-side
+   * Used for quality evaluation in search test page
+   */
+  async compareSearch(query: string): Promise<SearchComparisonResponse> {
+    const params = new URLSearchParams();
+    params.append("q", query);
+
+    const response = await this.fetch<{ data: SearchComparisonResponse }>(
+      `/api/v1/smart-search/compare?${params.toString()}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Get search index status and health
+   * Returns document count, last indexed time, and health status
+   */
+  async getSearchStatus(): Promise<SearchIndexStatus> {
+    const response = await this.fetch<{ data: SearchIndexStatus }>(
+      `/api/v1/smart-search/status`
+    );
+    return response.data;
+  }
+
+  /**
+   * Trigger manual reindex of all products to Meilisearch
+   * Returns immediately, indexing happens in background
+   */
+  async reindexSearch(): Promise<{ message: string; started_at: string }> {
+    return this.fetch<{ message: string; started_at: string }>(
+      `/api/v1/smart-search/reindex`,
+      {
+        method: "POST",
       }
     );
   }

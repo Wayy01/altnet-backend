@@ -1,0 +1,83 @@
+{
+  "page": {
+    "title": "Test de căutare",
+    "subtitle": "Comparați căutarea veche PostgreSQL cu căutarea inteligentă Meilisearch"
+  },
+  "actions": {
+    "refreshStatus": "Actualizează starea",
+    "triggerReindex": "Declanșează reindexarea",
+    "reindexing": "Reindexare...",
+    "compare": "Compară",
+    "searching": "Căutare..."
+  },
+  "index": {
+    "title": "Starea indexului de căutare",
+    "healthy": "Funcțional",
+    "issuesDetected": "Probleme detectate",
+    "documents": "Documente",
+    "pendingUpdates": "Actualizări în așteptare",
+    "status": "Stare",
+    "indexing": "Indexare...",
+    "idle": "Inactiv",
+    "lastIndexed": "Ultima indexare",
+    "never": "Niciodată",
+    "failedToLoad": "Nu s-a putut încărca starea indexului"
+  },
+  "autocomplete": {
+    "title": "Previzualizare autocompletare",
+    "subtitle": "Sugestii instantanee pentru căutare rapidă",
+    "placeholder": "Încercați să căutați iPhone, Samsung sau orice produs...",
+    "debounce": "Întârziere 150ms",
+    "smartRanking": "Clasare inteligentă",
+    "stockAware": "Conștient de stoc",
+    "responseTime": "Timp de răspuns",
+    "keyboard": {
+      "navigate": "Navigare",
+      "select": "Selectare",
+      "close": "Închide"
+    },
+    "noResults": "Nu s-au găsit produse",
+    "adjustSearch": "Încercați să modificați căutarea"
+  },
+  "comparison": {
+    "title": "Comparație căutare",
+    "subtitle": "Comparați căutarea veche cu cea inteligentă",
+    "placeholder": "Introduceți interogarea de căutare...",
+    "testCases": "Încercați aceste cazuri de test:",
+    "oldSearch": "Căutare veche (PostgreSQL)",
+    "smartSearch": "Căutare inteligentă (Meilisearch)",
+    "results": "rezultate",
+    "noResults": "Nu s-au găsit rezultate"
+  },
+  "testQueries": {
+    "iphone": {
+      "query": "iPhone 15 pro",
+      "description": "Ar trebui să prioritizeze produsele principale față de accesorii"
+    },
+    "typo": {
+      "query": "iphon",
+      "description": "Toleranță la greșeli - ar trebui să găsească iPhone în ciuda erorii"
+    },
+    "property": {
+      "query": "256GB",
+      "description": "Căutare după proprietăți - găsește produse după capacitatea de stocare"
+    },
+    "samsung": {
+      "query": "Samsung Galaxy",
+      "description": "Ar trebui să claseze telefoanele înaintea huselor/accesoriilor"
+    }
+  },
+  "product": {
+    "main": "Principal",
+    "accessory": "Accesoriu",
+    "inStock": "{{count}} în stoc",
+    "outOfStock": "Stoc epuizat"
+  },
+  "toast": {
+    "searchCompleted": "Căutare finalizată în {{time}}ms",
+    "searchFailed": "Căutarea a eșuat. Asigurați-vă că serverul rulează.",
+    "statusFailed": "Nu s-a putut încărca starea indexului de căutare",
+    "reindexStarted": "Reindexarea a început. Poate dura câteva minute.",
+    "reindexFailed": "Nu s-a putut declanșa reindexarea"
+  }
+}
