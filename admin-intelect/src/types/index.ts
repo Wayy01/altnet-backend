@@ -80,6 +80,11 @@ export interface CategoryProduct {
   price_mdl: number | null;
   price_eur: number | null;
   price_usd: number | null;
+  discounted_price_mdl?: number | null;
+  discounted_price_eur?: number | null;
+  discounted_price_usd?: number | null;
+  effective_discount_percent?: number | null;
+  has_active_promotion?: boolean;
   prices: ProductPriceEntry[];
   total_stock: number;
   is_active: boolean;
@@ -266,6 +271,18 @@ export interface Product {
     storage?: string | null;
     ram?: string | null;
   } | null;
+  // Promotions and discounts fields
+  manual_discount_percent?: number | null;
+  effective_discount_percent?: number | null;
+  discounted_price_mdl?: number | null;
+  discounted_price_eur?: number | null;
+  discounted_price_usd?: number | null;
+  active_promotions?: Array<{
+    id: string;
+    name: string;
+    discount_type: 'percentage' | 'fixed_amount';
+    discount_value: number;
+  }>;
 }
 
 // Currency types
@@ -606,6 +623,11 @@ export interface BrandProduct {
   price_mdl: number | null;
   price_eur: number | null;
   price_usd: number | null;
+  discounted_price_mdl?: number | null;
+  discounted_price_eur?: number | null;
+  discounted_price_usd?: number | null;
+  effective_discount_percent?: number | null;
+  has_active_promotion?: boolean;
   prices: ProductPriceEntry[];
   total_stock: number;
   is_active: boolean;
@@ -870,6 +892,7 @@ export interface ProductFormState {
     price_mdl: number | null;
     price_eur: number | null;
     price_usd: number | null;
+    manual_discount_percent: number | null;
     total_stock: number;
     is_in_stock: boolean;
   };

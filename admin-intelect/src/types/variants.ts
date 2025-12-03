@@ -47,6 +47,19 @@ export interface ProductVariantGroupMember {
   product_id: string;
   product?: Product; // optional populated product
   created_at: string;
+  // Flattened product fields for display
+  name?: string;
+  article?: string;
+  main_image_url?: string;
+  price_min?: number | null;
+  price_mdl?: number | null;
+  price_eur?: number | null;
+  price_usd?: number | null;
+  discounted_price_mdl?: number | null;
+  discounted_price_eur?: number | null;
+  discounted_price_usd?: number | null;
+  effective_discount_percent?: number | null;
+  has_active_promotion?: boolean;
 }
 
 /**

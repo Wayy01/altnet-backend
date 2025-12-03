@@ -1,0 +1,158 @@
+{
+  "page": {
+    "title": "Promoții și Reduceri",
+    "description": "Gestionați campaniile promoționale și reducerile de produse",
+    "newPromotion": "Creați Promoție",
+    "createTitle": "Creați Promoție",
+    "createDescription": "Configurați o nouă campanie promoțională",
+    "editTitle": "Editați Promoție",
+    "editDescription": "Actualizați detaliile promoției"
+  },
+  "stats": {
+    "total": "Total Promoții",
+    "active": "Promoții Active",
+    "productsOnPromotion": "Produse în Promoție",
+    "discount": "Reducere",
+    "products": "Produse",
+    "startDate": "Data Început",
+    "endDate": "Data Sfârșit",
+    "productsInPromotion": "Produse în promoție",
+    "onPage": "pe pagină",
+    "filtered": "filtrat"
+  },
+  "table": {
+    "name": "Nume",
+    "discount": "Reducere",
+    "dates": "Date",
+    "products": "Produse",
+    "priority": "Prioritate",
+    "status": "Status",
+    "actions": "Acțiuni"
+  },
+  "filters": {
+    "searchPromotions": "Căutați promoții...",
+    "allPromotions": "Toate Promoțiile",
+    "activeOnly": "Doar Active",
+    "inactiveOnly": "Doar Inactive"
+  },
+  "form": {
+    "basicInformation": "Informații de Bază",
+    "promotionName": "Nume Promoție",
+    "promotionNamePlaceholder": "ex., Reduceri de Vară 2024",
+    "description": "Descriere",
+    "descriptionPlaceholder": "Descriere opțională pentru referință internă",
+    "discountConfiguration": "Configurare Reducere",
+    "discountType": "Tip Reducere",
+    "percentage": "Procent",
+    "fixedAmount": "Sumă Fixă (MDL)",
+    "discountValue": "Valoare Reducere",
+    "discountValuePercentagePlaceholder": "ex., 20",
+    "discountValueFixedPlaceholder": "ex., 100.00",
+    "percentageHelper": "Introduceți un procent între 0 și 100",
+    "fixedAmountHelper": "Introduceți o sumă fixă în MDL",
+    "schedule": "Program",
+    "startDate": "Data Început",
+    "endDate": "Data Sfârșit",
+    "settings": "Setări",
+    "priority": "Prioritate",
+    "priorityHelper": "Promoțiile cu prioritate mai mare sunt aplicate mai întâi",
+    "status": "Status",
+    "activeStatus": "Activ",
+    "inactiveStatus": "Inactiv",
+    "statusHelper": "Promoțiile inactive nu se vor aplica produselor",
+    "required": "*"
+  },
+  "actions": {
+    "viewDetails": "Vezi Detalii",
+    "edit": "Editează",
+    "delete": "Șterge",
+    "cancel": "Anulează",
+    "createPromotion": "Creați Promoție",
+    "saveChanges": "Salvează Modificările",
+    "addProducts": "Adaugă Produse",
+    "removeSelected": "Eliminați Selectate",
+    "activate": "Activează",
+    "deactivate": "Dezactivează"
+  },
+  "badges": {
+    "active": "Activ",
+    "inactive": "Inactiv",
+    "products": "produse"
+  },
+  "empty": {
+    "title": "Nu s-au găsit promoții",
+    "description": "Creați prima promoție pentru a începe",
+    "noProducts": "Nicio produs încă",
+    "noProductsDescription": "Adăugați produse la această promoție pentru a începe"
+  },
+  "dialogs": {
+    "deleteTitle": "Șterge Promoție",
+    "deleteDescription": "Sigur doriți să ștergeți \"{{name}}\"? Aceasta va elimina promoția dar nu va șterge produsele.",
+    "deleteDetailDescription": "Sigur doriți să ștergeți \"{{name}}\"? Această acțiune nu poate fi anulată. Produsele nu vor fi șterse."
+  },
+  "toast": {
+    "deletedSuccess": "Promoție ștearsă cu succes",
+    "deleteFailed": "Eșec la ștergerea promoției",
+    "activated": "Promoție activată",
+    "deactivated": "Promoție dezactivată",
+    "toggleFailed": "Eșec la schimbarea statusului promoției",
+    "createdSuccess": "Promoție creată cu succes",
+    "createFailed": "Eșec la crearea promoției",
+    "updatedSuccess": "Promoție actualizată cu succes",
+    "updateFailed": "Eșec la actualizarea promoției",
+    "loadFailed": "Eșec la încărcarea promoției",
+    "productsAddedSuccess": "Adăugate {{count}} produs(e) la promoție",
+    "productsAddFailed": "Eșec la adăugarea produselor la promoție",
+    "productsRemovedSuccess": "Eliminate {{count}} produs(e)",
+    "productsRemoveFailed": "Eșec la eliminarea produselor",
+    "selectAtLeastOne": "Vă rugăm să selectați cel puțin un produs"
+  },
+  "validation": {
+    "nameRequired": "Numele promoției este obligatoriu",
+    "discountValueRequired": "Valoarea reducerii valide este necesară",
+    "percentageRange": "Procentul trebuie să fie între 0 și 100",
+    "fixedAmountPositive": "Suma fixă trebuie să fie un număr pozitiv",
+    "startDateRequired": "Data de început este obligatorie",
+    "endDateRequired": "Data de sfârșit este obligatorie",
+    "endDateAfterStart": "Data de sfârșit trebuie să fie după data de început"
+  },
+  "productSelector": {
+    "title": "Adăugați Produse la Promoție",
+    "description": "Căutați și filtrați produse, apoi selectați care să fie adăugate la această promoție",
+    "filters": "Filtre",
+    "search": "Căutați produse...",
+    "brand": "Marcă",
+    "category": "Categorie",
+    "minPrice": "Preț Minim (MDL)",
+    "maxPrice": "Preț Maxim (MDL)",
+    "stockStatus": "Status Stoc",
+    "inStockOnly": "Doar în Stoc",
+    "resetFilters": "Resetați Filtrele",
+    "selectedCount": "{{count}} produs(e) selectate",
+    "clearSelection": "Șterge",
+    "allBrands": "Toate Mărcile",
+    "allCategories": "Toate Categoriile",
+    "tableProduct": "Produs",
+    "tableBrand": "Marcă",
+    "tableCategory": "Categorie",
+    "tablePrice": "Preț (MDL)",
+    "showingOf": "Afișare {{showing}} din {{total}} produse",
+    "page": "Pagina",
+    "of": "din",
+    "selectAllMatching": "Selectați Toate Corespunzătoare ({{count}})",
+    "addSelected": "Adăugați Selectate ({{count}})",
+    "noProductsFound": "Nu s-au găsit produse"
+  },
+  "detail": {
+    "breadcrumb": "Promoții",
+    "discountTypePercentage": "Procent",
+    "discountTypeFixed": "Sumă Fixă",
+    "selectedProducts": "{{count}} produs(e) selectate",
+    "originalPrice": "Preț Original",
+    "discountedPrice": "Preț Redus"
+  },
+  "pagination": {
+    "previous": "Anterior",
+    "next": "Următorul"
+  }
+}

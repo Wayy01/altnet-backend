@@ -24,6 +24,7 @@ import (
 // Handler contains all HTTP handlers
 type Handler struct {
 	repo           *repository.Repository
+	promotionRepo  *repository.PromotionRepository // Promotion repository for discount calculations
 	syncConfigRepo *repository.SyncConfigRepository
 	fetcher        *ultra.Fetcher
 	selectiveSync  *internalSync.SelectiveSync
@@ -33,11 +34,12 @@ type Handler struct {
 }
 
 // New creates a new Handler instance
-func New(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher, syncManager *internalSync.SyncManager, variantRepo *variants.Repository) *Handler {
+func New(repo *repository.Repository, promotionRepo *repository.PromotionRepository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher, syncManager *internalSync.SyncManager, variantRepo *variants.Repository) *Handler {
 	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher, syncManager)
 
 	return &Handler{
 		repo:           repo,
+		promotionRepo:  promotionRepo,
 		syncConfigRepo: syncConfigRepo,
 		fetcher:        fetcher,
 		selectiveSync:  selectiveSync,
@@ -679,6 +681,11 @@ func (h *Handler) ListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Calculate discounts for all products
+	if h.promotionRepo != nil && len(products) > 0 {
+		h.repo.CalculateProductsDiscounts(r.Context(), products, h.promotionRepo)
+	}
+
 	// Get total count with same filters
 	total, err := h.repo.CountProducts(r.Context(), filter)
 	if err != nil {
@@ -711,6 +718,11 @@ func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.respondError(w, http.StatusNotFound, "Product not found", err.Error())
 		return
+	}
+
+	// Calculate discounts for the product
+	if h.promotionRepo != nil {
+		h.repo.CalculateProductDiscounts(r.Context(), product, h.promotionRepo)
 	}
 
 	response := &models.ProductWithDetails{Product: product}

@@ -38,6 +38,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PriceDisplay } from "@/components/ui/price-display";
 import {
   Table,
   TableBody,
@@ -1321,15 +1322,16 @@ export default function ProductsPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {product.price_mdl !== null ? (
-                        <span className="font-medium tabular-nums text-sm">
-                          {product.price_mdl.toLocaleString()} MDL
-                        </span>
-                      ) : (
-                        <Badge variant="outline" className="font-normal text-xs text-muted-foreground">
-                          {t("badges.noPrice")}
-                        </Badge>
-                      )}
+                      <PriceDisplay
+                        priceMdl={product.price_mdl}
+                        priceEur={product.price_eur}
+                        priceUsd={product.price_usd}
+                        discountedPriceMdl={product.discounted_price_mdl}
+                        discountedPriceEur={product.discounted_price_eur}
+                        discountedPriceUsd={product.discounted_price_usd}
+                        discountPercent={product.effective_discount_percent}
+                        size="sm"
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       {product.is_in_stock ? (

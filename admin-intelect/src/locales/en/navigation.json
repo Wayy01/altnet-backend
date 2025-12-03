@@ -2,6 +2,7 @@
   "menu": {
     "dashboard": "Dashboard",
     "products": "Products",
+    "promotions": "Promotions",
     "variants": "Variants",
     "properties": "Properties",
     "groupings": "Groupings",
@@ -40,6 +41,7 @@
   "descriptions": {
     "dashboard": "Overview & statistics",
     "products": "Manage product catalog",
+    "promotions": "Manage promotions & discounts",
     "variants": "Variant group management",
     "properties": "Product properties",
     "groupings": "Product groupings",

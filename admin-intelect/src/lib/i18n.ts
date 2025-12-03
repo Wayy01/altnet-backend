@@ -19,6 +19,7 @@ export const NAMESPACES = [
   "brands",
   "categories",
   "properties",
+  "promotions",
   "sync",
   "settings",
   "translate",

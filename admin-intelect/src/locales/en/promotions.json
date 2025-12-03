@@ -1,0 +1,158 @@
+{
+  "page": {
+    "title": "Promotions & Discounts",
+    "description": "Manage promotional campaigns and product discounts",
+    "newPromotion": "Create Promotion",
+    "createTitle": "Create Promotion",
+    "createDescription": "Set up a new promotional campaign",
+    "editTitle": "Edit Promotion",
+    "editDescription": "Update promotion details"
+  },
+  "stats": {
+    "total": "Total Promotions",
+    "active": "Active Promotions",
+    "productsOnPromotion": "Products on Promotion",
+    "discount": "Discount",
+    "products": "Products",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "productsInPromotion": "Products in promotion",
+    "onPage": "on page",
+    "filtered": "filtered"
+  },
+  "table": {
+    "name": "Name",
+    "discount": "Discount",
+    "dates": "Dates",
+    "products": "Products",
+    "priority": "Priority",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "filters": {
+    "searchPromotions": "Search promotions...",
+    "allPromotions": "All Promotions",
+    "activeOnly": "Active Only",
+    "inactiveOnly": "Inactive Only"
+  },
+  "form": {
+    "basicInformation": "Basic Information",
+    "promotionName": "Promotion Name",
+    "promotionNamePlaceholder": "e.g., Summer Sale 2024",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional description for internal reference",
+    "discountConfiguration": "Discount Configuration",
+    "discountType": "Discount Type",
+    "percentage": "Percentage",
+    "fixedAmount": "Fixed Amount (MDL)",
+    "discountValue": "Discount Value",
+    "discountValuePercentagePlaceholder": "e.g., 20",
+    "discountValueFixedPlaceholder": "e.g., 100.00",
+    "percentageHelper": "Enter a percentage between 0 and 100",
+    "fixedAmountHelper": "Enter a fixed amount in MDL",
+    "schedule": "Schedule",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "settings": "Settings",
+    "priority": "Priority",
+    "priorityHelper": "Higher priority promotions are applied first",
+    "status": "Status",
+    "activeStatus": "Active",
+    "inactiveStatus": "Inactive",
+    "statusHelper": "Inactive promotions won't apply to products",
+    "required": "*"
+  },
+  "actions": {
+    "viewDetails": "View Details",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "createPromotion": "Create Promotion",
+    "saveChanges": "Save Changes",
+    "addProducts": "Add Products",
+    "removeSelected": "Remove Selected",
+    "activate": "Activate",
+    "deactivate": "Deactivate"
+  },
+  "badges": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "products": "products"
+  },
+  "empty": {
+    "title": "No promotions found",
+    "description": "Create your first promotion to get started",
+    "noProducts": "No products yet",
+    "noProductsDescription": "Add products to this promotion to get started"
+  },
+  "dialogs": {
+    "deleteTitle": "Delete Promotion",
+    "deleteDescription": "Are you sure you want to delete \"{{name}}\"? This will remove the promotion but will not delete the products.",
+    "deleteDetailDescription": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone. Products will not be deleted."
+  },
+  "toast": {
+    "deletedSuccess": "Promotion deleted successfully",
+    "deleteFailed": "Failed to delete promotion",
+    "activated": "Promotion activated",
+    "deactivated": "Promotion deactivated",
+    "toggleFailed": "Failed to toggle promotion status",
+    "createdSuccess": "Promotion created successfully",
+    "createFailed": "Failed to create promotion",
+    "updatedSuccess": "Promotion updated successfully",
+    "updateFailed": "Failed to update promotion",
+    "loadFailed": "Failed to load promotion",
+    "productsAddedSuccess": "Added {{count}} product(s) to promotion",
+    "productsAddFailed": "Failed to add products to promotion",
+    "productsRemovedSuccess": "Removed {{count}} product(s)",
+    "productsRemoveFailed": "Failed to remove products",
+    "selectAtLeastOne": "Please select at least one product"
+  },
+  "validation": {
+    "nameRequired": "Promotion name is required",
+    "discountValueRequired": "Valid discount value is required",
+    "percentageRange": "Percentage must be between 0 and 100",
+    "fixedAmountPositive": "Fixed amount must be a positive number",
+    "startDateRequired": "Start date is required",
+    "endDateRequired": "End date is required",
+    "endDateAfterStart": "End date must be after start date"
+  },
+  "productSelector": {
+    "title": "Add Products to Promotion",
+    "description": "Search and filter products, then select which ones to add to this promotion",
+    "filters": "Filters",
+    "search": "Search products...",
+    "brand": "Brand",
+    "category": "Category",
+    "minPrice": "Min Price (MDL)",
+    "maxPrice": "Max Price (MDL)",
+    "stockStatus": "Stock Status",
+    "inStockOnly": "In Stock Only",
+    "resetFilters": "Reset Filters",
+    "selectedCount": "{{count}} product(s) selected",
+    "clearSelection": "Clear",
+    "allBrands": "All Brands",
+    "allCategories": "All Categories",
+    "tableProduct": "Product",
+    "tableBrand": "Brand",
+    "tableCategory": "Category",
+    "tablePrice": "Price (MDL)",
+    "showingOf": "Showing {{showing}} of {{total}} products",
+    "page": "Page",
+    "of": "of",
+    "selectAllMatching": "Select All Matching ({{count}})",
+    "addSelected": "Add Selected ({{count}})",
+    "noProductsFound": "No products found"
+  },
+  "detail": {
+    "breadcrumb": "Promotions",
+    "discountTypePercentage": "Percentage",
+    "discountTypeFixed": "Fixed Amount",
+    "selectedProducts": "{{count}} product(s) selected",
+    "originalPrice": "Original Price",
+    "discountedPrice": "Discounted Price"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next"
+  }
+}

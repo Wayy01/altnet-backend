@@ -75,6 +75,7 @@ import { Property, ProductDetail, ImageEntry, Product } from "@/types";
 import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
 import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 import { VariantMatrix } from "@/components/products/variant-matrix";
+import { PriceDisplay } from "@/components/ui/price-display";
 
 interface ProductDetailPageProps {
   params: Promise<{
@@ -819,8 +820,10 @@ export default function ProductDetailPage({
           {
             title: `${t("detail.priceCurrency")} (${currency})`,
             value: currentPrice !== null ? formatPrice(currentPrice) : t("detail.priceNA"),
-            badge: "MDL, EUR, USD",
-            badgeVariant: "muted",
+            badge: product.effective_discount_percent && product.effective_discount_percent > 0
+              ? `${product.effective_discount_percent.toFixed(0)}% ${t("detail.discount")}`
+              : "MDL, EUR, USD",
+            badgeVariant: product.effective_discount_percent && product.effective_discount_percent > 0 ? "success" : "muted",
             icon: DollarSign,
           },
           {
@@ -918,6 +921,42 @@ export default function ProductDetailPage({
         </div>
       )}
 
+      {/* Active Promotions Section */}
+      {product.active_promotions && product.active_promotions.length > 0 && (
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300 ease-out
+            ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
+          `}
+          style={{ transitionDelay: contentVisible ? "450ms" : "0ms" }}
+        >
+          <div className="p-3 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-lg bg-background shadow-sm">
+                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-xs">{t("detail.activePromotions")}</h3>
+            </div>
+          </div>
+          <div className="p-4">
+            <div className="flex flex-wrap gap-2">
+              {product.active_promotions.map((promo) => (
+                <Badge
+                  key={promo.id}
+                  variant="secondary"
+                  className="text-sm bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors px-3 py-1.5"
+                >
+                  {promo.name} - {promo.discount_type === 'percentage'
+                    ? `${promo.discount_value}%`
+                    : `${promo.discount_value} MDL`}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* All Currency Prices - Product Level - Compact p-4 */}
       <div
         className={`
@@ -940,30 +979,51 @@ export default function ProductDetailPage({
             {/* MDL */}
             <div className="p-3 bg-muted/30 rounded-xl border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm hover:-translate-y-0.5 group">
               <div className="text-xs font-medium text-muted-foreground mb-0.5 group-hover:text-foreground transition-colors">{t("detail.currencyMDL")}</div>
-              <div className="text-base font-bold tabular-nums">
-                {product.price_mdl !== null && product.price_mdl !== undefined
-                  ? (product.price_mdl ?? 0).toLocaleString()
-                  : <span className="text-muted-foreground text-xs font-normal">{t("detail.priceNA")}</span>}
+              <div className="text-base">
+                <PriceDisplay
+                  priceMdl={product.price_mdl}
+                  priceEur={null}
+                  priceUsd={null}
+                  discountedPriceMdl={product.discounted_price_mdl}
+                  discountedPriceEur={null}
+                  discountedPriceUsd={null}
+                  discountPercent={product.effective_discount_percent}
+                  size="md"
+                />
               </div>
             </div>
 
             {/* EUR */}
             <div className="p-3 bg-muted/30 rounded-xl border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm hover:-translate-y-0.5 group">
               <div className="text-xs font-medium text-muted-foreground mb-0.5 group-hover:text-foreground transition-colors">{t("detail.currencyEUR")}</div>
-              <div className="text-base font-bold tabular-nums">
-                {product.price_eur !== null && product.price_eur !== undefined
-                  ? (product.price_eur ?? 0).toLocaleString()
-                  : <span className="text-muted-foreground text-xs font-normal">{t("detail.priceNA")}</span>}
+              <div className="text-base">
+                <PriceDisplay
+                  priceMdl={null}
+                  priceEur={product.price_eur}
+                  priceUsd={null}
+                  discountedPriceMdl={null}
+                  discountedPriceEur={product.discounted_price_eur}
+                  discountedPriceUsd={null}
+                  discountPercent={product.effective_discount_percent}
+                  size="md"
+                />
               </div>
             </div>
 
             {/* USD */}
             <div className="p-3 bg-muted/30 rounded-xl border transition-all duration-200 hover:bg-muted/50 hover:shadow-sm hover:-translate-y-0.5 group">
               <div className="text-xs font-medium text-muted-foreground mb-0.5 group-hover:text-foreground transition-colors">{t("detail.currencyUSD")}</div>
-              <div className="text-base font-bold tabular-nums">
-                {product.price_usd !== null && product.price_usd !== undefined
-                  ? (product.price_usd ?? 0).toLocaleString()
-                  : <span className="text-muted-foreground text-xs font-normal">{t("detail.priceNA")}</span>}
+              <div className="text-base">
+                <PriceDisplay
+                  priceMdl={null}
+                  priceEur={null}
+                  priceUsd={product.price_usd}
+                  discountedPriceMdl={null}
+                  discountedPriceEur={null}
+                  discountedPriceUsd={product.discounted_price_usd}
+                  discountPercent={product.effective_discount_percent}
+                  size="md"
+                />
               </div>
             </div>
 

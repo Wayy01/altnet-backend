@@ -48,7 +48,8 @@ import {
 import { Product, Brand, Category } from "@/types";
 import { api } from "@/lib/api";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
+import { useCurrency } from "@/contexts/currency-context";
+import { PriceDisplay } from "@/components/ui/price-display";
 
 interface ProductsTableProps {
   products: Product[];
@@ -80,7 +81,7 @@ export function ProductsTable({
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { currency, formatPrice } = useCurrency();
+  const { currency } = useCurrency();
 
   const currentPage = limit > 0 ? Math.floor(offset / limit) + 1 : 1;
   const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
@@ -446,16 +447,16 @@ export function ProductsTable({
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {(() => {
-                      const price = getPriceByCurrency(product, currency);
-                      return price !== null ? (
-                        <span className="font-mono text-sm">
-                          {formatPrice(price)}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      );
-                    })()}
+                    <PriceDisplay
+                      priceMdl={product.price_mdl}
+                      priceEur={product.price_eur}
+                      priceUsd={product.price_usd}
+                      discountedPriceMdl={product.discounted_price_mdl}
+                      discountedPriceEur={product.discounted_price_eur}
+                      discountedPriceUsd={product.discounted_price_usd}
+                      discountPercent={product.effective_discount_percent}
+                      size="sm"
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Plus, X, Tag, FolderTree, Search, Loader2, Check, DollarSign, Package, Globe, Trash2 } from "lucide-react";
+import { Plus, X, Tag, FolderTree, Search, Loader2, Check, DollarSign, Package, Globe, Trash2, Percent } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -811,8 +811,8 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
             <Label className="text-sm font-semibold">{t("basicInfo.pricingStock")}</Label>
           </div>
 
-          {/* Prices Grid - 3 columns */}
-          <div className="grid gap-3 md:grid-cols-3">
+          {/* Prices Grid - 4 columns (3 currencies + manual discount) */}
+          <div className="grid gap-3 md:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="price_mdl" className="text-sm font-medium">
                 {t("basicInfo.priceMDL")}
@@ -888,7 +888,80 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                 className="h-9 rounded-lg font-mono"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="manual_discount_percent" className="text-sm font-medium flex items-center gap-1.5">
+                <Percent className="h-3.5 w-3.5 text-primary" />
+                {t("basicInfo.manualDiscount")}
+              </Label>
+              <Input
+                id="manual_discount_percent"
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                placeholder="0.0"
+                value={data.manual_discount_percent ?? ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) {
+                    onChange({ manual_discount_percent: null });
+                    return;
+                  }
+                  const parsed = parseFloat(value);
+                  if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+                    onChange({ manual_discount_percent: parsed });
+                  }
+                }}
+                className="h-9 rounded-lg font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                {t("basicInfo.manualDiscountHint")}
+              </p>
+            </div>
           </div>
+
+          {/* Discount Preview */}
+          {data.manual_discount_percent && data.manual_discount_percent > 0 && (data.price_mdl || data.price_eur || data.price_usd) && (
+            <div className="p-3 rounded-lg border bg-primary/5 border-primary/20">
+              <div className="flex items-start gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10 mt-0.5">
+                  <Percent className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <h4 className="text-xs font-semibold text-foreground">{t("basicInfo.discountPreview")}</h4>
+                  <div className="flex flex-wrap gap-3 text-xs">
+                    {data.price_mdl !== null && (
+                      <div>
+                        <span className="text-muted-foreground">{t("basicInfo.priceMDL")}:</span>{" "}
+                        <span className="line-through text-muted-foreground">{data.price_mdl.toFixed(2)}</span>{" "}
+                        <span className="font-semibold text-emerald-600">
+                          {(data.price_mdl * (1 - data.manual_discount_percent / 100)).toFixed(2)} MDL
+                        </span>
+                      </div>
+                    )}
+                    {data.price_eur !== null && (
+                      <div>
+                        <span className="text-muted-foreground">{t("basicInfo.priceEUR")}:</span>{" "}
+                        <span className="line-through text-muted-foreground">{data.price_eur.toFixed(2)}</span>{" "}
+                        <span className="font-semibold text-emerald-600">
+                          {(data.price_eur * (1 - data.manual_discount_percent / 100)).toFixed(2)} EUR
+                        </span>
+                      </div>
+                    )}
+                    {data.price_usd !== null && (
+                      <div>
+                        <span className="text-muted-foreground">{t("basicInfo.priceUSD")}:</span>{" "}
+                        <span className="line-through text-muted-foreground">{data.price_usd.toFixed(2)}</span>{" "}
+                        <span className="font-semibold text-emerald-600">
+                          {(data.price_usd * (1 - data.manual_discount_percent / 100)).toFixed(2)} USD
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stock Grid - 2 columns */}
           <div className="grid gap-3 md:grid-cols-2">

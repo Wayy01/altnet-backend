@@ -23,6 +23,7 @@ import {
   Filter,
   Wrench,
   Layers,
+  Tag,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -125,6 +126,12 @@ export function AppSidebar() {
       url: "/products",
       icon: Package,
       descriptionKey: "descriptions.products",
+    },
+    {
+      titleKey: "menu.promotions",
+      url: "/promotions",
+      icon: Tag,
+      descriptionKey: "descriptions.promotions",
     },
     {
       titleKey: "menu.variants",

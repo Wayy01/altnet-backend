@@ -113,6 +113,18 @@ import {
   VariantJobsResponse,
   VariantGroupsResponse,
 } from "@/types/variants";
+import {
+  Promotion,
+  PromotionInput,
+  PromotionUpdateInput,
+  PromotionFilters,
+  PromotionsListResponse,
+  PromotionProduct,
+  PromotionProductsResponse,
+  AddProductsToPromotionPayload,
+  RemoveProductsFromPromotionPayload,
+  BulkAddProductsToPromotionPayload,
+} from "@/types/promotions";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -1976,6 +1988,165 @@ class ApiClient {
    */
   getVariantStreamUrl(jobId: string): string {
     return `${this.baseUrl}/api/v1/variants/stream/${jobId}`;
+  }
+
+  // ============================================================================
+  // PROMOTIONS AND DISCOUNTS METHODS
+  // ============================================================================
+
+  /**
+   * List all promotions with optional filters and pagination
+   */
+  async getPromotions(
+    filters?: PromotionFilters,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: Promotion[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.is_active !== undefined)
+      params.append("is_active", filters.is_active.toString());
+
+    const response = await this.fetch<PromotionsListResponse>(
+      `/api/v1/promotions?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single promotion by ID with product count
+   */
+  async getPromotion(id: string): Promise<Promotion> {
+    const response = await this.fetch<{ data: Promotion }>(
+      `/api/v1/promotions/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Create a new promotion
+   */
+  async createPromotion(data: PromotionInput): Promise<Promotion> {
+    const response = await this.fetch<{ data: Promotion }>(
+      `/api/v1/promotions`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing promotion
+   */
+  async updatePromotion(
+    id: string,
+    data: PromotionUpdateInput
+  ): Promise<Promotion> {
+    const response = await this.fetch<{ data: Promotion }>(
+      `/api/v1/promotions/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a promotion
+   */
+  async deletePromotion(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(`/api/v1/promotions/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  /**
+   * Toggle promotion active status
+   */
+  async togglePromotion(id: string): Promise<Promotion> {
+    const response = await this.fetch<{ data: Promotion }>(
+      `/api/v1/promotions/${id}/toggle`,
+      {
+        method: "POST",
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Get products in a promotion
+   */
+  async getPromotionProducts(
+    id: string,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: PromotionProduct[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    const response = await this.fetch<PromotionProductsResponse>(
+      `/api/v1/promotions/${id}/products?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Add products to a promotion by IDs
+   */
+  async addProductsToPromotion(
+    id: string,
+    productIds: string[]
+  ): Promise<{ added: number; message: string }> {
+    const payload: AddProductsToPromotionPayload = { product_ids: productIds };
+    return this.fetch<{ added: number; message: string }>(
+      `/api/v1/promotions/${id}/products`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  /**
+   * Remove products from a promotion
+   */
+  async removeProductsFromPromotion(
+    id: string,
+    productIds: string[]
+  ): Promise<{ removed: number; message: string }> {
+    const payload: RemoveProductsFromPromotionPayload = {
+      product_ids: productIds,
+    };
+    return this.fetch<{ removed: number; message: string }>(
+      `/api/v1/promotions/${id}/products`,
+      {
+        method: "DELETE",
+        body: JSON.stringify(payload),
+      }
+    );
+  }
+
+  /**
+   * Bulk add products to a promotion by filter criteria
+   */
+  async bulkAddProductsToPromotion(
+    id: string,
+    filters: BulkAddProductsToPromotionPayload
+  ): Promise<{ added: number; message: string }> {
+    return this.fetch<{ added: number; message: string }>(
+      `/api/v1/promotions/${id}/products/bulk`,
+      {
+        method: "POST",
+        body: JSON.stringify(filters),
+      }
+    );
   }
 }
 

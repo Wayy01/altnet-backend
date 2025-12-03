@@ -60,6 +60,7 @@ const initialFormState: ProductFormState = {
     price_mdl: null,
     price_eur: null,
     price_usd: null,
+    manual_discount_percent: null,
     total_stock: 0,
     is_in_stock: false,
   },
@@ -232,6 +233,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             price_mdl: product.price_mdl ?? null,
             price_eur: product.price_eur ?? null,
             price_usd: product.price_usd ?? null,
+            manual_discount_percent: product.manual_discount_percent ?? null,
             total_stock: product.total_stock ?? 0,
             is_in_stock: product.is_in_stock ?? false,
           },
@@ -404,6 +406,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         price_mdl: formState.basicInfo.price_mdl,
         price_eur: formState.basicInfo.price_eur,
         price_usd: formState.basicInfo.price_usd,
+        manual_discount_percent: formState.basicInfo.manual_discount_percent,
         total_stock: formState.basicInfo.total_stock,
         is_in_stock: formState.basicInfo.is_in_stock,
         // Media

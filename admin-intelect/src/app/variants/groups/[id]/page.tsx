@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/contexts/language-context";
 import { VariantGroupWithDetails } from "@/types/variants";
 import { VariantMatrixEditor } from "@/components/variants/variant-matrix-editor";
+import { PriceDisplay } from "@/components/ui/price-display";
 
 export default function VariantGroupDetailPage() {
   const params = useParams();
@@ -247,11 +248,18 @@ export default function VariantGroupDetailPage() {
                             {member.article}
                           </div>
                         )}
-                        {member.price_min && (
-                          <div className="text-xs font-semibold text-primary mt-1 tabular-nums">
-                            {member.price_min.toLocaleString()} {tCommon("currency.mdl")}
-                          </div>
-                        )}
+                        <div className="mt-1">
+                          <PriceDisplay
+                            priceMdl={member.price_mdl}
+                            priceEur={member.price_eur}
+                            priceUsd={member.price_usd}
+                            discountedPriceMdl={member.discounted_price_mdl}
+                            discountedPriceEur={member.discounted_price_eur}
+                            discountedPriceUsd={member.discounted_price_usd}
+                            discountPercent={member.effective_discount_percent}
+                            size="sm"
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="ghost"

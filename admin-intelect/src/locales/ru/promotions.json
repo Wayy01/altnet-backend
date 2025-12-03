@@ -1,0 +1,158 @@
+{
+  "page": {
+    "title": "Акции и Скидки",
+    "description": "Управление рекламными кампаниями и скидками на товары",
+    "newPromotion": "Создать Акцию",
+    "createTitle": "Создать Акцию",
+    "createDescription": "Настройте новую рекламную кампанию",
+    "editTitle": "Редактировать Акцию",
+    "editDescription": "Обновить детали акции"
+  },
+  "stats": {
+    "total": "Всего Акций",
+    "active": "Активных Акций",
+    "productsOnPromotion": "Товаров в Акциях",
+    "discount": "Скидка",
+    "products": "Товары",
+    "startDate": "Дата Начала",
+    "endDate": "Дата Окончания",
+    "productsInPromotion": "Товары в акции",
+    "onPage": "на странице",
+    "filtered": "отфильтровано"
+  },
+  "table": {
+    "name": "Название",
+    "discount": "Скидка",
+    "dates": "Даты",
+    "products": "Товары",
+    "priority": "Приоритет",
+    "status": "Статус",
+    "actions": "Действия"
+  },
+  "filters": {
+    "searchPromotions": "Поиск акций...",
+    "allPromotions": "Все Акции",
+    "activeOnly": "Только Активные",
+    "inactiveOnly": "Только Неактивные"
+  },
+  "form": {
+    "basicInformation": "Основная Информация",
+    "promotionName": "Название Акции",
+    "promotionNamePlaceholder": "например, Летняя Распродажа 2024",
+    "description": "Описание",
+    "descriptionPlaceholder": "Необязательное описание для внутренней справки",
+    "discountConfiguration": "Настройка Скидки",
+    "discountType": "Тип Скидки",
+    "percentage": "Процент",
+    "fixedAmount": "Фиксированная Сумма (MDL)",
+    "discountValue": "Значение Скидки",
+    "discountValuePercentagePlaceholder": "например, 20",
+    "discountValueFixedPlaceholder": "например, 100.00",
+    "percentageHelper": "Введите процент от 0 до 100",
+    "fixedAmountHelper": "Введите фиксированную сумму в MDL",
+    "schedule": "Расписание",
+    "startDate": "Дата Начала",
+    "endDate": "Дата Окончания",
+    "settings": "Настройки",
+    "priority": "Приоритет",
+    "priorityHelper": "Акции с более высоким приоритетом применяются первыми",
+    "status": "Статус",
+    "activeStatus": "Активна",
+    "inactiveStatus": "Неактивна",
+    "statusHelper": "Неактивные акции не будут применяться к товарам",
+    "required": "*"
+  },
+  "actions": {
+    "viewDetails": "Просмотреть Детали",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "cancel": "Отмена",
+    "createPromotion": "Создать Акцию",
+    "saveChanges": "Сохранить Изменения",
+    "addProducts": "Добавить Товары",
+    "removeSelected": "Удалить Выбранные",
+    "activate": "Активировать",
+    "deactivate": "Деактивировать"
+  },
+  "badges": {
+    "active": "Активна",
+    "inactive": "Неактивна",
+    "products": "товары"
+  },
+  "empty": {
+    "title": "Акции не найдены",
+    "description": "Создайте свою первую акцию, чтобы начать",
+    "noProducts": "Товаров пока нет",
+    "noProductsDescription": "Добавьте товары к этой акции, чтобы начать"
+  },
+  "dialogs": {
+    "deleteTitle": "Удалить Акцию",
+    "deleteDescription": "Вы уверены, что хотите удалить \"{{name}}\"? Это удалит акцию, но не удалит товары.",
+    "deleteDetailDescription": "Вы уверены, что хотите удалить \"{{name}}\"? Это действие не может быть отменено. Товары не будут удалены."
+  },
+  "toast": {
+    "deletedSuccess": "Акция успешно удалена",
+    "deleteFailed": "Не удалось удалить акцию",
+    "activated": "Акция активирована",
+    "deactivated": "Акция деактивирована",
+    "toggleFailed": "Не удалось изменить статус акции",
+    "createdSuccess": "Акция успешно создана",
+    "createFailed": "Не удалось создать акцию",
+    "updatedSuccess": "Акция успешно обновлена",
+    "updateFailed": "Не удалось обновить акцию",
+    "loadFailed": "Не удалось загрузить акцию",
+    "productsAddedSuccess": "Добавлено {{count}} товар(ов) к акции",
+    "productsAddFailed": "Не удалось добавить товары к акции",
+    "productsRemovedSuccess": "Удалено {{count}} товар(ов)",
+    "productsRemoveFailed": "Не удалось удалить товары",
+    "selectAtLeastOne": "Пожалуйста, выберите хотя бы один товар"
+  },
+  "validation": {
+    "nameRequired": "Название акции обязательно",
+    "discountValueRequired": "Требуется действительное значение скидки",
+    "percentageRange": "Процент должен быть от 0 до 100",
+    "fixedAmountPositive": "Фиксированная сумма должна быть положительным числом",
+    "startDateRequired": "Дата начала обязательна",
+    "endDateRequired": "Дата окончания обязательна",
+    "endDateAfterStart": "Дата окончания должна быть после даты начала"
+  },
+  "productSelector": {
+    "title": "Добавить Товары к Акции",
+    "description": "Найдите и отфильтруйте товары, затем выберите, какие добавить к этой акции",
+    "filters": "Фильтры",
+    "search": "Поиск товаров...",
+    "brand": "Бренд",
+    "category": "Категория",
+    "minPrice": "Мин. Цена (MDL)",
+    "maxPrice": "Макс. Цена (MDL)",
+    "stockStatus": "Статус Наличия",
+    "inStockOnly": "Только В Наличии",
+    "resetFilters": "Сбросить Фильтры",
+    "selectedCount": "Выбрано {{count}} товар(ов)",
+    "clearSelection": "Очистить",
+    "allBrands": "Все Бренды",
+    "allCategories": "Все Категории",
+    "tableProduct": "Товар",
+    "tableBrand": "Бренд",
+    "tableCategory": "Категория",
+    "tablePrice": "Цена (MDL)",
+    "showingOf": "Показано {{showing}} из {{total}} товаров",
+    "page": "Страница",
+    "of": "из",
+    "selectAllMatching": "Выбрать Все Совпадающие ({{count}})",
+    "addSelected": "Добавить Выбранные ({{count}})",
+    "noProductsFound": "Товары не найдены"
+  },
+  "detail": {
+    "breadcrumb": "Акции",
+    "discountTypePercentage": "Процент",
+    "discountTypeFixed": "Фиксированная Сумма",
+    "selectedProducts": "Выбрано {{count}} товар(ов)",
+    "originalPrice": "Исходная Цена",
+    "discountedPrice": "Цена со Скидкой"
+  },
+  "pagination": {
+    "previous": "Предыдущая",
+    "next": "Следующая"
+  }
+}

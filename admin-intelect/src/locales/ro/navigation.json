@@ -2,6 +2,7 @@
   "menu": {
     "dashboard": "Panou de control",
     "products": "Produse",
+    "promotions": "Promotii",
     "variants": "Variante",
     "properties": "Proprietati",
     "groupings": "Grupari",
@@ -40,6 +41,7 @@
   "descriptions": {
     "dashboard": "Prezentare generala si statistici",
     "products": "Gestioneaza catalogul de produse",
+    "promotions": "Gestioneaza promotii si reduceri",
     "variants": "Gestionare grupuri de variante",
     "properties": "Proprietati produse",
     "groupings": "Grupari produse",

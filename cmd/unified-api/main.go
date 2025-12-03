@@ -66,17 +66,19 @@ func main() {
 	scheduleRepo := repository.NewScheduleRepository(db.Pool)
 	performanceRepo := repository.NewPerformanceRepository(db.Pool)
 	filterRepo := repository.NewFilterRepository(db.Pool)
+	promotionRepo := repository.NewPromotionRepository(db.Pool)
 
 	// Create variant repository early so it can be passed to main handler
 	variantRepo := variants.NewRepository(db.Pool)
 
-	handler := handlers.New(repo, syncConfigRepo, fetcher, syncManager, variantRepo)
+	handler := handlers.New(repo, promotionRepo, syncConfigRepo, fetcher, syncManager, variantRepo)
 	realtimeSyncHandler := handlers.NewRealtimeSyncHandlers(realtimeSyncRepo, repo)
 	syncControlHandler := handlers.NewSyncControlHandlers(repo, realtimeSyncRepo, syncManager)
 	sourceHandler := handlers.NewSourceHandler(sourceRepo)
 	translationHandler := handlers.NewTranslationHandler(translationRepo, cfg.LibreTranslate.URL)
 	performanceHandler := handlers.NewPerformanceHandler(performanceRepo)
 	filterHandler := handlers.NewFilterHandler(filterRepo)
+	promotionHandler := handlers.NewPromotionHandler(promotionRepo, repo)
 
 	// Initialize Ollama client for AI-powered variant grouping
 	ollamaClient := ollama.NewClient(ollama.Config{
@@ -149,7 +151,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -209,7 +211,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -411,6 +413,18 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/variants/groups/{id}", variantHandler.GetGroup).Methods("GET", "OPTIONS")
 	api.HandleFunc("/variants/groups/{id}", variantHandler.DeleteGroup).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/variants/stream/{id}", variantHandler.StreamProgress).Methods("GET", "OPTIONS")
+
+	// Promotion endpoints
+	api.HandleFunc("/promotions", promotionHandler.ListPromotions).Methods("GET", "OPTIONS")
+	api.HandleFunc("/promotions", promotionHandler.CreatePromotion).Methods("POST", "OPTIONS")
+	api.HandleFunc("/promotions/{id}", promotionHandler.GetPromotion).Methods("GET", "OPTIONS")
+	api.HandleFunc("/promotions/{id}", promotionHandler.UpdatePromotion).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/promotions/{id}", promotionHandler.DeletePromotion).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/promotions/{id}/toggle", promotionHandler.TogglePromotion).Methods("POST", "OPTIONS")
+	api.HandleFunc("/promotions/{id}/products", promotionHandler.GetPromotionProducts).Methods("GET", "OPTIONS")
+	api.HandleFunc("/promotions/{id}/products", promotionHandler.AddProductsToPromotion).Methods("POST", "OPTIONS")
+	api.HandleFunc("/promotions/{id}/products", promotionHandler.RemoveProductsFromPromotion).Methods("DELETE", "OPTIONS")
+	api.HandleFunc("/promotions/{id}/products/bulk", promotionHandler.BulkAddProductsByFilter).Methods("POST", "OPTIONS")
 
 	// Health check
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

@@ -88,6 +88,7 @@ const initialFormState: ProductFormState = {
     price_mdl: null,
     price_eur: null,
     price_usd: null,
+    manual_discount_percent: null,
     total_stock: 0,
     is_in_stock: false,
   },

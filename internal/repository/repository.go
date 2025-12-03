@@ -1502,6 +1502,7 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
 		       p.is_active, p.is_service, p.created_at, p.updated_at,
 		       p.prices, p.price_mdl, p.price_eur, p.price_usd,
+		       p.manual_discount_percent,
 		       p.name_ru, p.name_ro,
 		       b.name AS brand_name, c.name AS category_name, s.name AS source_name
 		FROM products p
@@ -1519,6 +1520,7 @@ func (r *Repository) GetProduct(ctx context.Context, id uuid.UUID) (*models.Prod
 		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		&product.ManualDiscountPercent,
 		&product.NameRU, &product.NameRO,
 		&product.BrandName, &product.CategoryName, &product.SourceName,
 	)
@@ -1628,6 +1630,7 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
 		       p.is_active, p.is_service, p.created_at, p.updated_at,
 		       p.prices, p.price_mdl, p.price_eur, p.price_usd,
+		       p.manual_discount_percent,
 		       p.name_ru, p.name_ro,
 		       b.name as brand_name, c.name as category_name, s.name as source_name
 		FROM products p
@@ -1749,6 +1752,7 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
 			&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
 			&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+			&product.ManualDiscountPercent,
 			&product.NameRU, &product.NameRO,
 			&product.BrandName, &product.CategoryName, &product.SourceName,
 		)

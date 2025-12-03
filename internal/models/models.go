@@ -158,6 +158,14 @@ type Product struct {
 	BrandName    *string `json:"brand_name,omitempty"`
 	CategoryName *string `json:"category_name,omitempty"`
 	SourceName   *string `json:"source_name,omitempty"`
+
+	// Discount fields (computed)
+	ManualDiscountPercent    *float64    `json:"manual_discount_percent,omitempty"`
+	EffectiveDiscountPercent *float64    `json:"effective_discount_percent,omitempty"` // Max of manual or promotion discount
+	DiscountedPriceMDL       *float64    `json:"discounted_price_mdl,omitempty"`
+	DiscountedPriceEUR       *float64    `json:"discounted_price_eur,omitempty"`
+	DiscountedPriceUSD       *float64    `json:"discounted_price_usd,omitempty"`
+	ActivePromotions         []Promotion `json:"active_promotions,omitempty"` // Active promotions for this product
 }
 
 // ============================================================================

@@ -80,6 +80,7 @@ import { CategoryWithStats, CategoryProduct, Category, ProductSource } from "@/t
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCurrency } from "@/contexts/currency-context";
 import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
+import { PriceDisplay } from "@/components/ui/price-display";
 
 interface CategoryDetailPageProps {
   params: Promise<{
@@ -390,7 +391,7 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
   const [showBulkDeactivateSelectedDialog, setShowBulkDeactivateSelectedDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<CategoryProduct | null>(null);
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
-  const { formatPrice } = useCurrency();
+  const { currency } = useCurrency();
   const { localize } = useLocalizedValue();
   const { t } = useTranslation("categories");
   const { t: tCommon } = useTranslation("common");
@@ -1495,15 +1496,16 @@ export default function CategoryDetailPage({ params }: CategoryDetailPageProps) 
                         {product.code || "-"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {product.price_min !== null ? (
-                          <span className="font-medium text-foreground tabular-nums">
-                            {formatPrice(product.price_min)}
-                          </span>
-                        ) : (
-                          <Badge variant="outline" className="font-normal text-muted-foreground">
-                            {t("detail.noPriceLabel")}
-                          </Badge>
-                        )}
+                        <PriceDisplay
+                          priceMdl={product.price_mdl}
+                          priceEur={product.price_eur}
+                          priceUsd={product.price_usd}
+                          discountedPriceMdl={product.discounted_price_mdl}
+                          discountedPriceEur={product.discounted_price_eur}
+                          discountedPriceUsd={product.discounted_price_usd}
+                          discountPercent={product.effective_discount_percent}
+                          size="sm"
+                        />
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
