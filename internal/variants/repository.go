@@ -281,7 +281,7 @@ func (r *Repository) GetGroup(ctx context.Context, groupID uuid.UUID) (*models.V
 
 	// Get members with product details
 	membersQuery := `
-		SELECT p.id, p.name, p.article, p.main_image_url, p.price_min, p.is_in_stock,
+		SELECT p.id, p.name, p.article, p.main_image_url, p.images, p.price_min, p.is_in_stock,
 		       b.name as brand_name, c.name as category_name
 		FROM product_variant_group_members m
 		JOIN products p ON m.product_id = p.id
@@ -301,7 +301,7 @@ func (r *Repository) GetGroup(ctx context.Context, groupID uuid.UUID) (*models.V
 	for memberRows.Next() {
 		var member models.ProductMemberInfo
 		if err := memberRows.Scan(
-			&member.ID, &member.Name, &member.Article, &member.MainImageURL, &member.PriceMin, &member.IsInStock,
+			&member.ID, &member.Name, &member.Article, &member.MainImageURL, &member.Images, &member.PriceMin, &member.IsInStock,
 			&member.BrandName, &member.CategoryName,
 		); err != nil {
 			return nil, fmt.Errorf("scanning member: %w", err)

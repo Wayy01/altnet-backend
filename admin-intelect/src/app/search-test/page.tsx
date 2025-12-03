@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { SearchComparisonResponse, SearchIndexStatus } from "@/types/search";
 import { AutocompleteInput } from "@/components/search/autocomplete-input";
+import { ValidatedImg } from "@/components/ui/validated-product-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -424,17 +425,14 @@ export default function SearchTestPage() {
                       onClick={() => navigateToProduct(product.id)}
                       className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors cursor-pointer group"
                     >
-                      {product.main_image_url ? (
-                        <img
-                          src={product.main_image_url}
-                          alt={product.name}
-                          className="h-12 w-12 rounded object-cover border bg-muted shrink-0"
-                        />
-                      ) : (
-                        <div className="h-12 w-12 rounded border bg-muted flex items-center justify-center shrink-0">
-                          <Package className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                      )}
+                      <ValidatedImg
+                        src={product.main_image_url}
+                        fallbackSrc={product.images?.[0]?.url || product.images?.[0]?.path_global}
+                        alt={product.name}
+                        className="h-12 w-12 rounded object-cover border bg-muted shrink-0"
+                        containerClassName="h-12 w-12 rounded border shrink-0"
+                        iconSize="sm"
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
                           {localize(product, "name")}
@@ -492,17 +490,14 @@ export default function SearchTestPage() {
                       onClick={() => navigateToProduct(hit.id)}
                       className="flex items-start gap-3 p-3 rounded-lg border bg-background hover:bg-muted/30 transition-colors cursor-pointer group"
                     >
-                      {hit.main_image_url ? (
-                        <img
-                          src={hit.main_image_url}
-                          alt={hit.name}
-                          className="h-12 w-12 rounded object-cover border bg-muted shrink-0"
-                        />
-                      ) : (
-                        <div className="h-12 w-12 rounded border bg-muted flex items-center justify-center shrink-0">
-                          <Package className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                      )}
+                      <ValidatedImg
+                        src={hit.main_image_url}
+                        fallbackSrc={hit.images?.[0]?.url || hit.images?.[0]?.path_global}
+                        alt={hit.name}
+                        className="h-12 w-12 rounded object-cover border bg-muted shrink-0"
+                        containerClassName="h-12 w-12 rounded border shrink-0"
+                        iconSize="sm"
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-2">
                           <p className="text-sm font-medium line-clamp-2 flex-1 group-hover:text-primary transition-colors">

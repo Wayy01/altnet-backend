@@ -33,7 +33,8 @@ type SearchableProduct struct {
 	CategoryNameRO string `json:"category_name_ro,omitempty"`
 
 	// Media
-	MainImageURL string `json:"main_image_url,omitempty"`
+	MainImageURL string        `json:"main_image_url,omitempty"`
+	Images       []interface{} `json:"images,omitempty"` // JSONB array of image objects [{uuid, url, description, path_global}]
 
 	// Pricing (multi-currency)
 	PriceMDL float64 `json:"price_mdl"`
@@ -86,16 +87,17 @@ type SearchResult struct {
 
 // AutocompleteSuggestion represents a single autocomplete suggestion
 type AutocompleteSuggestion struct {
-	ID           string  `json:"id"`
-	Name         string  `json:"name"`
-	NameRU       string  `json:"name_ru,omitempty"`
-	NameRO       string  `json:"name_ro,omitempty"`
-	BrandName    string  `json:"brand_name,omitempty"`
-	CategoryName string  `json:"category_name,omitempty"`
-	ImageURL     string  `json:"image_url,omitempty"`
-	Price        float64 `json:"price,omitempty"`
-	ProductType  string  `json:"product_type,omitempty"`
-	TotalStock   int     `json:"total_stock"`
+	ID           string        `json:"id"`
+	Name         string        `json:"name"`
+	NameRU       string        `json:"name_ru,omitempty"`
+	NameRO       string        `json:"name_ro,omitempty"`
+	BrandName    string        `json:"brand_name,omitempty"`
+	CategoryName string        `json:"category_name,omitempty"`
+	ImageURL     string        `json:"image_url,omitempty"`
+	Images       []interface{} `json:"images,omitempty"` // JSONB array for fallback
+	Price        float64       `json:"price,omitempty"`
+	ProductType  string        `json:"product_type,omitempty"`
+	TotalStock   int           `json:"total_stock"`
 }
 
 // AutocompleteResult represents the response from an autocomplete query

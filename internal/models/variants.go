@@ -77,14 +77,15 @@ type VariantProperty struct {
 
 // ProductMemberInfo contains product info for group member display
 type ProductMemberInfo struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Article      *string   `json:"article,omitempty"`
-	MainImageURL *string   `json:"main_image_url,omitempty"`
-	PriceMin     *float64  `json:"price_min,omitempty"`
-	IsInStock    bool      `json:"is_in_stock"`
-	BrandName    *string   `json:"brand_name,omitempty"`
-	CategoryName *string   `json:"category_name,omitempty"`
+	ID           uuid.UUID  `json:"id"`
+	Name         string     `json:"name"`
+	Article      *string    `json:"article,omitempty"`
+	MainImageURL *string    `json:"main_image_url,omitempty"`
+	Images       JSONBArray `json:"images"`
+	PriceMin     *float64   `json:"price_min,omitempty"`
+	IsInStock    bool       `json:"is_in_stock"`
+	BrandName    *string    `json:"brand_name,omitempty"`
+	CategoryName *string    `json:"category_name,omitempty"`
 }
 
 // VariantGroupWithDetails contains full group info with members and properties

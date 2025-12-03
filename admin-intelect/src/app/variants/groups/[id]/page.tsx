@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   ArrowLeft,
   Loader2,
@@ -23,6 +22,7 @@ import { useTranslation } from "@/contexts/language-context";
 import { VariantGroupWithDetails } from "@/types/variants";
 import { VariantMatrixEditor } from "@/components/variants/variant-matrix-editor";
 import { PriceDisplay } from "@/components/ui/price-display";
+import { ValidatedProductImage } from "@/components/ui/validated-product-image";
 
 export default function VariantGroupDetailPage() {
   const params = useParams();
@@ -226,18 +226,13 @@ export default function VariantGroupDetailPage() {
                       }}
                     >
                       <div className="aspect-square relative mb-1.5 rounded-md overflow-hidden bg-muted/30 ring-1 ring-border/50">
-                        {member.main_image_url ? (
-                          <Image
-                            src={member.main_image_url}
-                            alt={member.name || t("details.unknownProduct")}
-                            fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <Package className="h-10 w-10 text-muted-foreground/20" />
-                          </div>
-                        )}
+                        <ValidatedProductImage
+                          src={member.main_image_url}
+                          fallbackSrc={member.images?.[0]?.url || member.images?.[0]?.path_global}
+                          alt={member.name || t("details.unknownProduct")}
+                          className="group-hover:scale-110 transition-transform duration-500"
+                          iconSize="lg"
+                        />
                       </div>
                       <div>
                         <div className="font-medium text-xs line-clamp-2 min-h-[2rem] group-hover:text-primary transition-colors duration-200">

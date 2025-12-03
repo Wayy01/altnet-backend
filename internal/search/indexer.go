@@ -209,6 +209,11 @@ func (idx *Indexer) buildSearchableProduct(ctx context.Context, product *models.
 		searchable.MainImageURL = *product.MainImageURL
 	}
 
+	// Images array (JSONB) - copy directly from product
+	if product.Images != nil && len(product.Images) > 0 {
+		searchable.Images = product.Images
+	}
+
 	// Translations
 	if product.NameRU != nil {
 		searchable.NameRU = *product.NameRU

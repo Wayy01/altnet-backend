@@ -99,7 +99,7 @@ func (svc *Service) Autocomplete(ctx context.Context, query string, limit int) (
 		Limit:              int64(limit),
 		AttributesToRetrieve: []string{
 			"id", "name", "name_ru", "name_ro", "brand_name", "category_name",
-			"main_image_url", "price_mdl", "product_type", "total_stock",
+			"main_image_url", "images", "price_mdl", "product_type", "total_stock",
 		},
 	}
 
@@ -269,6 +269,16 @@ func (svc *Service) convertHit(hit interface{}) (SearchableProduct, error) {
 		return nil
 	}
 
+	// Helper function to safely extract interface array (for JSONB arrays like images)
+	getInterfaceArray := func(key string) []interface{} {
+		if val, ok := hitMap[key]; ok && val != nil {
+			if arr, ok := val.([]interface{}); ok {
+				return arr
+			}
+		}
+		return nil
+	}
+
 	// Extract fields
 	product.ID = getString("id")
 	product.UltraID = getString("ultra_id")
@@ -288,6 +298,7 @@ func (svc *Service) convertHit(hit interface{}) (SearchableProduct, error) {
 	product.CategoryNameRU = getString("category_name_ru")
 	product.CategoryNameRO = getString("category_name_ro")
 	product.MainImageURL = getString("main_image_url")
+	product.Images = getInterfaceArray("images")
 	product.PriceMDL = getFloat("price_mdl")
 	product.PriceEUR = getFloat("price_eur")
 	product.PriceUSD = getFloat("price_usd")
@@ -344,6 +355,15 @@ func (svc *Service) convertHitToSuggestion(hit interface{}) AutocompleteSuggesti
 		return 0
 	}
 
+	getInterfaceArray := func(key string) []interface{} {
+		if val, ok := hitMap[key]; ok && val != nil {
+			if arr, ok := val.([]interface{}); ok {
+				return arr
+			}
+		}
+		return nil
+	}
+
 	suggestion.ID = getString("id")
 	suggestion.Name = getString("name")
 	suggestion.NameRU = getString("name_ru")
@@ -351,6 +371,7 @@ func (svc *Service) convertHitToSuggestion(hit interface{}) AutocompleteSuggesti
 	suggestion.BrandName = getString("brand_name")
 	suggestion.CategoryName = getString("category_name")
 	suggestion.ImageURL = getString("main_image_url")
+	suggestion.Images = getInterfaceArray("images")
 	suggestion.Price = getFloat("price_mdl")
 	suggestion.ProductType = getString("product_type")
 	suggestion.TotalStock = getInt("total_stock")
