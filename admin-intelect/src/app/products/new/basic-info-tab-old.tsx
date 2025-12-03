@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation, useLocalizedValue } from "@/contexts/language-context";
 
 /**
- * Form section wrapper with staggered animation
+ * Form section wrapper with staggered animation - defined outside component to prevent re-renders
  */
 function FormSection({
   children,
@@ -66,8 +66,8 @@ interface BasicInfoTabProps {
 }
 
 /**
- * Premium Basic Info Tab - Compact Version (40% smaller)
- * Uses space-y-4, h-9 inputs, gap-4 grids, reduced hints
+ * Premium Basic Info Tab with searchable selectors for brands, categories, and sources
+ * Supports 100+ items efficiently with search filtering and virtualized scrolling
  */
 export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
   const { toast } = useToast();
@@ -135,7 +135,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter brands based on search
+  // Filter brands based on search (search in all language versions)
   const filteredBrands = useMemo(() => {
     if (!brandSearch.trim()) return brands;
     const searchLower = brandSearch.toLowerCase();
@@ -146,7 +146,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
     });
   }, [brands, brandSearch, localize]);
 
-  // Filter categories based on search
+  // Filter categories based on search (search in all language versions)
   const filteredCategories = useMemo(() => {
     if (!categorySearch.trim()) return categories;
     const searchLower = categorySearch.toLowerCase();
@@ -272,7 +272,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         </div>
       </FormSection>
 
-      {/* Code, Article, Warranty - 3 columns */}
+      {/* Code, Article, and Slug */}
       <FormSection index={1} visible={sectionsVisible}>
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-1.5">
@@ -314,7 +314,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         </div>
       </FormSection>
 
-      {/* Brand and Category - 2 columns */}
+      {/* Brand and Category - Compact */}
       <FormSection index={2} visible={sectionsVisible}>
         <div className="grid gap-4 md:grid-cols-2">
           {/* Brand Selector */}
@@ -565,7 +565,7 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
         </div>
       </FormSection>
 
-      {/* Source and Description - 2 columns */}
+      {/* Source and Description */}
       <FormSection index={3} visible={sectionsVisible}>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
@@ -585,176 +585,211 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                     !data.source_id && "text-muted-foreground"
                   )}
                 >
-                  {isLoadingSources ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {t("basicInfo.loadingSources")}
-                    </span>
-                  ) : selectedSource ? (
-                    <span className="flex items-center gap-2">
-                      <span className="truncate">{selectedSource.name}</span>
-                      {selectedSource.is_default && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                          {t("basicInfo.default")}
-                        </Badge>
-                      )}
-                    </span>
-                  ) : (
-                    t("basicInfo.selectSource")
-                  )}
-                  <Globe className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <div className="flex items-center border-b px-3">
-                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                    <input
-                      placeholder={t("basicInfo.searchOrAddSource")}
-                      value={sourceSearch}
-                      onChange={(e) => {
-                        setSourceSearch(e.target.value);
-                        setNewSourceName(e.target.value);
+                {isLoadingSources ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t("basicInfo.loadingSources")}
+                  </span>
+                ) : selectedSource ? (
+                  <span className="flex items-center gap-2">
+                    <span className="truncate">{selectedSource.name}</span>
+                    {selectedSource.is_default && (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        {t("basicInfo.default")}
+                      </Badge>
+                    )}
+                  </span>
+                ) : (
+                  t("basicInfo.selectSource")
+                )}
+                <Globe className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command shouldFilter={false}>
+                <div className="flex items-center border-b px-3">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <input
+                    placeholder={t("basicInfo.searchOrAddSource")}
+                    value={sourceSearch}
+                    onChange={(e) => {
+                      setSourceSearch(e.target.value);
+                      setNewSourceName(e.target.value);
+                    }}
+                    className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                  />
+                  {sourceSearch && (
+                    <button
+                      onClick={() => {
+                        setSourceSearch("");
+                        setNewSourceName("");
                       }}
-                      className="flex h-10 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
-                    />
-                    {sourceSearch && (
-                      <button
-                        onClick={() => {
+                      className="p-1 rounded-full hover:bg-muted transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+                <CommandList className="max-h-[300px] overflow-y-auto">
+                  <CommandEmpty className="py-2 px-3 text-sm text-muted-foreground">
+                    {newSourceName.trim() ? (
+                      <div className="flex flex-col gap-2">
+                        <span>{t("basicInfo.noSourcesFound", { name: newSourceName })}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleAddSource}
+                          disabled={isAddingSource}
+                          className="w-full"
+                        >
+                          {isAddingSource ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Plus className="h-4 w-4 mr-2" />
+                          )}
+                          {t("basicInfo.addSource", { name: newSourceName.trim() })}
+                        </Button>
+                      </div>
+                    ) : (
+                      t("basicInfo.noSourcesAvailable")
+                    )}
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {/* Source list */}
+                    {filteredSources.map((source) => (
+                      <CommandItem
+                        key={source.id}
+                        value={source.id}
+                        onSelect={() => {
+                          onChange({ source_id: source.id });
+                          setSourceOpen(false);
                           setSourceSearch("");
                           setNewSourceName("");
                         }}
-                        className="p-1 rounded-full hover:bg-muted transition-colors"
+                        className="cursor-pointer group"
                       >
-                        <X className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
-                    )}
-                  </div>
-                  <CommandList className="max-h-[300px] overflow-y-auto">
-                    <CommandEmpty className="py-2 px-3 text-sm text-muted-foreground">
-                      {newSourceName.trim() ? (
-                        <div className="flex flex-col gap-2">
-                          <span>{t("basicInfo.noSourcesFound", { name: newSourceName })}</span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleAddSource}
-                            disabled={isAddingSource}
-                            className="w-full"
-                          >
-                            {isAddingSource ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : (
-                              <Plus className="h-4 w-4 mr-2" />
-                            )}
-                            {t("basicInfo.addSource", { name: newSourceName.trim() })}
-                          </Button>
-                        </div>
-                      ) : (
-                        t("basicInfo.noSourcesAvailable")
-                      )}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {/* Source list */}
-                      {filteredSources.map((source) => (
-                        <CommandItem
-                          key={source.id}
-                          value={source.id}
-                          onSelect={() => {
-                            onChange({ source_id: source.id });
-                            setSourceOpen(false);
-                            setSourceSearch("");
-                            setNewSourceName("");
-                          }}
-                          className="cursor-pointer group"
+                        <div
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                            data.source_id === source.id
+                              ? "bg-primary text-primary-foreground"
+                              : "opacity-50"
+                          )}
                         >
-                          <div
-                            className={cn(
-                              "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                              data.source_id === source.id
-                                ? "bg-primary text-primary-foreground"
-                                : "opacity-50"
-                            )}
-                          >
-                            {data.source_id === source.id && (
-                              <Check className="h-3 w-3" />
-                            )}
-                          </div>
-                          <span className="truncate flex-1">{source.name}</span>
-                          {source.is_default && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mr-2">
-                              {t("basicInfo.default")}
-                            </Badge>
+                          {data.source_id === source.id && (
+                            <Check className="h-3 w-3" />
                           )}
-                          {/* Delete button for non-default, deletable sources */}
-                          {source.is_deletable && !source.is_default && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteSource(source.id);
-                              }}
-                              disabled={isDeletingSource === source.id}
-                              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
-                            >
-                              {isDeletingSource === source.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-3.5 w-3.5" />
-                              )}
-                            </button>
-                          )}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                  {/* Add new source inline */}
-                  {newSourceName.trim() && !filteredSources.some(s => s.name.toLowerCase() === newSourceName.trim().toLowerCase()) && filteredSources.length > 0 && (
-                    <div className="border-t px-3 py-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleAddSource}
-                        disabled={isAddingSource}
-                        className="w-full justify-start"
-                      >
-                        {isAddingSource ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <Plus className="h-4 w-4 mr-2" />
+                        </div>
+                        <span className="truncate flex-1">{source.name}</span>
+                        {source.is_default && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mr-2">
+                            {t("basicInfo.default")}
+                          </Badge>
                         )}
-                        {t("basicInfo.addSource", { name: newSourceName.trim() })}
-                      </Button>
-                    </div>
-                  )}
-                  {sources.length > 5 && (
-                    <div className="border-t px-3 py-2 text-xs text-muted-foreground">
-                      {t("basicInfo.sourcesOf", { filtered: filteredSources.length, total: sources.length })}
-                    </div>
-                  )}
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="description" className="text-sm font-medium">
-              {t("basicInfo.description")}
-            </Label>
-            <Textarea
-              id="description"
-              placeholder={t("basicInfo.descriptionPlaceholder")}
-              value={data.description}
-              onChange={(e) => onChange({ description: e.target.value })}
-              rows={3}
-              className="resize-none rounded-lg text-sm"
-            />
-          </div>
+                        {/* Delete button for non-default, deletable sources */}
+                        {source.is_deletable && !source.is_default && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteSource(source.id);
+                            }}
+                            disabled={isDeletingSource === source.id}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                          >
+                            {isDeletingSource === source.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+                {/* Add new source inline */}
+                {newSourceName.trim() && !filteredSources.some(s => s.name.toLowerCase() === newSourceName.trim().toLowerCase()) && filteredSources.length > 0 && (
+                  <div className="border-t px-3 py-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleAddSource}
+                      disabled={isAddingSource}
+                      className="w-full justify-start"
+                    >
+                      {isAddingSource ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Plus className="h-4 w-4 mr-2" />
+                      )}
+                      {t("basicInfo.addSource", { name: newSourceName.trim() })}
+                    </Button>
+                  </div>
+                )}
+                {sources.length > 5 && (
+                  <div className="border-t px-3 py-2 text-xs text-muted-foreground">
+                    {t("basicInfo.sourcesOf", { filtered: filteredSources.length, total: sources.length })}
+                  </div>
+                )}
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <p className="text-xs text-muted-foreground">
+            {t("basicInfo.sourceHint")}
+          </p>
         </div>
       </FormSection>
 
-      {/* Barcodes - Compact */}
+      {/* Description */}
       <FormSection index={4} visible={sectionsVisible}>
         <div className="space-y-2">
+          <Label htmlFor="description" className="text-sm font-medium">
+            {t("basicInfo.description")}
+          </Label>
+          <Textarea
+            id="description"
+            placeholder={t("basicInfo.descriptionPlaceholder")}
+            value={data.description}
+            onChange={(e) => onChange({ description: e.target.value })}
+            rows={4}
+            className={cn(
+              "resize-none rounded-lg transition-all duration-200",
+              "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+              "hover:border-primary/50"
+            )}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("basicInfo.descriptionHint")}
+          </p>
+        </div>
+      </FormSection>
+
+      {/* Warranty */}
+      <FormSection index={5} visible={sectionsVisible}>
+        <div className="space-y-2">
+          <Label htmlFor="warranty" className="text-sm font-medium">
+            {t("basicInfo.warranty")}
+          </Label>
+          <Input
+            id="warranty"
+            placeholder={t("basicInfo.warrantyPlaceholder")}
+            value={data.warranty}
+            onChange={(e) => onChange({ warranty: e.target.value })}
+            className={cn(
+              "h-11 rounded-lg transition-all duration-200",
+              "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+              "hover:border-primary/50"
+            )}
+          />
+          <p className="text-xs text-muted-foreground">
+            {t("basicInfo.warrantyHint")}
+          </p>
+        </div>
+      </FormSection>
+
+      {/* Barcodes */}
+      <FormSection index={6} visible={sectionsVisible}>
+        <div className="space-y-3">
           <Label className="text-sm font-medium">{t("basicInfo.barcodes")}</Label>
           <div className="flex gap-2">
             <Input
@@ -767,7 +802,11 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   addBarcode();
                 }
               }}
-              className="h-9 rounded-lg font-mono"
+              className={cn(
+                "h-11 rounded-lg font-mono transition-all duration-200",
+                "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                "hover:border-primary/50"
+              )}
             />
             <Button
               type="button"
@@ -775,7 +814,12 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
               size="icon"
               onClick={addBarcode}
               disabled={!barcodeInput.trim()}
-              className="h-9 w-9 shrink-0 rounded-lg"
+              className={cn(
+                "h-11 w-11 shrink-0 rounded-lg",
+                "transition-all duration-200",
+                "hover:bg-primary/10 hover:text-primary hover:border-primary/30",
+                "disabled:opacity-50"
+              )}
             >
               <Plus className="h-4 w-4" />
             </Button>
@@ -786,7 +830,12 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                 <Badge
                   key={barcode}
                   variant="secondary"
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/50 hover:bg-muted"
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
+                    "bg-muted/50 hover:bg-muted transition-colors",
+                    "animate-in fade-in-0 slide-in-from-left-2"
+                  )}
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <span className="font-mono text-xs">{barcode}</span>
                   <button
@@ -800,22 +849,25 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
               ))}
             </div>
           )}
+          <p className="text-xs text-muted-foreground">
+            {t("basicInfo.barcodesHint")}
+          </p>
         </div>
       </FormSection>
 
-      {/* Pricing & Stock - Compact */}
-      <FormSection index={5} visible={sectionsVisible}>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
+      {/* Pricing & Stock */}
+      <FormSection index={7} visible={sectionsVisible}>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
             <DollarSign className="h-4 w-4 text-primary" />
             <Label className="text-sm font-semibold">{t("basicInfo.pricingStock")}</Label>
           </div>
 
           {/* Prices Grid - 3 columns */}
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="price_mdl" className="text-sm font-medium">
-                {t("basicInfo.priceMDL")}
+                {t("basicInfo.priceMDL")} <span className="text-xs text-muted-foreground">{t("basicInfo.priceMDLPrimary")}</span>
               </Label>
               <Input
                 id="price_mdl"
@@ -835,10 +887,14 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                     onChange({ price_mdl: parsed });
                   }
                 }}
-                className="h-9 rounded-lg font-mono"
+                className={cn(
+                  "h-11 rounded-lg font-mono transition-all duration-200",
+                  "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "hover:border-primary/50"
+                )}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="price_eur" className="text-sm font-medium">
                 {t("basicInfo.priceEUR")}
               </Label>
@@ -860,10 +916,14 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                     onChange({ price_eur: parsed });
                   }
                 }}
-                className="h-9 rounded-lg font-mono"
+                className={cn(
+                  "h-11 rounded-lg font-mono transition-all duration-200",
+                  "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "hover:border-primary/50"
+                )}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="price_usd" className="text-sm font-medium">
                 {t("basicInfo.priceUSD")}
               </Label>
@@ -885,14 +945,18 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                     onChange({ price_usd: parsed });
                   }
                 }}
-                className="h-9 rounded-lg font-mono"
+                className={cn(
+                  "h-11 rounded-lg font-mono transition-all duration-200",
+                  "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "hover:border-primary/50"
+                )}
               />
             </div>
           </div>
 
           {/* Stock Grid - 2 columns */}
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="total_stock" className="text-sm font-medium flex items-center gap-2">
                 <Package className="h-3.5 w-3.5 text-muted-foreground" />
                 {t("basicInfo.totalStock")}
@@ -910,12 +974,19 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                     is_in_stock: stock > 0
                   });
                 }}
-                className="h-9 rounded-lg font-mono"
+                className={cn(
+                  "h-11 rounded-lg font-mono transition-all duration-200",
+                  "focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                  "hover:border-primary/50"
+                )}
               />
+              <p className="text-xs text-muted-foreground">
+                {t("basicInfo.stockHint")}
+              </p>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label className="text-sm font-medium">{t("basicInfo.stockStatus")}</Label>
-              <div className="flex items-center gap-3 h-9 px-4 rounded-lg border bg-muted/30">
+              <div className="flex items-center gap-3 h-11 px-4 rounded-lg border bg-muted/30">
                 <Switch
                   id="is_in_stock"
                   checked={data.is_in_stock}
@@ -926,47 +997,48 @@ export function BasicInfoTab({ data, onChange }: BasicInfoTabProps) {
                   {data.is_in_stock ? t("basicInfo.inStock") : t("basicInfo.outOfStock")}
                 </Label>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {t("basicInfo.stockAutoHint")}
+              </p>
             </div>
           </div>
         </div>
       </FormSection>
 
-      {/* Status Switches - Compact */}
-      <FormSection index={6} visible={sectionsVisible}>
-        <div className="rounded-xl border border-border/50 bg-card p-3">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="is_active" className="text-sm font-medium">
-                  {t("basicInfo.active")}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {t("basicInfo.activeDesc")}
-                </p>
-              </div>
-              <Switch
-                id="is_active"
-                checked={data.is_active}
-                onCheckedChange={(checked) => onChange({ is_active: checked })}
-                className="data-[state=checked]:bg-primary"
-              />
+      {/* Status Switches */}
+      <FormSection index={8} visible={sectionsVisible}>
+        <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <div className="space-y-0.5">
+              <Label htmlFor="is_active" className="text-sm font-medium">
+                {t("basicInfo.active")}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t("basicInfo.activeDesc")}
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="is_service" className="text-sm font-medium">
-                  {t("basicInfo.service")}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {t("basicInfo.serviceDesc")}
-                </p>
-              </div>
-              <Switch
-                id="is_service"
-                checked={data.is_service}
-                onCheckedChange={(checked) => onChange({ is_service: checked })}
-                className="data-[state=checked]:bg-primary"
-              />
+            <Switch
+              id="is_active"
+              checked={data.is_active}
+              onCheckedChange={(checked) => onChange({ is_active: checked })}
+              className="data-[state=checked]:bg-primary transition-all duration-200"
+            />
+          </div>
+          <div className="flex items-center justify-between p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="is_service" className="text-sm font-medium">
+                {t("basicInfo.service")}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t("basicInfo.serviceDesc")}
+              </p>
             </div>
+            <Switch
+              id="is_service"
+              checked={data.is_service}
+              onCheckedChange={(checked) => onChange({ is_service: checked })}
+              className="data-[state=checked]:bg-primary transition-all duration-200"
+            />
           </div>
         </div>
       </FormSection>

@@ -189,70 +189,38 @@ type Property struct {
 }
 
 // ============================================================================
-// CHARACTERISTICS
-// ============================================================================
-
-// Characteristic represents a product variant/SKU
-type Characteristic struct {
-	ID             uuid.UUID  `json:"id"`
-	ProductID      uuid.UUID  `json:"product_id"`
-	UltraID        string     `json:"ultra_id"`
-	Code           *string    `json:"code"`
-	Reference      *string    `json:"reference"`
-	Name           string     `json:"name"`
-	Prices         JSONBArray `json:"prices"`
-	StockWarehouse int        `json:"stock_warehouse"`
-	StockShowroom  int        `json:"stock_showroom"`
-	StockTotal     int        `json:"stock_total"`
-	IsActive       bool       `json:"is_active"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
-}
-
-// CharacteristicPrice represents a price for a characteristic
-type CharacteristicPrice struct {
-	Price    float64 `json:"price"`
-	Currency string  `json:"currency"`
-	Type     string  `json:"type"`
-	TypeUUID string  `json:"type_uuid,omitempty"`
-}
-
-// ============================================================================
 // SYNC LOG
 // ============================================================================
 
 // SyncLog represents a sync operation record
 type SyncLog struct {
-	ID                    uuid.UUID  `json:"id"`
-	SyncType              string     `json:"sync_type"`
-	StartedAt             time.Time  `json:"started_at"`
-	FinishedAt            *time.Time `json:"finished_at"`
-	DurationSeconds       *int       `json:"duration_seconds"`
-	Status                string     `json:"status"`
-	BrandsSynced          int        `json:"brands_synced"`
-	CategoriesSynced      int        `json:"categories_synced"`
-	ProductsSynced        int        `json:"products_synced"`
-	PropertiesSynced      int        `json:"properties_synced"`
-	CharacteristicsSynced int        `json:"characteristics_synced"`
-	PricesSynced          int        `json:"prices_synced"`
-	StockSynced           int        `json:"stock_synced"`
-	ErrorMessage          *string    `json:"error_message"`
-	Details               JSONB      `json:"details"`
-	SelectedSteps         []string   `json:"selected_steps,omitempty"`
+	ID              uuid.UUID  `json:"id"`
+	SyncType        string     `json:"sync_type"`
+	StartedAt       time.Time  `json:"started_at"`
+	FinishedAt      *time.Time `json:"finished_at"`
+	DurationSeconds *int       `json:"duration_seconds"`
+	Status          string     `json:"status"`
+	BrandsSynced    int        `json:"brands_synced"`
+	CategoriesSynced int       `json:"categories_synced"`
+	ProductsSynced  int        `json:"products_synced"`
+	PropertiesSynced int       `json:"properties_synced"`
+	PricesSynced    int        `json:"prices_synced"`
+	StockSynced     int        `json:"stock_synced"`
+	ErrorMessage    *string    `json:"error_message"`
+	Details         JSONB      `json:"details"`
+	SelectedSteps   []string   `json:"selected_steps,omitempty"`
 
 	// Change deltas
-	BrandsInserted          int `json:"brands_inserted"`
-	BrandsUpdated           int `json:"brands_updated"`
-	CategoriesInserted      int `json:"categories_inserted"`
-	CategoriesUpdated       int `json:"categories_updated"`
-	ProductsInserted        int `json:"products_inserted"`
-	ProductsUpdated         int `json:"products_updated"`
-	PropertiesInserted      int `json:"properties_inserted"`
-	PropertiesUpdated       int `json:"properties_updated"`
-	CharacteristicsInserted int `json:"characteristics_inserted"`
-	CharacteristicsUpdated  int `json:"characteristics_updated"`
-	PricesUpdated           int `json:"prices_updated"`
-	StockUpdated            int `json:"stock_updated"`
+	BrandsInserted     int `json:"brands_inserted"`
+	BrandsUpdated      int `json:"brands_updated"`
+	CategoriesInserted int `json:"categories_inserted"`
+	CategoriesUpdated  int `json:"categories_updated"`
+	ProductsInserted   int `json:"products_inserted"`
+	ProductsUpdated    int `json:"products_updated"`
+	PropertiesInserted int `json:"properties_inserted"`
+	PropertiesUpdated  int `json:"properties_updated"`
+	PricesUpdated      int `json:"prices_updated"`
+	StockUpdated       int `json:"stock_updated"`
 }
 
 // SyncStepDetail represents detailed progress for a single sync step
@@ -303,13 +271,12 @@ type ExchangeRate struct {
 // ProductWithDetails includes related brand and category info
 type ProductWithDetails struct {
 	*Product
-	Brand             *Brand                  `json:"brand,omitempty"`
-	Category          *Category               `json:"category,omitempty"`
-	Properties        []*Property             `json:"properties,omitempty"`
-	Characteristics   []*Characteristic       `json:"characteristics,omitempty"`
-	VariantProperties *VariantPropertiesInfo  `json:"variant_properties,omitempty"`
-	VariantCount      int                     `json:"variant_count"`
-	PropertyCount     int                     `json:"property_count"`
+	Brand             *Brand                 `json:"brand,omitempty"`
+	Category          *Category              `json:"category,omitempty"`
+	Properties        []*Property            `json:"properties,omitempty"`
+	VariantProperties *VariantPropertiesInfo `json:"variant_properties,omitempty"`
+	VariantCount      int                    `json:"variant_count"`
+	PropertyCount     int                    `json:"property_count"`
 }
 
 // CategoryWithChildren includes child categories
@@ -384,31 +351,20 @@ type PropertyInput struct {
 	IsModification bool
 }
 
-// CharacteristicInput is used when inserting/updating characteristics
-type CharacteristicInput struct {
-	ProductUltraID string
-	UltraID        string
-	Code           *string
-	Reference      *string
-	Name           string
-}
-
-// PriceInput is used when updating prices for characteristics
+// PriceInput is used when updating prices for products
 type PriceInput struct {
-	ProductUltraID     string
-	CharacteristicUUID string // Empty string means product-level price
-	Price              float64
-	Currency           string
-	PriceType          string
-	PriceTypeUUID      string
+	ProductUltraID string
+	Price          float64
+	Currency       string
+	PriceType      string
+	PriceTypeUUID  string
 }
 
-// StockInput is used when updating stock for characteristics
+// StockInput is used when updating stock for products
 type StockInput struct {
-	ProductUltraID     string
-	CharacteristicUUID string // Empty string means product-level stock
-	Warehouse          int
-	Showroom           int
+	ProductUltraID string
+	Warehouse      int
+	Showroom       int
 }
 
 // ============================================================================

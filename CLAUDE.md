@@ -18,7 +18,6 @@ cd admin-intelect && bun dev    # Dashboard :3000
 | `categories` | Hierarchical categories | `ultra_id`, `parent_id`, `name`, `slug`, `sort_order`, `name_ru`, `name_ro` |
 | `products` | Product catalog | `ultra_id`, `brand_id`, `category_id`, `source_id`, `prices` (JSONB), `price_mdl/eur/usd`, `total_stock`, `variant_group_id`, `name_ru/ro`, `description_ru/ro` |
 | `properties` | Product specs | `product_id`, `property_name`, `value`, `group_name`, `is_filter`, `property_name_ru/ro`, `group_name_ru/ro` |
-| `characteristics` | SKU variants | `product_id`, `ultra_id`, `name`, `prices` (JSONB), `stock_warehouse/showroom/total` |
 | `product_sources` | Origin tracking | `name`, `is_default`, `is_deletable` - default "Ultra" source cannot be deleted |
 | `exchange_rates` | Currency rates | `currency_code`, `rate` |
 
@@ -48,7 +47,6 @@ cd admin-intelect && bun dev    # Dashboard :3000
 brands (1) --> (*) products <-- (1) categories
                     |
                     +--> (*) properties
-                    +--> (*) characteristics
                     +--> (1) product_sources
                     +--> (?) variant_group_id (self-ref for groupings)
 ```
@@ -59,14 +57,13 @@ brands (1) --> (*) products <-- (1) categories
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | List with filters: `brand_id`, `category_id`, `source_id`, `in_stock`, `min_price`, `max_price`, `search` |
-| GET | `/{id}` | Get with brand/category/properties/characteristics |
+| GET | `/{id}` | Get with brand/category/properties |
 | POST | `/` | Create product |
 | PUT | `/{id}` | Update product |
 | DELETE | `/{id}` | Delete product |
 | PATCH | `/bulk` | Bulk update by IDs or filters |
 | DELETE | `/bulk` | Bulk delete |
 | GET | `/{id}/properties` | Product properties |
-| GET | `/{id}/characteristics` | Product variants/SKUs |
 | GET | `/{id}/variants` | Product variants |
 | GET | `/groupings/hierarchy/groups` | List variant groups |
 | GET | `/groupings/hierarchy/groups/{id}` | Get group with variants |
@@ -122,16 +119,6 @@ brands (1) --> (*) products <-- (1) categories
 | DELETE | `/hierarchy/groups/{group_name}/properties/{property_name}` | Delete property name |
 | GET | `/hierarchy/groups/{group_name}/properties/{property_name}/values` | Level 3: Values |
 | PATCH | `/hierarchy/groups/{group_name}/properties/{property_name}/values/bulk` | Bulk update values |
-
-### Characteristics `/api/v1/characteristics`
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/hierarchy/names` | Level 1: Distinct characteristic names |
-| GET | `/hierarchy/names/{name}` | Get name details |
-| DELETE | `/hierarchy/names/{name}` | Delete all with name |
-| GET | `/hierarchy/names/{name}/values` | Level 2: Values for name |
-| PUT | `/hierarchy/values/{id}` | Update characteristic |
-| DELETE | `/hierarchy/values/{id}` | Delete characteristic |
 
 ### Sources `/api/v1/sources`
 | Method | Path | Description |
@@ -246,7 +233,6 @@ brands (1) --> (*) products <-- (1) categories
 | `/categories` | Category tree with bulk actions |
 | `/categories/{id}` | Category detail with products |
 | `/properties` | Property hierarchy browser (groups -> names -> values) |
-| `/characteristics` | Characteristic hierarchy (names -> values) |
 | `/groupings` | Product variant groupings |
 | `/sync` | Sync overview and history |
 | `/sync/selective` | Run selective sync (step/field selection) |
@@ -310,8 +296,8 @@ ENABLE_SCHEDULER=true
 | `categories` | Category tree | ~420 categories, hierarchical |
 | `products` | Product catalog | ~47,000 products |
 | `properties` | Product specs | ~850,000 properties (slow, ~40min) |
-| `prices` | Multi-currency prices | Updates characteristics.prices |
-| `stock` | Inventory levels | Updates warehouse/showroom/total stock |
+| `prices` | Multi-currency prices | Updates product prices |
+| `stock` | Inventory levels | Updates product stock levels |
 | `exchange_rates` | Currency rates | MDL, EUR, USD rates |
 
 ## Filter System

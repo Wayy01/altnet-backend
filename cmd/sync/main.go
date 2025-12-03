@@ -100,7 +100,6 @@ func main() {
 	log.Printf("Categories: %d\n", syncLog.CategoriesSynced)
 	log.Printf("Products: %d\n", syncLog.ProductsSynced)
 	log.Printf("Properties: %d\n", syncLog.PropertiesSynced)
-	log.Printf("Characteristics: %d\n", syncLog.CharacteristicsSynced)
 	log.Printf("Prices: %d\n", syncLog.PricesSynced)
 	log.Printf("Stock: %d\n", syncLog.StockSynced)
 }
@@ -143,7 +142,7 @@ func runSync(ctx context.Context, fetcher *ultra.Fetcher, repo *repository.Repos
 
 	// Step 3: Fetch and store Products
 	log.Println("\n--- Step 3/7: Fetching Products ---")
-	productInputs, charInputs, err := fetcher.FetchProducts(ctx, true)
+	productInputs, _, err := fetcher.FetchProducts(ctx, true)
 	if err != nil {
 		return fmt.Errorf("fetch products: %w", err)
 	}
@@ -159,19 +158,6 @@ func runSync(ctx context.Context, fetcher *ultra.Fetcher, repo *repository.Repos
 	if err := repo.ResolveProductReferences(ctx); err != nil {
 		log.Printf("Warning: Failed to resolve product references: %v\n", err)
 	}
-
-	// Store characteristics
-	totalChars := 0
-	for productUltraID, chars := range charInputs {
-		charCount, err := repo.UpsertCharacteristics(ctx, productUltraID, chars)
-		if err != nil {
-			log.Printf("Warning: Failed to save characteristics for %s: %v\n", productUltraID, err)
-			continue
-		}
-		totalChars += charCount
-	}
-	syncLog.CharacteristicsSynced = totalChars
-	log.Printf("Saved %d characteristics to database\n", totalChars)
 
 	// Step 4: Fetch and store Properties
 	log.Println("\n--- Step 4/7: Fetching Properties ---")
@@ -210,12 +196,12 @@ func runSync(ctx context.Context, fetcher *ultra.Fetcher, repo *repository.Repos
 	if err != nil {
 		log.Printf("Warning: Failed to fetch prices: %v (continuing...)\n", err)
 	} else {
-		count, err = repo.UpdateCharacteristicPrices(ctx, priceInputs)
+		count, err = repo.UpdateProductPrices(ctx, priceInputs)
 		if err != nil {
 			log.Printf("Warning: Failed to save prices: %v (continuing...)\n", err)
 		} else {
 			syncLog.PricesSynced = count
-			log.Printf("Updated prices for %d products/characteristics\n", count)
+			log.Printf("Updated prices for %d products\n", count)
 		}
 	}
 
@@ -225,12 +211,12 @@ func runSync(ctx context.Context, fetcher *ultra.Fetcher, repo *repository.Repos
 	if err != nil {
 		log.Printf("Warning: Failed to fetch stock: %v (continuing...)\n", err)
 	} else {
-		count, err = repo.UpdateCharacteristicStock(ctx, stockInputs)
+		count, err = repo.UpdateProductStock(ctx, stockInputs)
 		if err != nil {
 			log.Printf("Warning: Failed to save stock: %v (continuing...)\n", err)
 		} else {
 			syncLog.StockSynced = count
-			log.Printf("Updated stock for %d products/characteristics\n", count)
+			log.Printf("Updated stock for %d products\n", count)
 		}
 	}
 

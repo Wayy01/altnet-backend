@@ -781,117 +781,147 @@ export default function BrandsPage() {
           </Button>
         </div>
 
-        {/* Filters Row - Enhanced with card styling */}
-        <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border bg-card/50 shadow-sm">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              ref={searchInputRef}
-              name="search"
-              placeholder={t("filters.searchBrands")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[250px] pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-            />
-            {isSearching && (
-              <Loader2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-            )}
-            {searchQuery && !isSearching && (
-              <button
-                onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors"
-              >
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            )}
+        {/* Filters Section - Organized Card Layout */}
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          {/* Header */}
+          <div className="p-4 border-b">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-muted">
+                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-sm">{t("filters.searchBrands")}</h3>
+            </div>
           </div>
 
-          <div className="h-6 w-px bg-border" />
+          {/* Content */}
+          <div className="p-5 space-y-4">
+            {/* Search Bar - Full Width */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                name="search"
+                placeholder={t("filters.searchBrands")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:border-primary/30"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              )}
+              {searchQuery && !isSearching && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-all duration-200"
+                >
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
+            </div>
 
-          {/* Product Count Filter */}
-          <div className="flex items-center gap-2">
-            <Package className="h-4 w-4 text-muted-foreground" />
-            <Select value={hasProductsFilter || "all"} onValueChange={handleHasProductsChange}>
-              <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder={t("filters.productCount")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("filters.allBrands")}</SelectItem>
-                <SelectItem value="true">{t("filters.withProducts")}</SelectItem>
-                <SelectItem value="false">{t("filters.withoutProducts")}</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Primary Filters Section */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t("filters.catalogFilters")}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Product Count Filter */}
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={hasProductsFilter || "all"} onValueChange={handleHasProductsChange}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("filters.productCount")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("filters.allBrands")}</SelectItem>
+                      <SelectItem value="true">{t("filters.withProducts")}</SelectItem>
+                      <SelectItem value="false">{t("filters.withoutProducts")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="flex items-center gap-2">
+                  <Power className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={isActiveFilter || "all"} onValueChange={handleIsActiveChange}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("filters.status")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
+                      <SelectItem value="true">{t("filters.active")}</SelectItem>
+                      <SelectItem value="false">{t("filters.inactive")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Sorting Section */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t("filters.sorting")}
+              </h4>
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Select value={sortBy} onValueChange={handleSortByChange}>
+                  <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                    <SelectValue placeholder={t("filters.sortBy")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name_asc">{t("filters.nameAZ")}</SelectItem>
+                    <SelectItem value="name_desc">{t("filters.nameZA")}</SelectItem>
+                    <SelectItem value="products_desc">{t("filters.mostProducts")}</SelectItem>
+                    <SelectItem value="products_asc">{t("filters.leastProducts")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-
-          {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <Power className="h-4 w-4 text-muted-foreground" />
-            <Select value={isActiveFilter || "all"} onValueChange={handleIsActiveChange}>
-              <SelectTrigger className="w-[140px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder={t("filters.status")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
-                <SelectItem value="true">{t("filters.active")}</SelectItem>
-                <SelectItem value="false">{t("filters.inactive")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Sort By */}
-          <Select value={sortBy} onValueChange={handleSortByChange}>
-            <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
-              <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder={t("filters.sortBy")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name_asc">{t("filters.nameAZ")}</SelectItem>
-              <SelectItem value="name_desc">{t("filters.nameZA")}</SelectItem>
-              <SelectItem value="products_desc">{t("filters.mostProducts")}</SelectItem>
-              <SelectItem value="products_asc">{t("filters.leastProducts")}</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
-        {/* Active Filter Chips */}
+        {/* Active Filter Chips - Enhanced styling */}
         {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="font-medium">{activeFilters.length} active filter{activeFilters.length !== 1 ? "s" : ""}:</span>
-            </div>
-            {activeFilters.map((filter, index) => (
-              <Badge
-                key={filter.key}
-                variant="secondary"
-                className="
-                  pl-2.5 pr-1.5 py-1 gap-1.5
-                  bg-primary/10 text-primary border-primary/20
-                  hover:bg-primary/15 transition-all duration-200
-                  animate-in fade-in-0 slide-in-from-left-2
-                "
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <span className="text-xs font-normal text-primary/70">{filter.label}:</span>
-                <span className="text-xs font-medium max-w-[150px] truncate">{filter.displayValue}</span>
-                <button
-                  onClick={() => handleRemoveFilter(filter.key)}
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-colors"
-                  aria-label={`Remove ${filter.label} filter`}
+          <div className="rounded-xl border bg-card/50 shadow-sm p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="p-1 rounded bg-muted">
+                  <SlidersHorizontal className="h-3 w-3" />
+                </div>
+                <span className="font-medium">{activeFilters.length} active filter{activeFilters.length === 1 ? "" : "s"}</span>
+              </div>
+              {activeFilters.map((filter, index) => (
+                <Badge
+                  key={filter.key}
+                  variant="secondary"
+                  className="
+                    pl-2.5 pr-1.5 py-1 gap-1.5
+                    bg-primary/10 text-primary border-primary/20
+                    hover:bg-primary/15 hover:border-primary/30 transition-all duration-200
+                    animate-in fade-in-0 slide-in-from-left-2
+                  "
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFilters}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              {tCommon("actions.clearAll")}
-            </Button>
+                  <span className="text-xs font-normal text-primary/70">{filter.label}:</span>
+                  <span className="text-xs font-medium max-w-[150px] truncate">{filter.displayValue}</span>
+                  <button
+                    onClick={() => handleRemoveFilter(filter.key)}
+                    className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-all duration-200"
+                    aria-label={`Remove ${filter.label} filter`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+              >
+                {tCommon("actions.clearAll")}
+              </Button>
+            </div>
           </div>
         )}
 

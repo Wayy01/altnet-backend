@@ -127,16 +127,6 @@ type PropertyCreateData struct {
 	IsModification bool    `json:"is_modification"`
 }
 
-// CharacteristicCreateData represents a characteristic/SKU to create
-type CharacteristicCreateData struct {
-	Name           string      `json:"name"`
-	Code           *string     `json:"code"`
-	Reference      *string     `json:"reference"`
-	Prices         []PriceData `json:"prices"`
-	StockWarehouse int         `json:"stock_warehouse"`
-	StockShowroom  int         `json:"stock_showroom"`
-	IsActive       bool        `json:"is_active"`
-}
 
 // EnhancedCreateProductRequest for full product creation with all fields
 type EnhancedCreateProductRequest struct {
@@ -174,8 +164,7 @@ type EnhancedCreateProductRequest struct {
 	IsService bool `json:"is_service"`
 
 	// Nested Entities
-	Properties      []PropertyCreateData       `json:"properties"`
-	Characteristics []CharacteristicCreateData `json:"characteristics"`
+	Properties []PropertyCreateData `json:"properties"`
 }
 
 // UpdateProductFullRequest for full product update with all fields including properties
@@ -214,8 +203,7 @@ type UpdateProductFullRequest struct {
 	IsService *bool `json:"is_service"`
 
 	// Nested Entities - properties will replace all existing properties
-	Properties      []PropertyCreateData       `json:"properties"`
-	Characteristics []CharacteristicCreateData `json:"characteristics"`
+	Properties []PropertyCreateData `json:"properties"`
 }
 
 type Repository struct {
@@ -2309,13 +2297,6 @@ func (r *Repository) CountProperties(ctx context.Context) (int, error) {
 	return count, err
 }
 
-// CountCharacteristics returns the total count of all characteristics
-func (r *Repository) CountCharacteristics(ctx context.Context) (int, error) {
-	var count int
-	err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM characteristics WHERE is_active = true").Scan(&count)
-	return count, err
-}
-
 // ============================================================================
 // PROPERTIES
 // ============================================================================
@@ -3033,109 +3014,28 @@ func (r *Repository) GetPropertyGroups(ctx context.Context) ([]string, error) {
 }
 
 // ============================================================================
-// CHARACTERISTICS
+// PRICE AND STOCK UPDATES
 // ============================================================================
 
-func (r *Repository) UpsertCharacteristics(ctx context.Context, productUltraID string, characteristics []*models.CharacteristicInput) (int, error) {
-	if len(characteristics) == 0 {
-		return 0, nil
-	}
-
-	// Get product ID from ultra_id
-	var productID uuid.UUID
-	err := r.pool.QueryRow(ctx, "SELECT id FROM products WHERE ultra_id = $1", productUltraID).Scan(&productID)
-	if err != nil {
-		return 0, fmt.Errorf("product not found: %s", productUltraID)
-	}
-
-	query := `
-		INSERT INTO characteristics (
-			product_id, ultra_id, code, reference, name
-		) VALUES (
-			$1, $2, $3, $4, $5
-		)
-		ON CONFLICT (product_id, ultra_id) DO UPDATE SET
-			code = EXCLUDED.code,
-			reference = EXCLUDED.reference,
-			name = EXCLUDED.name,
-			updated_at = NOW()
-	`
-
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("begin transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	count := 0
-	for _, char := range characteristics {
-		_, err := tx.Exec(ctx, query,
-			productID,
-			char.UltraID,
-			char.Code,
-			char.Reference,
-			char.Name,
-		)
-		if err != nil {
-			return count, fmt.Errorf("insert characteristic %s: %w", char.UltraID, err)
-		}
-		count++
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return count, fmt.Errorf("commit transaction: %w", err)
-	}
-
-	return count, nil
+// PriceEntry represents a price entry for JSONB storage
+type PriceEntry struct {
+	Price    float64 `json:"price"`
+	Currency string  `json:"currency"`
+	Type     string  `json:"type"`
+	TypeUUID string  `json:"type_uuid,omitempty"`
 }
 
-func (r *Repository) GetProductCharacteristics(ctx context.Context, productID uuid.UUID) ([]*models.Characteristic, error) {
-	query := `
-		SELECT id, product_id, ultra_id, code, reference, name, prices,
-		       stock_warehouse, stock_showroom, stock_total, is_active, created_at, updated_at
-		FROM characteristics
-		WHERE product_id = $1
-		ORDER BY name
-	`
-
-	rows, err := r.pool.Query(ctx, query, productID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	characteristics := make([]*models.Characteristic, 0)
-	for rows.Next() {
-		var char models.Characteristic
-		err := rows.Scan(
-			&char.ID, &char.ProductID, &char.UltraID, &char.Code, &char.Reference, &char.Name,
-			&char.Prices, &char.StockWarehouse, &char.StockShowroom, &char.StockTotal,
-			&char.IsActive, &char.CreatedAt, &char.UpdatedAt,
-		)
-		if err != nil {
-			return nil, err
-		}
-		characteristics = append(characteristics, &char)
-	}
-
-	return characteristics, nil
-}
-
-
-// UpdateCharacteristicPrices updates prices for characteristics
-func (r *Repository) UpdateCharacteristicPrices(ctx context.Context, prices []*models.PriceInput) (int, error) {
+// UpdateProductPrices updates prices for products
+func (r *Repository) UpdateProductPrices(ctx context.Context, prices []*models.PriceInput) (int, error) {
 	if len(prices) == 0 {
 		return 0, nil
 	}
 
-	// Group prices by product+characteristic
-	priceMap := make(map[string][]models.CharacteristicPrice)
-	productCharMap := make(map[string]struct{})
+	// Group prices by product
+	priceMap := make(map[string][]PriceEntry)
 
 	for _, p := range prices {
-		key := p.ProductUltraID + "|" + p.CharacteristicUUID
-		productCharMap[key] = struct{}{}
-		priceMap[key] = append(priceMap[key], models.CharacteristicPrice{
+		priceMap[p.ProductUltraID] = append(priceMap[p.ProductUltraID], PriceEntry{
 			Price:    p.Price,
 			Currency: p.Currency,
 			Type:     p.PriceType,
@@ -3150,39 +3050,22 @@ func (r *Repository) UpdateCharacteristicPrices(ctx context.Context, prices []*m
 	defer tx.Rollback(ctx)
 
 	count := 0
-	for key := range productCharMap {
-		parts := strings.SplitN(key, "|", 2)
-		productUltraID := parts[0]
-		charUltraID := parts[1]
-		pricesForChar := priceMap[key]
-
+	for productUltraID, pricesForProduct := range priceMap {
 		// Convert to JSONB
-		pricesJSON, err := models.JSONBArray(toInterfaceSlicePrices(pricesForChar)).Value()
+		pricesJSON, err := models.JSONBArray(toInterfaceSlicePriceEntries(pricesForProduct)).Value()
 		if err != nil {
 			return count, fmt.Errorf("marshal prices: %w", err)
 		}
 
-		if charUltraID == "" || charUltraID == "00000000-0000-0000-0000-000000000000" {
-			// Product-level price - store ALL currencies in prices JSONB
-			_, err = tx.Exec(ctx, `
-				UPDATE products
-				SET prices = $1, updated_at = NOW()
-				WHERE ultra_id = $2
-			`, pricesJSON, productUltraID)
-		} else {
-			// Characteristic-level price
-			_, err = tx.Exec(ctx, `
-				UPDATE characteristics c
-				SET prices = $1, updated_at = NOW()
-				FROM products p
-				WHERE c.product_id = p.id
-				AND p.ultra_id = $2
-				AND c.ultra_id = $3
-			`, pricesJSON, productUltraID, charUltraID)
-		}
+		// Product-level price - store ALL currencies in prices JSONB
+		_, err = tx.Exec(ctx, `
+			UPDATE products
+			SET prices = $1, updated_at = NOW()
+			WHERE ultra_id = $2
+		`, pricesJSON, productUltraID)
 
 		if err != nil {
-			return count, fmt.Errorf("update price for %s: %w", key, err)
+			return count, fmt.Errorf("update price for %s: %w", productUltraID, err)
 		}
 		count++
 	}
@@ -3194,8 +3077,8 @@ func (r *Repository) UpdateCharacteristicPrices(ctx context.Context, prices []*m
 	return count, nil
 }
 
-// UpdateCharacteristicStock updates stock for characteristics
-func (r *Repository) UpdateCharacteristicStock(ctx context.Context, stocks []*models.StockInput) (int, error) {
+// UpdateProductStock updates stock for products
+func (r *Repository) UpdateProductStock(ctx context.Context, stocks []*models.StockInput) (int, error) {
 	if len(stocks) == 0 {
 		return 0, nil
 	}
@@ -3210,24 +3093,12 @@ func (r *Repository) UpdateCharacteristicStock(ctx context.Context, stocks []*mo
 	for _, s := range stocks {
 		total := s.Warehouse + s.Showroom
 
-		if s.CharacteristicUUID == "" || s.CharacteristicUUID == "00000000-0000-0000-0000-000000000000" {
-			// Product-level stock
-			_, err = tx.Exec(ctx, `
-				UPDATE products
-				SET total_stock = $1, is_in_stock = $2, updated_at = NOW()
-				WHERE ultra_id = $3
-			`, total, total > 0, s.ProductUltraID)
-		} else {
-			// Characteristic-level stock
-			_, err = tx.Exec(ctx, `
-				UPDATE characteristics c
-				SET stock_warehouse = $1, stock_showroom = $2, stock_total = $3, updated_at = NOW()
-				FROM products p
-				WHERE c.product_id = p.id
-				AND p.ultra_id = $4
-				AND c.ultra_id = $5
-			`, s.Warehouse, s.Showroom, total, s.ProductUltraID, s.CharacteristicUUID)
-		}
+		// Product-level stock
+		_, err = tx.Exec(ctx, `
+			UPDATE products
+			SET total_stock = $1, is_in_stock = $2, updated_at = NOW()
+			WHERE ultra_id = $3
+		`, total, total > 0, s.ProductUltraID)
 
 		if err != nil {
 			return count, fmt.Errorf("update stock for %s: %w", s.ProductUltraID, err)
@@ -3242,50 +3113,14 @@ func (r *Repository) UpdateCharacteristicStock(ctx context.Context, stocks []*mo
 	return count, nil
 }
 
-// UpdateProductAggregates recalculates product price/stock from characteristics
-// Uses MDL as the primary currency for price_min/price_max
+// UpdateProductAggregates is a no-op since we no longer have characteristics
+// Keeping the function signature for backward compatibility
 func (r *Repository) UpdateProductAggregates(ctx context.Context) error {
-	_, err := r.pool.Exec(ctx, `
-		WITH stock_agg AS (
-			-- Calculate stock separately to avoid duplication from price expansion
-			SELECT product_id, COALESCE(SUM(stock_total), 0) as total_stock
-			FROM characteristics
-			WHERE is_active = true
-			GROUP BY product_id
-		),
-		price_agg AS (
-			-- Extract prices from characteristics using LEFT JOIN LATERAL to handle empty arrays
-			SELECT
-				c.product_id,
-				MIN(CASE WHEN price_item->>'currency' = 'MDL' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as min_price,
-				MAX(CASE WHEN price_item->>'currency' = 'MDL' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as max_price,
-				MAX(CASE WHEN price_item->>'currency' = 'MDL' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as price_mdl,
-				MAX(CASE WHEN price_item->>'currency' = 'EUR' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as price_eur,
-				MAX(CASE WHEN price_item->>'currency' = 'USD' THEN NULLIF(price_item->>'price', '')::DECIMAL END) as price_usd
-			FROM characteristics c
-			LEFT JOIN LATERAL jsonb_array_elements(c.prices) AS price_item ON true
-			WHERE c.is_active = true
-			GROUP BY c.product_id
-		)
-		UPDATE products p
-		SET
-			price_min = COALESCE(pa.min_price, p.price_min),
-			price_max = COALESCE(pa.max_price, p.price_max),
-			price_mdl = pa.price_mdl,
-			price_eur = pa.price_eur,
-			price_usd = pa.price_usd,
-			total_stock = sa.total_stock,
-			is_in_stock = sa.total_stock > 0,
-			updated_at = NOW()
-		FROM stock_agg sa
-		LEFT JOIN price_agg pa ON pa.product_id = sa.product_id
-		WHERE p.id = sa.product_id
-	`)
-	return err
+	// No-op: prices and stock are now stored directly on products
+	return nil
 }
 
 // UpdateProductPricesFromJSONB extracts currency-specific prices from the products.prices JSONB field
-// This is called after UpdateCharacteristicPrices for products without characteristics
 // The Ultra API typically returns prices in order [EUR, USD, MDL] but this is not guaranteed
 // We use heuristics: MDL is always the largest value (1 EUR ≈ 18 MDL)
 // Note: Products with fewer than 3 prices will have NULL for missing currencies
@@ -3389,11 +3224,10 @@ func (r *Repository) UpdateSyncLog(ctx context.Context, syncLog *models.SyncLog)
 			categories_synced = $6,
 			products_synced = $7,
 			properties_synced = $8,
-			characteristics_synced = $9,
-			prices_synced = $10,
-			stock_synced = $11,
-			error_message = $12,
-			details = $13
+			prices_synced = $9,
+			stock_synced = $10,
+			error_message = $11,
+			details = $12
 		WHERE id = $1
 	`
 
@@ -3406,7 +3240,6 @@ func (r *Repository) UpdateSyncLog(ctx context.Context, syncLog *models.SyncLog)
 		syncLog.CategoriesSynced,
 		syncLog.ProductsSynced,
 		syncLog.PropertiesSynced,
-		syncLog.CharacteristicsSynced,
 		syncLog.PricesSynced,
 		syncLog.StockSynced,
 		syncLog.ErrorMessage,
@@ -3468,7 +3301,7 @@ func toInterfaceSlice(input []map[string]string) []interface{} {
 	return result
 }
 
-func toInterfaceSlicePrices(input []models.CharacteristicPrice) []interface{} {
+func toInterfaceSlicePriceEntries(input []PriceEntry) []interface{} {
 	result := make([]interface{}, len(input))
 	for i, v := range input {
 		result[i] = v
@@ -3482,13 +3315,12 @@ func toInterfaceSlicePrices(input []models.CharacteristicPrice) []interface{} {
 
 // DashboardStats holds aggregate statistics for the dashboard
 type DashboardStats struct {
-	TotalProducts        int                      `json:"total_products"`
-	TotalBrands          int                      `json:"total_brands"`
-	TotalCategories      int                      `json:"total_categories"`
-	TotalProperties      int                      `json:"total_properties"`
-	TotalCharacteristics int                      `json:"total_characteristics"`
-	TotalPrices          int                      `json:"total_prices"`
-	ProductsInStock      int                      `json:"products_in_stock"`
+	TotalProducts      int                      `json:"total_products"`
+	TotalBrands        int                      `json:"total_brands"`
+	TotalCategories    int                      `json:"total_categories"`
+	TotalProperties    int                      `json:"total_properties"`
+	TotalPrices        int                      `json:"total_prices"`
+	ProductsInStock    int                      `json:"products_in_stock"`
 	ProductsOutOfStock   int                      `json:"products_out_of_stock"`
 	TotalStockValue      float64                  `json:"total_stock_value"`
 	LastSyncAt           *time.Time               `json:"last_sync_at"`
@@ -3507,7 +3339,6 @@ func (r *Repository) GetDashboardStats(ctx context.Context) (*DashboardStats, er
 			(SELECT COUNT(*) FROM brands WHERE is_active = true) as total_brands,
 			(SELECT COUNT(*) FROM categories WHERE is_active = true) as total_categories,
 			(SELECT COUNT(*) FROM properties) as total_properties,
-			(SELECT COUNT(*) FROM characteristics WHERE is_active = true) as total_characteristics,
 			(SELECT COUNT(*) FROM products WHERE is_active = true AND jsonb_array_length(prices) > 0) as total_prices,
 			(SELECT COUNT(*) FROM products WHERE is_active = true AND is_in_stock = true) as products_in_stock,
 			(SELECT COUNT(*) FROM products WHERE is_active = true AND is_in_stock = false) as products_out_of_stock,
@@ -3519,7 +3350,6 @@ func (r *Repository) GetDashboardStats(ctx context.Context) (*DashboardStats, er
 		&stats.TotalBrands,
 		&stats.TotalCategories,
 		&stats.TotalProperties,
-		&stats.TotalCharacteristics,
 		&stats.TotalPrices,
 		&stats.ProductsInStock,
 		&stats.ProductsOutOfStock,
@@ -3652,7 +3482,7 @@ func (r *Repository) ListSyncLogs(ctx context.Context, limit, offset int, status
 	query := `
 		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
 		       brands_synced, categories_synced, products_synced, properties_synced,
-		       characteristics_synced, prices_synced, stock_synced, error_message, details,
+		       prices_synced, stock_synced, error_message, details,
 		       selected_steps
 		FROM sync_logs
 		WHERE 1=1
@@ -3688,7 +3518,7 @@ func (r *Repository) ListSyncLogs(ctx context.Context, limit, offset int, status
 		err := rows.Scan(
 			&log.ID, &log.SyncType, &log.StartedAt, &log.FinishedAt, &log.DurationSeconds,
 			&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
-			&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
+			&log.PropertiesSynced, &log.PricesSynced,
 			&log.StockSynced, &log.ErrorMessage, &log.Details,
 			&log.SelectedSteps,
 		)
@@ -3729,7 +3559,7 @@ func (r *Repository) GetSyncLog(ctx context.Context, id uuid.UUID) (*models.Sync
 	query := `
 		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
 		       brands_synced, categories_synced, products_synced, properties_synced,
-		       characteristics_synced, prices_synced, stock_synced, error_message, details,
+		       prices_synced, stock_synced, error_message, details,
 		       selected_steps
 		FROM sync_logs
 		WHERE id = $1
@@ -3739,7 +3569,7 @@ func (r *Repository) GetSyncLog(ctx context.Context, id uuid.UUID) (*models.Sync
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&log.ID, &log.SyncType, &log.StartedAt, &log.FinishedAt, &log.DurationSeconds,
 		&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
-		&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
+		&log.PropertiesSynced, &log.PricesSynced,
 		&log.StockSynced, &log.ErrorMessage, &log.Details,
 		&log.SelectedSteps,
 	)
@@ -3755,12 +3585,11 @@ func (r *Repository) GetLatestSyncLog(ctx context.Context) (*models.SyncLog, err
 	query := `
 		SELECT id, sync_type, started_at, finished_at, duration_seconds, status,
 		       brands_synced, categories_synced, products_synced, properties_synced,
-		       characteristics_synced, prices_synced, stock_synced, error_message, details,
+		       prices_synced, stock_synced, error_message, details,
 		       COALESCE(brands_inserted, 0), COALESCE(brands_updated, 0),
 		       COALESCE(categories_inserted, 0), COALESCE(categories_updated, 0),
 		       COALESCE(products_inserted, 0), COALESCE(products_updated, 0),
 		       COALESCE(properties_inserted, 0), COALESCE(properties_updated, 0),
-		       COALESCE(characteristics_inserted, 0), COALESCE(characteristics_updated, 0),
 		       COALESCE(prices_updated, 0), COALESCE(stock_updated, 0),
 		       selected_steps
 		FROM sync_logs
@@ -3772,13 +3601,12 @@ func (r *Repository) GetLatestSyncLog(ctx context.Context) (*models.SyncLog, err
 	err := r.pool.QueryRow(ctx, query).Scan(
 		&log.ID, &log.SyncType, &log.StartedAt, &log.FinishedAt, &log.DurationSeconds,
 		&log.Status, &log.BrandsSynced, &log.CategoriesSynced, &log.ProductsSynced,
-		&log.PropertiesSynced, &log.CharacteristicsSynced, &log.PricesSynced,
+		&log.PropertiesSynced, &log.PricesSynced,
 		&log.StockSynced, &log.ErrorMessage, &log.Details,
 		&log.BrandsInserted, &log.BrandsUpdated,
 		&log.CategoriesInserted, &log.CategoriesUpdated,
 		&log.ProductsInserted, &log.ProductsUpdated,
 		&log.PropertiesInserted, &log.PropertiesUpdated,
-		&log.CharacteristicsInserted, &log.CharacteristicsUpdated,
 		&log.PricesUpdated, &log.StockUpdated,
 		&log.SelectedSteps,
 	)
@@ -3872,7 +3700,7 @@ func (r *Repository) CreateProduct(ctx context.Context, req *CreateProductReques
 	return &product, nil
 }
 
-// CreateProductFull creates a new product with all fields including nested properties and characteristics
+// CreateProductFull creates a new product with all fields including nested properties
 func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateProductRequest) (*models.Product, error) {
 	// Begin transaction with repeatable read isolation for consistency
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
@@ -3981,64 +3809,6 @@ func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateP
 		}
 	}
 
-	// Insert characteristics if provided
-	if len(req.Characteristics) > 0 {
-		charQuery := `
-			INSERT INTO characteristics (
-				product_id, ultra_id, code, reference, name, prices,
-				stock_warehouse, stock_showroom, stock_total, is_active
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		`
-		for _, char := range req.Characteristics {
-			charUltraID := fmt.Sprintf("manual-char-%s", uuid.New().String())
-
-			// Convert characteristic prices to JSONB
-			var charPricesJSON interface{}
-			if len(char.Prices) > 0 {
-				charPricesJSON = char.Prices
-			} else {
-				charPricesJSON = []interface{}{}
-			}
-
-			stockTotal := char.StockWarehouse + char.StockShowroom
-
-			_, err = tx.Exec(ctx, charQuery,
-				product.ID, charUltraID, char.Code, char.Reference, char.Name, charPricesJSON,
-				char.StockWarehouse, char.StockShowroom, stockTotal, char.IsActive,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("insert characteristic %s: %w", char.Name, err)
-			}
-		}
-
-		// Update product aggregates if characteristics were added
-		aggregateQuery := `
-			UPDATE products SET
-				price_min = (SELECT MIN((price->>'price')::numeric) FROM characteristics, jsonb_array_elements(prices) AS price WHERE characteristics.product_id = $1 AND prices IS NOT NULL AND jsonb_array_length(prices) > 0),
-				price_max = (SELECT MAX((price->>'price')::numeric) FROM characteristics, jsonb_array_elements(prices) AS price WHERE characteristics.product_id = $1 AND prices IS NOT NULL AND jsonb_array_length(prices) > 0),
-				total_stock = (SELECT COALESCE(SUM(stock_total), 0) FROM characteristics WHERE product_id = $1),
-				is_in_stock = (SELECT COALESCE(SUM(stock_total), 0) > 0 FROM characteristics WHERE product_id = $1),
-				updated_at = NOW()
-			WHERE id = $1
-		`
-		_, err = tx.Exec(ctx, aggregateQuery, product.ID)
-		if err != nil {
-			return nil, fmt.Errorf("update product aggregates: %w", err)
-		}
-
-		// Refresh product data after aggregate update
-		refreshQuery := `
-			SELECT price_min, price_max, total_stock, is_in_stock
-			FROM products WHERE id = $1
-		`
-		err = tx.QueryRow(ctx, refreshQuery, product.ID).Scan(
-			&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("refresh product data: %w", err)
-		}
-	}
-
 	// Commit transaction
 	if err = tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit transaction: %w", err)
@@ -4047,7 +3817,7 @@ func (r *Repository) CreateProductFull(ctx context.Context, req *EnhancedCreateP
 	return &product, nil
 }
 
-// UpdateProductFull updates an existing product with all fields including properties and characteristics
+// UpdateProductFull updates an existing product with all fields including properties
 func (r *Repository) UpdateProductFull(ctx context.Context, id uuid.UUID, req *UpdateProductFullRequest) (*models.Product, error) {
 	// Begin transaction with repeatable read isolation for consistency
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
@@ -4302,73 +4072,6 @@ func (r *Repository) UpdateProductFull(ctx context.Context, id uuid.UUID, req *U
 				if err != nil {
 					return nil, fmt.Errorf("insert property %s: %w", prop.PropertyName, err)
 				}
-			}
-		}
-	}
-
-	// Handle characteristics - delete existing and insert new ones if characteristics array is provided
-	if req.Characteristics != nil {
-		// Delete existing characteristics for this product
-		_, err = tx.Exec(ctx, "DELETE FROM characteristics WHERE product_id = $1", id)
-		if err != nil {
-			return nil, fmt.Errorf("delete existing characteristics: %w", err)
-		}
-
-		// Insert new characteristics if any
-		if len(req.Characteristics) > 0 {
-			charQuery := `
-				INSERT INTO characteristics (
-					product_id, ultra_id, code, reference, name, prices,
-					stock_warehouse, stock_showroom, stock_total, is_active
-				) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-			`
-			for _, char := range req.Characteristics {
-				charUltraID := fmt.Sprintf("manual-char-%s", uuid.New().String())
-
-				// Convert characteristic prices to JSONB
-				var charPricesJSON interface{}
-				if len(char.Prices) > 0 {
-					charPricesJSON = char.Prices
-				} else {
-					charPricesJSON = []interface{}{}
-				}
-
-				stockTotal := char.StockWarehouse + char.StockShowroom
-
-				_, err = tx.Exec(ctx, charQuery,
-					product.ID, charUltraID, char.Code, char.Reference, char.Name, charPricesJSON,
-					char.StockWarehouse, char.StockShowroom, stockTotal, char.IsActive,
-				)
-				if err != nil {
-					return nil, fmt.Errorf("insert characteristic %s: %w", char.Name, err)
-				}
-			}
-
-			// Update product aggregates if characteristics were added
-			aggregateQuery := `
-				UPDATE products SET
-					price_min = (SELECT MIN((price->>'price')::numeric) FROM characteristics, jsonb_array_elements(prices) AS price WHERE characteristics.product_id = $1 AND prices IS NOT NULL AND jsonb_array_length(prices) > 0),
-					price_max = (SELECT MAX((price->>'price')::numeric) FROM characteristics, jsonb_array_elements(prices) AS price WHERE characteristics.product_id = $1 AND prices IS NOT NULL AND jsonb_array_length(prices) > 0),
-					total_stock = (SELECT COALESCE(SUM(stock_total), 0) FROM characteristics WHERE product_id = $1),
-					is_in_stock = (SELECT COALESCE(SUM(stock_total), 0) > 0 FROM characteristics WHERE product_id = $1),
-					updated_at = NOW()
-				WHERE id = $1
-			`
-			_, err = tx.Exec(ctx, aggregateQuery, product.ID)
-			if err != nil {
-				return nil, fmt.Errorf("update product aggregates: %w", err)
-			}
-
-			// Refresh product data after aggregate update
-			refreshQuery := `
-				SELECT price_min, price_max, total_stock, is_in_stock
-				FROM products WHERE id = $1
-			`
-			err = tx.QueryRow(ctx, refreshQuery, product.ID).Scan(
-				&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("refresh product data: %w", err)
 			}
 		}
 	}

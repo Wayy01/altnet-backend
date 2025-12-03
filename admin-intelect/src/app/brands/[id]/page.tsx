@@ -80,7 +80,7 @@ import { api } from "@/lib/api";
 import { BrandWithStats, BrandProduct, ProductSource } from "@/types";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCurrency } from "@/contexts/currency-context";
-import { useLocalizedValue } from "@/contexts/language-context";
+import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
 
 interface BrandDetailPageProps {
   params: Promise<{
@@ -91,9 +91,10 @@ interface BrandDetailPageProps {
 /**
  * Enhanced copy button component with premium animation feedback
  */
-function CopyButton({ text, label }: { text: string; label?: string }) {
+function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { t } = useTranslation("brands");
 
   useEffect(() => {
     return () => {
@@ -136,11 +137,9 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
           <Copy className="h-3 w-3" />
         )}
       </span>
-      {label && (
-        <span className={`text-xs transition-colors duration-200 ${copied ? "text-primary" : ""}`}>
-          {copied ? "Copied" : label}
-        </span>
-      )}
+      <span className={`text-xs transition-colors duration-200 ${copied ? "text-primary" : ""}`}>
+        {copied ? t("detail.copied") : "Copy"}
+      </span>
     </Button>
   );
 }
@@ -378,6 +377,8 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
   const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
   const { formatPrice } = useCurrency();
   const { localize } = useLocalizedValue();
+  const { t } = useTranslation("brands");
+  const { t: tCommon } = useTranslation("common");
 
   // Animation states
   const [contentVisible, setContentVisible] = useState(false);
@@ -821,7 +822,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
   if (error || !brand) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -834,12 +835,12 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/brands" className="transition-colors hover:text-primary">Brands</Link>
+                <Link href="/brands" className="transition-colors hover:text-primary">{t("page.title")}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Not Found</BreadcrumbPage>
+              <BreadcrumbPage>{t("detail.notFound")}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -849,14 +850,14 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
             <div className="p-4 rounded-full bg-muted/50 mb-4">
               <Building2 className="h-10 w-10 text-muted-foreground/50" />
             </div>
-            <h2 className="text-xl font-semibold mb-2">Brand Not Found</h2>
+            <h2 className="text-xl font-semibold mb-2">{t("detail.notFound")}</h2>
             <p className="text-muted-foreground text-center max-w-md mb-6">
-              {error || "The brand you're looking for doesn't exist or has been removed."}
+              {error || t("detail.notFoundDescription")}
             </p>
             <Button asChild className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <Link href="/brands">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Brands
+                {t("detail.backToBrands")}
               </Link>
             </Button>
           </div>
@@ -866,7 +867,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Breadcrumb Navigation */}
       <Breadcrumb>
         <BreadcrumbList>
@@ -880,7 +881,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/brands" className="transition-colors hover:text-primary">Brands</Link>
+              <Link href="/brands" className="transition-colors hover:text-primary">{t("page.title")}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -931,7 +932,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                     }
                   `}
                 >
-                  {brand.is_active ? "Active" : "Inactive"}
+                  {brand.is_active ? t("detail.active") : t("detail.inactive")}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground flex items-center gap-1.5 transition-colors hover:text-foreground">
@@ -950,45 +951,45 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
             className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete
+            {tCommon("actions.delete")}
           </Button>
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Statistics Cards - Compact inline pills */}
+      <div className="flex flex-wrap items-center gap-3">
         {[
           {
-            title: "Total Products",
+            title: t("detail.totalProducts"),
             value: brand.total_products,
-            description: "All products in this brand",
+            description: t("detail.totalProductsDescription"),
             icon: Package,
             variant: "default" as const,
           },
           {
-            title: "Active Products",
+            title: t("detail.activeProducts"),
             value: brand.active_products,
             description: brand.total_products > 0
-              ? `${((brand.active_products / brand.total_products) * 100).toFixed(1)}% of total`
-              : "No products",
+              ? `${((brand.active_products / brand.total_products) * 100).toFixed(1)}% ${t("detail.ofTotal")}`
+              : t("detail.noProducts"),
             icon: CheckCircle2,
             variant: "success" as const,
           },
           {
-            title: "In Stock",
+            title: t("detail.inStock"),
             value: brand.in_stock_products,
             description: brand.active_products > 0
-              ? `${((brand.in_stock_products / brand.active_products) * 100).toFixed(1)}% of active`
-              : "No active products",
+              ? `${((brand.in_stock_products / brand.active_products) * 100).toFixed(1)}% ${t("detail.ofActive")}`
+              : t("detail.noActiveProducts"),
             icon: Warehouse,
             variant: brand.in_stock_products > 0 ? "success" as const : "warning" as const,
           },
           {
-            title: "With Prices",
+            title: t("detail.withPrices"),
             value: brand.with_prices_products,
             description: brand.active_products > 0
-              ? `${((brand.with_prices_products / brand.active_products) * 100).toFixed(1)}% of active`
-              : "No active products",
+              ? `${((brand.with_prices_products / brand.active_products) * 100).toFixed(1)}% ${t("detail.ofActive")}`
+              : t("detail.noActiveProducts"),
             icon: Tag,
             variant: brand.with_prices_products > 0 ? "success" as const : "warning" as const,
           },
@@ -996,32 +997,30 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
           <div
             key={stat.title}
             className={`
-              rounded-xl border bg-card shadow-sm p-6 overflow-hidden
-              transition-all duration-300 ease-out
-              hover:shadow-lg hover:-translate-y-1.5
-              ${stat.variant === "success" ? "border-primary/20 hover:border-primary/40" : ""}
-              ${stat.variant === "warning" ? "border-destructive/20 hover:border-destructive/40" : ""}
+              inline-flex items-center gap-2 px-3 py-2 rounded-lg border
+              transition-all duration-200 ease-out hover:shadow-sm hover:border-border/80 hover:-translate-y-0.5
+              ${stat.variant === "success" ? "bg-primary/5 border-primary/20 hover:bg-primary/10" : ""}
+              ${stat.variant === "warning" ? "bg-destructive/5 border-destructive/20 hover:bg-destructive/10" : ""}
+              ${stat.variant === "default" ? "bg-muted/50" : ""}
               ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
             `}
-            style={{ transitionDelay: contentVisible ? `${100 + index * 75}ms` : "0ms" }}
+            style={{ transitionDelay: contentVisible ? `${100 + index * 50}ms` : "0ms" }}
+            title={stat.description}
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-muted-foreground">{stat.title}</span>
-              <div className={`
-                p-1.5 rounded-lg transition-colors
-                ${stat.variant === "success" ? "bg-primary/10" : ""}
-                ${stat.variant === "warning" ? "bg-destructive/10" : ""}
-                ${stat.variant === "default" ? "bg-muted" : ""}
-              `}>
-                <stat.icon className={`h-4 w-4 transition-colors ${
-                  stat.variant === "success" ? "text-primary" :
-                  stat.variant === "warning" ? "text-destructive" :
-                  "text-muted-foreground"
-                }`} />
-              </div>
+            <div className={`
+              p-1 rounded-md transition-colors
+              ${stat.variant === "success" ? "bg-primary/10" : ""}
+              ${stat.variant === "warning" ? "bg-destructive/10" : ""}
+              ${stat.variant === "default" ? "bg-muted" : ""}
+            `}>
+              <stat.icon className={`h-3.5 w-3.5 transition-colors ${
+                stat.variant === "success" ? "text-primary" :
+                stat.variant === "warning" ? "text-destructive" :
+                "text-muted-foreground"
+              }`} />
             </div>
-            <div className="text-2xl font-bold tabular-nums">{(stat.value ?? 0).toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1.5">{stat.description}</p>
+            <span className="text-xs font-medium text-muted-foreground">{stat.title}</span>
+            <span className="text-sm font-semibold tabular-nums">{(stat.value ?? 0).toLocaleString()}</span>
           </div>
         ))}
       </div>
@@ -1029,7 +1028,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       {/* Brand Information & Admin Actions Grid */}
       <div
         className={`
-          grid gap-6 lg:grid-cols-2
+          grid gap-4 lg:grid-cols-2
           transition-all duration-300 ease-out
           ${contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}
         `}
@@ -1037,28 +1036,28 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       >
         {/* Brand Information */}
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
-          <div className="p-6 border-b bg-muted/30">
+          <div className="p-3 border-b bg-muted/30">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-background shadow-sm">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="font-semibold">Brand Information</h3>
-                <p className="text-sm text-muted-foreground">Details and identifiers for this brand</p>
+                <h3 className="font-semibold text-sm">{t("detail.information")}</h3>
+                <p className="text-xs text-muted-foreground">{t("detail.informationDescription")}</p>
               </div>
             </div>
           </div>
-          <div className="p-6 space-y-1">
-            <CopyableField label="ID (UUID)" value={brand.id} mono />
+          <div className="p-3 space-y-1">
+            <CopyableField label={t("detail.idUuid")} value={brand.id} mono />
             <Separator className="my-2" />
-            <CopyableField label="Ultra ID" value={brand.ultra_id} mono />
+            <CopyableField label={t("detail.ultraId")} value={brand.ultra_id} mono />
             <Separator className="my-2" />
-            <CopyableField label="Slug" value={brand.slug} />
+            <CopyableField label={t("detail.slug")} value={brand.slug} />
             {brand.logo_url && (
               <>
                 <Separator className="my-2" />
                 <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
-                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Logo</span>
+                  <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{t("detail.logo")}</span>
                   <div className="flex items-center gap-2">
                     <a
                       href={brand.logo_url}
@@ -1066,7 +1065,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                       rel="noopener noreferrer"
                       className="text-sm text-primary hover:underline flex items-center gap-1 transition-all duration-200 hover:text-primary/80"
                     >
-                      View Logo
+                      {t("detail.viewLogo")}
                       <ExternalLink className="h-3 w-3" />
                     </a>
                     <CopyButton text={brand.logo_url} />
@@ -1076,7 +1075,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
             )}
             <Separator className="my-2" />
             <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
-              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Status</span>
+              <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">{t("detail.status")}</span>
               <div className="flex items-center gap-3">
                 {brand.is_active ? (
                   <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -1095,22 +1094,22 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         </div>
 
         {/* Timestamps & Actions */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Timestamps */}
           <div className="rounded-xl border bg-card shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
-            <div className="p-6 border-b bg-muted/30">
+            <div className="p-3 border-b bg-muted/30">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-background shadow-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <h3 className="font-semibold">Timestamps</h3>
+                <h3 className="font-semibold text-sm">{t("detail.timestamps")}</h3>
               </div>
             </div>
-            <div className="p-6 space-y-1">
+            <div className="p-3 space-y-1">
               <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
                 <span className="text-sm text-muted-foreground flex items-center gap-2 group-hover:text-foreground transition-colors">
                   <Calendar className="h-3.5 w-3.5" />
-                  Created
+                  {t("detail.created")}
                 </span>
                 <span className="text-sm tabular-nums">{formatTimestamp(brand.created_at)}</span>
               </div>
@@ -1118,7 +1117,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
               <div className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group">
                 <span className="text-sm text-muted-foreground flex items-center gap-2 group-hover:text-foreground transition-colors">
                   <Calendar className="h-3.5 w-3.5" />
-                  Updated
+                  {t("detail.updated")}
                 </span>
                 <span className="text-sm tabular-nums">{formatTimestamp(brand.updated_at)}</span>
               </div>
@@ -1127,18 +1126,18 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
 
           {/* Admin Actions */}
           <div className="rounded-xl border bg-card shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
-            <div className="p-6 border-b bg-muted/30">
+            <div className="p-3 border-b bg-muted/30">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-background shadow-sm">
                   <Settings className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Admin Actions</h3>
-                  <p className="text-sm text-muted-foreground">Bulk operations for brand products</p>
+                  <h3 className="font-semibold text-sm">{t("detail.adminActions")}</h3>
+                  <p className="text-xs text-muted-foreground">{t("detail.adminActionsDescription")}</p>
                 </div>
               </div>
             </div>
-            <div className="p-6">
+            <div className="p-3">
               <div className="flex flex-col gap-3">
                 <Button
                   variant="outline"
@@ -1147,7 +1146,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                   disabled={isProcessing || brand.total_products === 0}
                 >
                   <Power className="h-4 w-4 mr-2" />
-                  Activate All Products
+                  {t("detail.activateAllProducts")}
                 </Button>
                 <Button
                   variant="outline"
@@ -1156,7 +1155,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                   disabled={isProcessing || brand.total_products === 0}
                 >
                   <PowerOff className="h-4 w-4 mr-2" />
-                  Deactivate All Products
+                  {t("detail.deactivateAllProducts")}
                 </Button>
               </div>
             </div>
@@ -1173,7 +1172,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
         `}
         style={{ transitionDelay: contentVisible ? "500ms" : "0ms" }}
       >
-        <div className="p-6 border-b bg-muted/30">
+        <div className="p-3 border-b bg-muted/30">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1181,11 +1180,11 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                   <Package className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Products</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {(totalProducts ?? 0).toLocaleString()} products in this brand
+                  <h3 className="font-semibold text-sm">{t("detail.products")}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {(totalProducts ?? 0).toLocaleString()} {t("detail.productsInBrand")}
                     {filteredProducts.length !== allProducts.length && (
-                      <> ({filteredProducts.length} filtered)</>
+                      <> ({filteredProducts.length} {t("detail.filtered")})</>
                     )}
                   </p>
                 </div>
@@ -1193,53 +1192,53 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
             </div>
 
             {/* Filter Controls */}
-            <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border bg-background/50 transition-all duration-200 hover:bg-background/80">
+            <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl border bg-background/50 transition-all duration-200 hover:bg-background/80">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Filters:</span>
+                <span className="text-xs font-medium">{t("detail.filters")}:</span>
               </div>
               <Select value={priceFilter} onValueChange={setPriceFilter}>
                 <SelectTrigger className="w-[180px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
-                  <SelectValue placeholder="Price filter" />
+                  <SelectValue placeholder={t("detail.price")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All prices</SelectItem>
-                  <SelectItem value="no_price">No price</SelectItem>
-                  <SelectItem value="no_mdl">No MDL price</SelectItem>
-                  <SelectItem value="no_eur">No EUR price</SelectItem>
-                  <SelectItem value="no_usd">No USD price</SelectItem>
-                  <SelectItem value="with_price">With price</SelectItem>
+                  <SelectItem value="all">{t("detail.allPrices")}</SelectItem>
+                  <SelectItem value="no_price">{t("detail.noPrice")}</SelectItem>
+                  <SelectItem value="no_mdl">{t("detail.noMdlPrice")}</SelectItem>
+                  <SelectItem value="no_eur">{t("detail.noEurPrice")}</SelectItem>
+                  <SelectItem value="no_usd">{t("detail.noUsdPrice")}</SelectItem>
+                  <SelectItem value="with_price">{t("detail.withPrice")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={stockFilter} onValueChange={setStockFilter}>
                 <SelectTrigger className="w-[180px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
-                  <SelectValue placeholder="Stock filter" />
+                  <SelectValue placeholder={t("detail.stock")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All stock</SelectItem>
-                  <SelectItem value="in_stock">In stock</SelectItem>
-                  <SelectItem value="out_of_stock">Out of stock</SelectItem>
-                  <SelectItem value="low_stock">Low stock (5)</SelectItem>
+                  <SelectItem value="all">{t("detail.allStock")}</SelectItem>
+                  <SelectItem value="in_stock">{t("detail.inStockOnly")}</SelectItem>
+                  <SelectItem value="out_of_stock">{t("detail.outOfStock")}</SelectItem>
+                  <SelectItem value="low_stock">{t("detail.lowStock")}</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[180px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
-                  <SelectValue placeholder="Status filter" />
+                  <SelectValue placeholder={tCommon("labels.status")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All status</SelectItem>
-                  <SelectItem value="active">Active only</SelectItem>
-                  <SelectItem value="inactive">Inactive only</SelectItem>
+                  <SelectItem value="all">{t("detail.allStatus")}</SelectItem>
+                  <SelectItem value="active">{t("detail.activeOnly")}</SelectItem>
+                  <SelectItem value="inactive">{t("detail.inactiveOnly")}</SelectItem>
                 </SelectContent>
               </Select>
               <div className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-muted-foreground" />
                 <Select value={sourceFilter} onValueChange={setSourceFilter}>
                   <SelectTrigger className="w-[140px] transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:bg-muted/50">
-                    <SelectValue placeholder="Source" />
+                    <SelectValue placeholder={t("detail.source")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All sources</SelectItem>
+                    <SelectItem value="all">{t("detail.allSources")}</SelectItem>
                     {allSources.map((source) => (
                       <SelectItem key={source.id} value={source.id}>
                         {source.name}
@@ -1260,8 +1259,10 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 <CheckSquare className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">
                   {selectAllMode
-                    ? `All ${(totalProducts ?? 0).toLocaleString()} matching products selected`
-                    : `${selectedProducts.size} product${selectedProducts.size !== 1 ? "s" : ""} selected`
+                    ? t("detail.allMatchingSelected", { count: totalProducts ?? 0 })
+                    : selectedProducts.size === 1
+                      ? t("detail.selectedCount", { count: selectedProducts.size })
+                      : t("detail.selectedCountPlural", { count: selectedProducts.size })
                   }
                 </span>
               </div>
@@ -1273,7 +1274,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                   className="text-primary transition-colors hover:text-primary/80"
                   onClick={handleSelectAllMatching}
                 >
-                  Select all {(totalProducts ?? 0).toLocaleString()} matching products
+                  {t("detail.selectAll", { count: totalProducts ?? 0 })}
                 </Button>
               )}
             </div>
@@ -1286,7 +1287,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
               >
                 <Power className="h-4 w-4 mr-2" />
-                Activate
+                {t("detail.activate")}
               </Button>
               <Button
                 size="sm"
@@ -1296,7 +1297,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
               >
                 <PowerOff className="h-4 w-4 mr-2" />
-                Deactivate
+                {t("detail.deactivate")}
               </Button>
               <Button
                 size="sm"
@@ -1305,7 +1306,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 disabled={isProcessing}
                 className="transition-colors hover:bg-muted"
               >
-                Clear
+                {t("detail.clear")}
               </Button>
             </div>
           </div>
@@ -1318,11 +1319,11 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 <Package className="h-10 w-10 text-muted-foreground/50" />
               </div>
               <div className="text-center">
-                <p className="font-medium text-foreground">No products found</p>
+                <p className="font-medium text-foreground">{t("detail.noProductsFound")}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {allProducts.length === 0
-                    ? "This brand doesn't have any products yet"
-                    : "Try adjusting your filters"}
+                    ? t("detail.noBrandProducts")
+                    : t("detail.tryAdjustingFilters")}
                 </p>
               </div>
             </div>
@@ -1343,7 +1344,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                       onClick={() => handleSort("name")}
                     >
                       <span className="flex items-center">
-                        Name
+                        {t("detail.name")}
                         {getSortIcon("name")}
                       </span>
                     </TableHead>
@@ -1352,7 +1353,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                       onClick={() => handleSort("code")}
                     >
                       <span className="flex items-center">
-                        Code
+                        {t("detail.code")}
                         {getSortIcon("code")}
                       </span>
                     </TableHead>
@@ -1361,7 +1362,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                       onClick={() => handleSort("price")}
                     >
                       <span className="flex items-center justify-end">
-                        Price
+                        {t("detail.price")}
                         {getSortIcon("price")}
                       </span>
                     </TableHead>
@@ -1370,7 +1371,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                       onClick={() => handleSort("stock")}
                     >
                       <span className="flex items-center justify-center">
-                        Stock
+                        {t("detail.stock")}
                         {getSortIcon("stock")}
                       </span>
                     </TableHead>
@@ -1379,12 +1380,12 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                       onClick={() => handleSort("active")}
                     >
                       <span className="flex items-center justify-center">
-                        Active
+                        {tCommon("status.active")}
                         {getSortIcon("active")}
                       </span>
                     </TableHead>
-                    <TableHead className="font-semibold">Source</TableHead>
-                    <TableHead className="text-right font-semibold w-[80px]">Actions</TableHead>
+                    <TableHead className="font-semibold">{t("detail.source")}</TableHead>
+                    <TableHead className="text-right font-semibold w-[80px]">{tCommon("labels.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1428,7 +1429,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                           </span>
                         ) : (
                           <Badge variant="outline" className="font-normal text-muted-foreground">
-                            No price
+                            {t("detail.noPriceLabel")}
                           </Badge>
                         )}
                       </TableCell>
@@ -1444,7 +1445,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                           `}
                         >
                           <Warehouse className="h-3 w-3 mr-1" />
-                          {(product.total_stock ?? 0) > 0 ? (product.total_stock ?? 0) : "Out"}
+                          {(product.total_stock ?? 0) > 0 ? (product.total_stock ?? 0) : t("detail.outLabel")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
@@ -1480,13 +1481,13 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                             <DropdownMenuItem asChild>
                               <Link href={`/products/${product.id}`} className="cursor-pointer">
                                 <Eye className="h-4 w-4 mr-2" />
-                                View Details
+                                {t("actions.viewDetails")}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <Link href={`/products/${product.id}/edit`} className="cursor-pointer">
                                 <Pencil className="h-4 w-4 mr-2" />
-                                Edit
+                                {tCommon("actions.edit")}
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -1498,7 +1499,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                               className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
+                              {tCommon("actions.delete")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -1513,12 +1514,12 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                 <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t bg-muted/30 gap-4">
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span>
-                      Showing <span className="font-medium text-foreground">{((currentPage - 1) * pageSize) + 1}</span> to{" "}
-                      <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, totalProducts ?? 0)}</span> of{" "}
-                      <span className="font-medium text-foreground">{(totalProducts ?? 0).toLocaleString()}</span> products
+                      {t("detail.showing")} <span className="font-medium text-foreground">{((currentPage - 1) * pageSize) + 1}</span> {t("detail.to")}{" "}
+                      <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, totalProducts ?? 0)}</span> {t("detail.of")}{" "}
+                      <span className="font-medium text-foreground">{(totalProducts ?? 0).toLocaleString()}</span> {t("detail.products")}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs">Show:</span>
+                      <span className="text-xs">{t("detail.show")}:</span>
                       <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
                         <SelectTrigger className="h-8 w-[70px] text-xs transition-all duration-200 hover:bg-muted/50">
                           <SelectValue />
@@ -1549,7 +1550,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                       className="transition-all duration-200 hover:bg-muted hover:shadow-sm"
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
+                      {t("detail.previous")}
                     </Button>
                     <div className="flex items-center gap-2 mx-2">
                       <Input
@@ -1571,7 +1572,7 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
                       disabled={currentPage === totalPages}
                       className="transition-all duration-200 hover:bg-muted hover:shadow-sm"
                     >
-                      Next
+                      {t("detail.next")}
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                     <Button
@@ -1595,9 +1596,9 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
-        title="Delete Brand"
-        description={`Are you sure you want to delete "${localize(brand, "name")}"? This action cannot be undone and may affect ${(brand.total_products ?? 0).toLocaleString()} associated products.`}
-        confirmLabel="Delete"
+        title={t("dialogs.deleteTitle")}
+        description={`${t("detail.confirmDelete")} "${localize(brand, "name")}"? ${t("detail.deleteWarning")} ${(brand.total_products ?? 0).toLocaleString()} ${t("detail.associatedProducts")}.`}
+        confirmLabel={tCommon("actions.delete")}
         onConfirm={handleDeleteBrand}
         variant="destructive"
         isLoading={isProcessing}
@@ -1607,9 +1608,9 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       <ConfirmDialog
         open={showBulkActivateDialog}
         onOpenChange={setShowBulkActivateDialog}
-        title="Activate All Products"
-        description={`Are you sure you want to activate all ${(brand.total_products ?? 0).toLocaleString()} products from "${localize(brand, "name")}"?`}
-        confirmLabel="Activate All"
+        title={t("detail.activateAllProducts")}
+        description={`${t("detail.confirmActivateAll")} ${(brand.total_products ?? 0).toLocaleString()} ${t("detail.productsFrom")} "${localize(brand, "name")}"?`}
+        confirmLabel={t("detail.activateAllProducts")}
         onConfirm={handleBulkActivateProducts}
         isLoading={isProcessing}
       />
@@ -1618,9 +1619,9 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       <ConfirmDialog
         open={showBulkDeactivateDialog}
         onOpenChange={setShowBulkDeactivateDialog}
-        title="Deactivate All Products"
-        description={`Are you sure you want to deactivate all ${(brand.total_products ?? 0).toLocaleString()} products from "${localize(brand, "name")}"?`}
-        confirmLabel="Deactivate All"
+        title={t("detail.deactivateAllProducts")}
+        description={`${t("detail.confirmDeactivateAll")} ${(brand.total_products ?? 0).toLocaleString()} ${t("detail.productsFrom")} "${localize(brand, "name")}"?`}
+        confirmLabel={t("detail.deactivateAllProducts")}
         onConfirm={handleBulkDeactivateProducts}
         variant="destructive"
         isLoading={isProcessing}
@@ -1630,9 +1631,9 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       <ConfirmDialog
         open={showDeleteProductDialog}
         onOpenChange={setShowDeleteProductDialog}
-        title="Delete Product"
-        description={`Are you sure you want to delete "${productToDelete ? localize(productToDelete, "name") : ""}"? This action cannot be undone.`}
-        confirmLabel="Delete"
+        title={tCommon("actions.delete")}
+        description={`${t("detail.confirmDeleteProduct")} "${productToDelete ? localize(productToDelete, "name") : ""}"? ${t("detail.cannotBeUndone")}.`}
+        confirmLabel={tCommon("actions.delete")}
         onConfirm={handleDeleteProduct}
         variant="destructive"
         isLoading={isProcessing}
@@ -1642,13 +1643,13 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       <ConfirmDialog
         open={showBulkActivateSelectedDialog}
         onOpenChange={setShowBulkActivateSelectedDialog}
-        title="Activate Selected Products"
+        title={t("detail.activate") + " " + t("detail.selectedProducts")}
         description={
           selectAllMode
-            ? `Are you sure you want to activate all ${(totalProducts ?? 0).toLocaleString()} matching products?`
-            : `Are you sure you want to activate ${selectedProducts.size} selected products?`
+            ? `${t("detail.confirmActivateSelected")} ${(totalProducts ?? 0).toLocaleString()} ${t("detail.matchingProducts")}?`
+            : `${t("detail.confirmActivateSelected")} ${selectedProducts.size} ${t("detail.selectedProducts")}?`
         }
-        confirmLabel="Activate"
+        confirmLabel={t("detail.activate")}
         onConfirm={handleActivateSelected}
         isLoading={isProcessing}
       />
@@ -1657,13 +1658,13 @@ export default function BrandDetailPage({ params }: BrandDetailPageProps) {
       <ConfirmDialog
         open={showBulkDeactivateSelectedDialog}
         onOpenChange={setShowBulkDeactivateSelectedDialog}
-        title="Deactivate Selected Products"
+        title={t("detail.deactivate") + " " + t("detail.selectedProducts")}
         description={
           selectAllMode
-            ? `Are you sure you want to deactivate all ${(totalProducts ?? 0).toLocaleString()} matching products?`
-            : `Are you sure you want to deactivate ${selectedProducts.size} selected products?`
+            ? `${t("detail.confirmDeactivateSelected")} ${(totalProducts ?? 0).toLocaleString()} ${t("detail.matchingProducts")}?`
+            : `${t("detail.confirmDeactivateSelected")} ${selectedProducts.size} ${t("detail.selectedProducts")}?`
         }
-        confirmLabel="Deactivate"
+        confirmLabel={t("detail.deactivate")}
         onConfirm={handleDeactivateSelected}
         variant="destructive"
         isLoading={isProcessing}

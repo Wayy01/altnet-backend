@@ -368,7 +368,7 @@ func (r *ComparisonRepository) compareProducts(ctx context.Context, comparison *
 	return comparison, nil
 }
 
-// comparePrices compares prices (simplified - checks characteristics)
+// comparePrices compares prices (simplified - checks products with prices)
 func (r *ComparisonRepository) comparePrices(ctx context.Context, comparison *models.SyncComparison, request *models.ComparisonRequest) (*models.SyncComparison, error) {
 	// Fetch remote prices
 	remotePrices, err := r.fetcher.FetchPrices(ctx, true)
@@ -378,8 +378,8 @@ func (r *ComparisonRepository) comparePrices(ctx context.Context, comparison *mo
 
 	comparison.TotalRemote = len(remotePrices)
 
-	// Get local characteristics count
-	countQuery := "SELECT COUNT(*) FROM characteristics WHERE prices IS NOT NULL"
+	// Get local products with prices count
+	countQuery := "SELECT COUNT(*) FROM products WHERE jsonb_array_length(prices) > 0"
 	err = r.repo.Pool().QueryRow(ctx, countQuery).Scan(&comparison.TotalLocal)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count local prices: %w", err)
@@ -401,8 +401,8 @@ func (r *ComparisonRepository) compareStock(ctx context.Context, comparison *mod
 
 	comparison.TotalRemote = len(remoteStock)
 
-	// Get local characteristics count
-	countQuery := "SELECT COUNT(*) FROM characteristics WHERE stock_quantity IS NOT NULL"
+	// Get local products with stock count
+	countQuery := "SELECT COUNT(*) FROM products WHERE total_stock > 0"
 	err = r.repo.Pool().QueryRow(ctx, countQuery).Scan(&comparison.TotalLocal)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count local stock: %w", err)

@@ -1,0 +1,135 @@
+{
+  "page": {
+    "title": "Variant Management",
+    "description": "Generate and manage product variant groups",
+    "detailTitle": "Variant Group Details",
+    "detailDescription": "View and manage products in this variant group"
+  },
+  "stats": {
+    "totalGroups": "Total Groups",
+    "productsInGroups": "Products in Groups",
+    "aiEngineStatus": "AI Engine Status",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "organized": "organized",
+    "groupsCreated": "Variant groups created",
+    "productsOrganized": "Products organized",
+    "ollamaAI": "Ollama AI for grouping"
+  },
+  "table": {
+    "baseName": "Base Name",
+    "members": "Members",
+    "created": "Created",
+    "actions": "Actions"
+  },
+  "filters": {
+    "searchGroups": "Search groups..."
+  },
+  "actions": {
+    "generateVariants": "Generate Variants",
+    "refresh": "Refresh",
+    "backToVariants": "Back to Variants",
+    "viewGroup": "View Group"
+  },
+  "progress": {
+    "generationStarted": "Generation Started",
+    "generationStartedDesc": "Variant generation job has been started",
+    "generationComplete": "Generation Complete",
+    "generationStopped": "Generation Stopped",
+    "generationCompleteDesc": "Created {{groups}} variant groups from {{total}} products",
+    "generation": "Generation {{status}}",
+    "jobCancelled": "Job Cancelled",
+    "jobCancelledDesc": "Variant generation job has been cancelled"
+  },
+  "empty": {
+    "noGroups": "No variant groups found",
+    "tryDifferentSearch": "Try a different search",
+    "generateToStart": "Generate variants to get started",
+    "noProducts": "No products in this group",
+    "noJobs": "No jobs yet",
+    "noVariantProps": "No variant properties detected"
+  },
+  "delete": {
+    "title": "Delete Variant Group?",
+    "description": "This will delete the variant group \"{{name}}\". The products in this group will be unlinked but not deleted.",
+    "deleting": "Deleting...",
+    "deleteGroup": "Delete Group",
+    "groupDeleted": "Group Deleted",
+    "groupDeletedDesc": "Variant group \"{{name}}\" has been deleted"
+  },
+  "errors": {
+    "loadStats": "Failed to load variant statistics",
+    "loadGroup": "Failed to load variant group details",
+    "startGeneration": "Failed to start generation",
+    "cancelJob": "Failed to cancel job",
+    "deleteGroup": "Failed to delete variant group"
+  },
+  "loading": {
+    "variantData": "Loading variant data...",
+    "variantGroup": "Loading variant group...",
+    "groups": "groups"
+  },
+  "cards": {
+    "variantGroups": "Variant Groups",
+    "groupsFound": "{{count}} group found",
+    "groupsFoundPlural": "{{count}} groups found",
+    "jobHistory": "Job History",
+    "recentJobs": "Recent generation jobs",
+    "groupInfo": "Group Info",
+    "variantProperties": "Variant Properties",
+    "quickStats": "Quick Stats",
+    "memberProducts": "Member Products",
+    "variantMatrix": "Variant Matrix"
+  },
+  "details": {
+    "baseName": "Base Name",
+    "normalized": "Normalized",
+    "created": "Created {{date}}",
+    "products": "Products",
+    "variantProps": "Variant Props",
+    "matrixColumns": "Matrix Columns",
+    "productsCount": "{{count}} product",
+    "productsCountPlural": "{{count}} products",
+    "inGroup": "in this group",
+    "matrixDescription": "Visual comparison of product variants across properties",
+    "unknownProduct": "Unknown Product",
+    "groupNotFound": "Group Not Found",
+    "groupNotFoundDesc": "The variant group you're looking for doesn't exist."
+  },
+  "status": {
+    "completed": "Completed",
+    "running": "Running",
+    "pending": "Pending",
+    "failed": "Failed",
+    "cancelled": "Cancelled"
+  },
+  "job": {
+    "groups": "groups from",
+    "productsText": "products",
+    "progress": "Progress"
+  },
+  "breadcrumbs": {
+    "dashboard": "Dashboard",
+    "variants": "Variants"
+  },
+  "pagination": {
+    "page": "Page {{current}} of {{total}}"
+  },
+  "matrix": {
+    "noData": "No matrix data available",
+    "noDataDesc": "The variant matrix will appear here when properties are analyzed",
+    "variantProperties": "Variant Properties ({{count}})",
+    "commonProperties": "Common Properties ({{count}})",
+    "product": "Product",
+    "products": "{{count}} product",
+    "productsPlural": "{{count}} products",
+    "variant": "Variant",
+    "variantTooltip": "This property differs between products in this group",
+    "value": "{{count}} value",
+    "values": "{{count}} values",
+    "showing": "Showing {{products}} across {{properties}}",
+    "property": "property",
+    "properties": "properties",
+    "more": "+{{count}} more"
+  }
+}

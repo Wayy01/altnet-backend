@@ -128,30 +128,6 @@ export interface VideoEntry {
   thumbnail_url: string | null;
 }
 
-// Price entry in characteristics
-export interface PriceEntry {
-  currency: string;
-  price: number;
-  price_type: string;
-}
-
-// Characteristic (product variant/SKU)
-export interface Characteristic {
-  id: string;
-  product_id: string;
-  ultra_id: string;
-  code: string | null;
-  reference: string | null;
-  name: string;
-  prices: PriceEntry[];
-  stock_warehouse: number;
-  stock_showroom: number;
-  stock_total: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 // Property (product specification)
 export interface Property {
   id: string;
@@ -306,7 +282,6 @@ export interface ProductDetail extends Product {
   brand?: Brand;
   category?: Category;
   properties?: Property[];
-  characteristics?: Characteristic[];
 }
 
 // API Response types
@@ -739,60 +714,6 @@ export interface PropertyValuesResponse {
 }
 
 // ============================================================================
-// CHARACTERISTIC HIERARCHY TYPES
-// ============================================================================
-
-// Characteristic Price Entry (matches Go CharacteristicPrice struct)
-export interface CharacteristicPriceEntry {
-  price: number;
-  currency: string;
-  type?: string;
-  type_uuid?: string;
-}
-
-// Characteristic Name (Level 1)
-export interface CharacteristicName {
-  name: string;
-  characteristic_count: number;
-  products_using: number;
-  total_stock: number;
-  avg_price: number | null;
-  common_currency: string | null;
-}
-
-// Characteristic Value (Level 2)
-export interface CharacteristicValue {
-  id: string;
-  product_id: string;
-  product_name?: string;
-  product_code?: string;
-  ultra_id: string;
-  code: string | null;
-  reference: string | null;
-  name: string;
-  prices: CharacteristicPriceEntry[]; // Use specific type instead of generic PriceEntry
-  stock_warehouse: number;
-  stock_showroom: number;
-  stock_total: number;
-  is_active: boolean;
-}
-
-// Characteristic hierarchy API responses
-export interface CharacteristicNamesResponse {
-  data: CharacteristicName[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-export interface CharacteristicValuesResponse {
-  data: CharacteristicValue[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-// ============================================================================
 // UPLOAD TYPES
 // ============================================================================
 
@@ -854,17 +775,6 @@ export interface CreatePropertyData {
   sort_order?: number;
   is_filter?: boolean;
   is_modification?: boolean;
-}
-
-// Characteristic/SKU data for product creation
-export interface CreateCharacteristicData {
-  name: string;
-  code?: string | null;
-  reference?: string | null;
-  prices: CreatePriceData[];
-  stock_warehouse?: number;
-  stock_showroom?: number;
-  is_active?: boolean;
 }
 
 // Full product creation payload

@@ -8,7 +8,6 @@
     "brands": "Brands",
     "categories": "Categories",
     "properties": "Properties",
-    "characteristics": "Characteristics",
     "prices": "Prices",
     "stockEntries": "Stock Entries",
     "inStock": "In Stock",
@@ -19,7 +18,6 @@
     "activeBrands": "Active brands",
     "productCategories": "Product categories",
     "productSpecifications": "Product specifications",
-    "productVariantsSKUs": "Product variants/SKUs",
     "priceEntries": "Price entries",
     "stockRecords": "Stock records",
     "productsAvailable": "Products available",
@@ -64,5 +62,20 @@
   "category": {
     "products": "products",
     "avg": "Avg"
+  },
+  "variants": {
+    "groups": "Variant Groups",
+    "aiGenerated": "AI-generated product variants"
+  },
+  "time": {
+    "lastSync": "Last sync",
+    "na": "N/A"
+  },
+  "buttons": {
+    "sync": "Sync",
+    "alerts": "Alerts"
+  },
+  "common": {
+    "items": "items"
   }
 }

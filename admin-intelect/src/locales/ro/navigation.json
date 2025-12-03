@@ -59,8 +59,14 @@
     "schedules": "Sarcini programate de sincronizare",
     "notifications": "Alerte si notificari de sincronizare",
     "analytics": "Analize de performanta sincronizare",
-    "filters": "Filtre pentru date de sincronizare"
+    "filters": "Filtre pentru date de sincronizare",
+    "basicInfoDesc": "Introduceti numele, codul si detaliile de baza ale produsului",
+    "mediaDesc": "Incarcati imagini si videoclipuri ale produsului",
+    "propertiesDesc": "Adaugati specificatii tehnice si atribute",
+    "variantsDesc": "Configurati variante si grupari de produse"
   },
+  "step": "Pasul {{current}} din {{total}}",
+  "continue": "Continua",
   "breadcrumbs": {
     "dashboard": "Panou de control",
     "products": "Produse",

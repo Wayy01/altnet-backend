@@ -8,7 +8,6 @@
     "brands": "Бренды",
     "categories": "Категории",
     "properties": "Свойства",
-    "characteristics": "Характеристики",
     "prices": "Цены",
     "stockEntries": "Записи остатков",
     "inStock": "В наличии",
@@ -19,7 +18,6 @@
     "activeBrands": "Активных брендов",
     "productCategories": "Категорий товаров",
     "productSpecifications": "Спецификаций товаров",
-    "productVariantsSKUs": "Вариантов товаров/SKU",
     "priceEntries": "Записей цен",
     "stockRecords": "Записей остатков",
     "productsAvailable": "Товаров в наличии",
@@ -64,5 +62,20 @@
   "category": {
     "products": "товаров",
     "avg": "Средн."
+  },
+  "variants": {
+    "groups": "Группы вариантов",
+    "aiGenerated": "Варианты товаров, созданные ИИ"
+  },
+  "time": {
+    "lastSync": "Последняя синхронизация",
+    "na": "Н/Д"
+  },
+  "buttons": {
+    "sync": "Синхронизация",
+    "alerts": "Предупреждения"
+  },
+  "common": {
+    "items": "элементов"
   }
 }

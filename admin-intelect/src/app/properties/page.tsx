@@ -30,9 +30,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Database,
+  Layers,
   Package,
-  Filter as FilterIcon,
+  Hash,
   Settings,
   Eye,
   Trash2,
@@ -110,6 +110,8 @@ export default function PropertiesPage() {
 
   // Animation state for staggered row reveals
   const [rowsVisible, setRowsVisible] = useState(false);
+  const [cardsVisible, setCardsVisible] = useState(false);
+  const [sectionsVisible, setSectionsVisible] = useState(false);
 
   // Deletion state
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -210,8 +212,10 @@ export default function PropertiesPage() {
         });
       }
 
-      // Trigger staggered row animation after data loads
-      setTimeout(() => setRowsVisible(true), 50);
+      // Trigger staggered animations after data loads
+      setTimeout(() => setCardsVisible(true), 50);
+      setTimeout(() => setSectionsVisible(true), 100);
+      setTimeout(() => setRowsVisible(true), 150);
     } catch (error: any) {
       toast.error(error.message || t('messages.failedToFetch'));
       setGroups([]);
@@ -359,38 +363,6 @@ export default function PropertiesPage() {
   // Check if any filters are active
   const hasActiveFilters = activeFilters.length > 0;
 
-  // Stats indicators configuration
-  const statsIndicators: StatIndicator[] = [
-    {
-      label: t('stats.totalGroups'),
-      value: stats.totalGroups.toLocaleString(),
-      suffix: hasActiveFilters ? t('stats.filtered') : undefined,
-      icon: <Database className="h-3.5 w-3.5" />,
-      variant: "default",
-    },
-    {
-      label: t('stats.properties'),
-      value: stats.totalProperties.toLocaleString(),
-      suffix: t('stats.onPage'),
-      icon: <Settings className="h-3.5 w-3.5" />,
-      variant: stats.totalProperties > 0 ? "success" : "muted",
-    },
-    {
-      label: t('stats.values'),
-      value: totalValuesOnPage.toLocaleString(),
-      suffix: t('stats.onPage'),
-      icon: <FilterIcon className="h-3.5 w-3.5" />,
-      variant: totalValuesOnPage > 0 ? "success" : "warning",
-    },
-    {
-      label: t('stats.products'),
-      value: totalProductsOnPage.toLocaleString(),
-      suffix: t('stats.onPage'),
-      icon: <Package className="h-3.5 w-3.5" />,
-      variant: "muted",
-    },
-  ];
-
   if (loading && !groups) {
     return (
       <div className="space-y-6">
@@ -420,9 +392,37 @@ export default function PropertiesPage() {
       <PropertyBreadcrumb currentLevel={1} />
 
       <div className="space-y-4">
-        {/* Stats Bar - Enhanced with hover effects and better visual hierarchy */}
+        {/* Stats Bar */}
         <div className="flex flex-wrap items-center gap-3">
-          {statsIndicators.map((stat, index) => (
+          {[
+            {
+              label: t('stats.totalGroups'),
+              value: stats.totalGroups.toLocaleString(),
+              suffix: hasActiveFilters ? t('stats.filtered') : undefined,
+              icon: <Layers className="h-3.5 w-3.5" />,
+              variant: "default" as const,
+            },
+            {
+              label: t('stats.totalProperties'),
+              value: stats.totalProperties.toLocaleString(),
+              icon: <Settings className="h-3.5 w-3.5" />,
+              variant: stats.totalProperties > 0 ? "success" as const : "muted" as const,
+            },
+            {
+              label: t('stats.totalValues'),
+              value: totalValuesOnPage.toLocaleString(),
+              suffix: t('stats.onPage'),
+              icon: <Hash className="h-3.5 w-3.5" />,
+              variant: totalValuesOnPage > 0 ? "success" as const : "muted" as const,
+            },
+            {
+              label: t('stats.productsUsing'),
+              value: totalProductsOnPage.toLocaleString(),
+              suffix: t('stats.onPage'),
+              icon: <Package className="h-3.5 w-3.5" />,
+              variant: totalProductsOnPage > 0 ? "success" as const : "muted" as const,
+            },
+          ].map((stat, index) => (
             <div
               key={stat.label}
               className={`
@@ -455,95 +455,139 @@ export default function PropertiesPage() {
           ))}
         </div>
 
-        {/* Filters Row - Enhanced with card styling */}
-        <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border bg-card/50 shadow-sm">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[250px] max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              ref={searchInputRef}
-              placeholder={t('filters.searchGroups')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-            />
-            {isSearching && (
-              <Loader2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-            )}
-            {searchQuery && !isSearching && (
-              <button
-                onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors"
-              >
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            )}
+        {/* Filters Section - Organized Card Layout */}
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300
+            ${sectionsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+          `}
+          style={{ transitionDelay: sectionsVisible ? "200ms" : "0ms" }}
+        >
+          {/* Header */}
+          <div className="p-4 border-b">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-muted">
+                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold text-sm">{t('filters.searchGroups')}</h3>
+            </div>
           </div>
 
-          <div className="h-6 w-px bg-border" />
+          {/* Content */}
+          <div className="p-5 space-y-4">
+            {/* Search Bar - Full Width */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                name="search"
+                placeholder={t('filters.searchGroups')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:border-primary/30"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              )}
+              {searchQuery && !isSearching && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-all duration-200"
+                >
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
+            </div>
 
-          {/* Sort By */}
-          <Select value={sortBy} onValueChange={handleSortByChange}>
-            <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
-              <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder={t('filters.sortBy')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name_asc">{t('filters.nameAZ')}</SelectItem>
-              <SelectItem value="name_desc">{t('filters.nameZA')}</SelectItem>
-              <SelectItem value="properties_desc">{t('filters.mostProperties')}</SelectItem>
-              <SelectItem value="properties_asc">{t('filters.leastProperties')}</SelectItem>
-              <SelectItem value="values_desc">{t('filters.mostValues')}</SelectItem>
-              <SelectItem value="values_asc">{t('filters.leastValues')}</SelectItem>
-              <SelectItem value="products_desc">{t('filters.mostProducts')}</SelectItem>
-              <SelectItem value="products_asc">{t('filters.leastProducts')}</SelectItem>
-            </SelectContent>
-          </Select>
+            {/* Sorting Section */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t('filters.sorting')}
+              </h4>
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                <Select value={sortBy} onValueChange={handleSortByChange}>
+                  <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                    <SelectValue placeholder={t('filters.sortBy')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name_asc">{t('filters.nameAZ')}</SelectItem>
+                    <SelectItem value="name_desc">{t('filters.nameZA')}</SelectItem>
+                    <SelectItem value="properties_desc">{t('filters.mostProperties')}</SelectItem>
+                    <SelectItem value="properties_asc">{t('filters.leastProperties')}</SelectItem>
+                    <SelectItem value="values_desc">{t('filters.mostValues')}</SelectItem>
+                    <SelectItem value="values_asc">{t('filters.leastValues')}</SelectItem>
+                    <SelectItem value="products_desc">{t('filters.mostProducts')}</SelectItem>
+                    <SelectItem value="products_asc">{t('filters.leastProducts')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Active Filter Chips */}
+        {/* Active Filter Chips - Enhanced styling */}
         {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="font-medium">{activeFilters.length} {activeFilters.length !== 1 ? t('activeFiltersPlural') : t('activeFilters')}:</span>
-            </div>
-            {activeFilters.map((filter, index) => (
-              <Badge
-                key={filter.key}
-                variant="secondary"
-                className="
-                  pl-2.5 pr-1.5 py-1 gap-1.5
-                  bg-primary/10 text-primary border-primary/20
-                  hover:bg-primary/15 transition-all duration-200
-                  animate-in fade-in-0 slide-in-from-left-2
-                "
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <span className="text-xs font-normal text-primary/70">{filter.label}:</span>
-                <span className="text-xs font-medium max-w-[150px] truncate">{filter.displayValue}</span>
-                <button
-                  onClick={() => handleRemoveFilter(filter.key)}
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-colors"
-                  aria-label={`Remove ${filter.label} filter`}
+          <div
+            className={`
+              rounded-xl border bg-card/50 shadow-sm p-3
+              transition-all duration-300
+              ${sectionsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+            `}
+            style={{ transitionDelay: sectionsVisible ? "250ms" : "0ms" }}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="p-1 rounded bg-muted">
+                  <SlidersHorizontal className="h-3 w-3" />
+                </div>
+                <span className="font-medium">{activeFilters.length} {activeFilters.length === 1 ? t('activeFilters') : t('activeFiltersPlural')}</span>
+              </div>
+              {activeFilters.map((filter, index) => (
+                <Badge
+                  key={filter.key}
+                  variant="secondary"
+                  className="
+                    pl-2.5 pr-1.5 py-1 gap-1.5
+                    bg-primary/10 text-primary border-primary/20
+                    hover:bg-primary/15 hover:border-primary/30 transition-all duration-200
+                    animate-in fade-in-0 slide-in-from-left-2
+                  "
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFilters}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              {t('actions.clearAll')}
-            </Button>
+                  <span className="text-xs font-normal text-primary/70">{filter.label}:</span>
+                  <span className="text-xs font-medium max-w-[150px] truncate">{filter.displayValue}</span>
+                  <button
+                    onClick={() => handleRemoveFilter(filter.key)}
+                    className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-all duration-200"
+                    aria-label={`Remove ${filter.label} filter`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+              >
+                {t('actions.clearAll')}
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Groups Table - Enhanced with shadow and rounded corners */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        {/* Groups Table - Enhanced with shadow, rounded corners and animation */}
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300
+            ${sectionsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+          `}
+          style={{ transitionDelay: sectionsVisible ? "250ms" : "0ms" }}
+        >
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30 hover:bg-muted/30">

@@ -111,45 +111,48 @@ const tabConfigs: TabConfig[] = [
   },
 ];
 
+/**
+ * Premium skeleton loader with staggered animations - Compact spacing (p-3, p-4)
+ */
 function EditProductSkeleton() {
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-3">
       {/* Breadcrumb skeleton */}
       <div className="flex items-center gap-1.5">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-3 w-3" />
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-3 w-3" />
-        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-16" style={{ animationDelay: "0ms" }} />
+        <Skeleton className="h-3 w-3" style={{ animationDelay: "30ms" }} />
+        <Skeleton className="h-4 w-24" style={{ animationDelay: "60ms" }} />
+        <Skeleton className="h-3 w-3" style={{ animationDelay: "90ms" }} />
+        <Skeleton className="h-4 w-20" style={{ animationDelay: "120ms" }} />
       </div>
 
       {/* Header skeleton */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10 rounded-xl" />
+          <Skeleton className="h-10 w-10 rounded-xl" style={{ animationDelay: "150ms" }} />
           <div className="flex items-center gap-4">
-            <Skeleton className="h-12 w-12 rounded-xl" />
+            <Skeleton className="h-12 w-12 rounded-xl" style={{ animationDelay: "180ms" }} />
             <div>
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-4 w-32 mt-1" />
+              <Skeleton className="h-8 w-48" style={{ animationDelay: "210ms" }} />
+              <Skeleton className="h-4 w-32 mt-1" style={{ animationDelay: "240ms" }} />
             </div>
           </div>
         </div>
-        <Skeleton className="h-10 w-32 rounded-xl" />
+        <Skeleton className="h-10 w-32 rounded-xl" style={{ animationDelay: "270ms" }} />
       </div>
 
-      {/* Card skeleton */}
-      <div className="rounded-xl border shadow-sm">
-        <div className="border-b p-0">
+      {/* Card skeleton with compact padding */}
+      <div className="rounded-xl border shadow-sm" style={{ animationDelay: "300ms" }}>
+        <div className="border-b p-0 bg-muted/30">
           <div className="flex gap-0">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-14 w-32" />
+              <Skeleton key={i} className="h-12 w-32" style={{ animationDelay: `${300 + i * 30}ms` }} />
             ))}
           </div>
         </div>
-        <div className="p-6 space-y-4">
+        <div className="p-4 space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-12 w-full" />
+            <Skeleton key={i} className="h-10 w-full" style={{ animationDelay: `${420 + i * 30}ms` }} />
           ))}
         </div>
       </div>
@@ -468,15 +471,15 @@ export default function EditProductPage({ params }: EditProductPageProps) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-6 p-6 transition-all duration-500",
+        "flex flex-col gap-3 transition-all duration-500",
         contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}
     >
-      {/* Breadcrumb */}
+      {/* Breadcrumb Navigation - Compact */}
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link
           href="/products"
-          className="hover:text-foreground transition-colors"
+          className="hover:text-foreground transition-colors duration-200"
         >
           {t("page.title")}
         </Link>
@@ -485,7 +488,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
           <>
             <Link
               href={`/products/${originalProduct.id}`}
-              className="hover:text-foreground transition-colors max-w-[200px] truncate"
+              className="hover:text-foreground transition-colors duration-200 max-w-[200px] truncate"
             >
               {originalProduct.name}
             </Link>
@@ -493,11 +496,11 @@ export default function EditProductPage({ params }: EditProductPageProps) {
           </>
         )}
         <span className="text-foreground font-medium">
-          {t("page.editProduct") || "Edit"}
+          {t("page.editProduct")}
         </span>
       </nav>
 
-      {/* Premium Page Header */}
+      {/* Premium Page Header - Compact */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
@@ -509,17 +512,17 @@ export default function EditProductPage({ params }: EditProductPageProps) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm bg-gradient-to-br from-amber-500/20 to-amber-500/5 border-amber-500/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm bg-gradient-to-br from-amber-500/20 to-amber-500/5 border-amber-500/20 transition-all duration-200 hover:scale-105">
               <Pencil className="h-6 w-6 text-amber-500" />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">
-                {t("page.editTitle") || "Edit Product"}
+                {t("page.editTitle")}
               </h1>
               <p className="text-sm text-muted-foreground">
                 {originalProduct
-                  ? t("page.editingProduct", { name: originalProduct.name }) || `Editing ${originalProduct.name}`
-                  : t("page.editDescription") || "Update product details"}
+                  ? t("page.editingProduct", { name: originalProduct.name })
+                  : t("page.editDescription")}
               </p>
             </div>
           </div>
@@ -527,22 +530,22 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         <Button
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="h-10 px-6 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          className="h-10 px-6 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:scale-[1.02]"
         >
           {isSubmitting ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}
-          {t("page.saveChanges") || "Save Changes"}
+          {t("page.saveChanges")}
         </Button>
       </div>
 
-      {/* Multi-Tab Form Card */}
+      {/* Multi-Tab Form Card - Compact Design */}
       <Card className="rounded-xl border-border/50 shadow-sm overflow-hidden">
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            {/* Premium Tab Navigation */}
+            {/* Premium Tab Navigation - Compact */}
             <div className="border-b border-border/50 bg-gradient-to-r from-muted/30 to-muted/10">
               <TabsList className="h-auto w-full justify-start gap-0 rounded-none bg-transparent p-0">
                 {tabConfigs.map((tab, index) => {
@@ -555,9 +558,9 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                       key={tab.id}
                       value={tab.id}
                       className={cn(
-                        "relative flex items-center gap-2 rounded-none border-b-2 px-6 py-4",
+                        "relative flex items-center gap-2 rounded-none border-b-2 px-5 py-3",
                         "transition-all duration-200 ease-out",
-                        "data-[state=active]:bg-background data-[state=active]:border-primary",
+                        "data-[state=active]:bg-background data-[state=active]:border-primary data-[state=active]:shadow-sm",
                         "data-[state=inactive]:border-transparent data-[state=inactive]:hover:bg-muted/50",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0"
                       )}
@@ -567,20 +570,25 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                     >
                       <span
                         className={cn(
-                          "transition-colors duration-200",
-                          isActive ? "text-primary" : "text-muted-foreground"
+                          "transition-all duration-200",
+                          isActive ? "text-primary scale-110" : "text-muted-foreground"
                         )}
                       >
                         {tab.icon}
                       </span>
-                      <span className="font-medium">{t(tab.labelKey)}</span>
+                      <span className={cn(
+                        "font-medium transition-colors duration-200",
+                        isActive ? "text-foreground" : "text-muted-foreground"
+                      )}>
+                        {t(tab.labelKey)}
+                      </span>
                       {count !== null && count > 0 && (
                         <Badge
                           variant="secondary"
                           className={cn(
-                            "ml-1 h-5 min-w-[20px] px-1.5 text-xs font-medium transition-colors duration-200",
+                            "ml-1 h-5 min-w-[20px] px-1.5 text-xs font-medium transition-all duration-200",
                             isActive
-                              ? "bg-primary/10 text-primary border-primary/20"
+                              ? "bg-primary/10 text-primary border-primary/20 scale-105"
                               : "bg-muted text-muted-foreground"
                           )}
                         >
@@ -590,8 +598,8 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                       {isCompleted && !count && (
                         <CheckCircle2
                           className={cn(
-                            "ml-1 h-4 w-4 transition-colors duration-200",
-                            isActive ? "text-primary" : "text-primary/50"
+                            "ml-1 h-4 w-4 transition-all duration-200",
+                            isActive ? "text-primary scale-110" : "text-primary/50"
                           )}
                         />
                       )}
@@ -601,8 +609,8 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               </TabsList>
             </div>
 
-            {/* Tab Content with Smooth Transitions */}
-            <div className="p-6">
+            {/* Tab Content with Smooth Transitions - Compact padding */}
+            <div className="p-4">
               <TabsContent
                 value="basic"
                 className="m-0 focus-visible:outline-none focus-visible:ring-0 data-[state=inactive]:hidden"
@@ -642,8 +650,8 @@ export default function EditProductPage({ params }: EditProductPageProps) {
               </TabsContent>
             </div>
 
-            {/* Bottom Action Bar */}
-            <div className="border-t border-border/50 bg-muted/20 px-6 py-4">
+            {/* Bottom Action Bar - Compact */}
+            <div className="border-t border-border/50 bg-muted/20 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>
@@ -659,7 +667,7 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                     <Button
                       variant="outline"
                       onClick={goToNextTab}
-                      className="transition-all duration-200 hover:bg-muted"
+                      className="transition-all duration-200 hover:bg-muted hover:shadow-sm hover:-translate-y-0.5"
                     >
                       {t("navigation.continue")}
                       <ChevronRight className="ml-1 h-4 w-4" />
@@ -668,14 +676,14 @@ export default function EditProductPage({ params }: EditProductPageProps) {
                   <Button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                    className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:scale-[1.02]"
                   >
                     {isSubmitting ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                       <Save className="mr-2 h-4 w-4" />
                     )}
-                    {t("page.saveChanges") || "Save Changes"}
+                    {t("page.saveChanges")}
                   </Button>
                 </div>
               </div>

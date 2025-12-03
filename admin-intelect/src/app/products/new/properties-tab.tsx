@@ -279,21 +279,21 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
   const modificationCount = properties.filter((p) => p.is_modification).length;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Header - Compact */}
       <div
         className={cn(
           "flex items-center justify-between transition-all duration-300",
           sectionsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         )}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-            <Settings2 className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+            <Settings2 className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <Label className="text-base font-semibold">{t("properties.title")}</Label>
-            <p className="text-sm text-muted-foreground">
+            <Label className="text-sm font-semibold">{t("properties.title")}</Label>
+            <p className="text-xs text-muted-foreground">
               {t("properties.description")}
             </p>
           </div>
@@ -303,11 +303,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
           variant="outline"
           size="sm"
           onClick={addProperty}
-          className={cn(
-            "rounded-lg transition-all duration-200",
-            "hover:bg-primary/10 hover:text-primary hover:border-primary/30",
-            "hover:shadow-sm hover:-translate-y-0.5"
-          )}
+          className="rounded-lg hover:bg-primary/10 hover:text-primary hover:border-primary/30"
         >
           <Plus className="mr-2 h-4 w-4" />
           {t("properties.addProperty")}
@@ -422,11 +418,11 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <div className="space-y-4 border-t border-border/50 p-4 bg-muted/10">
+                  <div className="space-y-3 border-t border-border/50 p-3 bg-muted/10">
                     {/* Group and Name */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid gap-3 md:grid-cols-2">
                       {/* Group Selector */}
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label className="text-sm font-medium">{t("properties.group")}</Label>
                         {isCreatingNewGroup[index] ? (
                           <div className="flex gap-2">
@@ -435,17 +431,13 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                               value={property.group_name || ""}
                               onChange={(e) => handleNewGroupInput(index, e.target.value)}
                               placeholder={t("properties.typeGroupName")}
-                              className={cn(
-                                "h-10 rounded-lg transition-all duration-200",
-                                "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                                "hover:border-primary/50"
-                              )}
+                              className="h-9 rounded-lg"
                             />
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-10 w-10 shrink-0"
+                              className="h-9 w-9 shrink-0"
                               onClick={() => {
                                 setIsCreatingNewGroup((prev) => ({ ...prev, [index]: false }));
                                 updateProperty(index, { group_name: null });
@@ -467,9 +459,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                 role="combobox"
                                 disabled={isLoadingGroups}
                                 className={cn(
-                                  "w-full h-10 justify-between rounded-lg font-normal",
-                                  "transition-all duration-200",
-                                  "hover:border-primary/50 hover:bg-muted/30",
+                                  "w-full h-9 justify-between rounded-lg font-normal",
                                   !property.group_name && "text-muted-foreground"
                                 )}
                               >
@@ -556,7 +546,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                       </div>
 
                       {/* Property Name Selector */}
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label className="text-sm font-medium">{t("properties.propertyName")}</Label>
                         {isCreatingNewName[index] ? (
                           <div className="flex gap-2">
@@ -565,17 +555,13 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                               value={property.property_name || ""}
                               onChange={(e) => handleNewNameInput(index, e.target.value)}
                               placeholder={t("properties.typePropertyName")}
-                              className={cn(
-                                "h-10 rounded-lg transition-all duration-200",
-                                "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                                "hover:border-primary/50"
-                              )}
+                              className="h-9 rounded-lg"
                             />
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-10 w-10 shrink-0"
+                              className="h-9 w-9 shrink-0"
                               onClick={() => {
                                 setIsCreatingNewName((prev) => ({ ...prev, [index]: false }));
                                 updateProperty(index, { property_name: "" });
@@ -596,9 +582,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                 variant="outline"
                                 role="combobox"
                                 className={cn(
-                                  "w-full h-10 justify-between rounded-lg font-normal",
-                                  "transition-all duration-200",
-                                  "hover:border-primary/50 hover:bg-muted/30",
+                                  "w-full h-9 justify-between rounded-lg font-normal",
                                   !property.property_name && "text-muted-foreground"
                                 )}
                               >
@@ -671,18 +655,14 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                 updateProperty(index, { property_name: e.target.value })
                               }
                               placeholder={t("properties.propertyPlaceholder")}
-                              className={cn(
-                                "h-10 rounded-lg transition-all duration-200",
-                                "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                                "hover:border-primary/50"
-                              )}
+                              className="h-9 rounded-lg"
                             />
                             {property.group_name && !propertyNameOptions[property.group_name]?.length && (
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-10 w-10 shrink-0"
+                                className="h-9 w-9 shrink-0"
                                 onClick={() => loadPropertyNames(property.group_name!)}
                               >
                                 <Search className="h-4 w-4" />
@@ -694,8 +674,8 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                     </div>
 
                     {/* Value and Type */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1.5">
                         <Label className="text-sm font-medium">{t("properties.value")}</Label>
                         {property.group_name && property.property_name ? (
                           <Popover
@@ -712,9 +692,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                                 variant="outline"
                                 role="combobox"
                                 className={cn(
-                                  "w-full h-10 justify-between rounded-lg font-normal",
-                                  "transition-all duration-200",
-                                  "hover:border-primary/50 hover:bg-muted/30",
+                                  "w-full h-9 justify-between rounded-lg font-normal",
                                   !property.value && "text-muted-foreground"
                                 )}
                               >
@@ -806,15 +784,11 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                               updateProperty(index, { value: e.target.value })
                             }
                             placeholder={t("properties.valuePlaceholder")}
-                            className={cn(
-                              "h-10 rounded-lg transition-all duration-200",
-                              "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                              "hover:border-primary/50"
-                            )}
+                            className="h-9 rounded-lg"
                           />
                         )}
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label className="text-sm font-medium">{t("properties.valueType")}</Label>
                         <Select
                           value={property.value_type || "string"}
@@ -822,7 +796,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                             updateProperty(index, { value_type: value })
                           }
                         >
-                          <SelectTrigger className="h-10 rounded-lg transition-all duration-200 hover:border-primary/50">
+                          <SelectTrigger className="h-9 rounded-lg">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -842,8 +816,8 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                     </div>
 
                     {/* Code and Sort Order */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1.5">
                         <Label className="text-sm font-medium">{t("properties.propertyCode")}</Label>
                         <Input
                           value={property.property_code || ""}
@@ -853,14 +827,10 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                             })
                           }
                           placeholder={t("properties.propertyCodePlaceholder")}
-                          className={cn(
-                            "h-10 rounded-lg font-mono transition-all duration-200",
-                            "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                            "hover:border-primary/50"
-                          )}
+                          className="h-9 rounded-lg font-mono"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <Label className="text-sm font-medium">{t("properties.sortOrder")}</Label>
                         <Input
                           type="number"
@@ -870,11 +840,7 @@ export function PropertiesTab({ properties, onChange }: PropertiesTabProps) {
                               sort_order: parseInt(e.target.value) || 0,
                             })
                           }
-                          className={cn(
-                            "h-10 rounded-lg tabular-nums transition-all duration-200",
-                            "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                            "hover:border-primary/50"
-                          )}
+                          className="h-9 rounded-lg tabular-nums"
                         />
                       </div>
                     </div>

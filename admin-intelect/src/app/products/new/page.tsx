@@ -408,15 +408,15 @@ export default function CreateProductPage() {
   return (
     <div
       className={cn(
-        "flex flex-col gap-6 p-6 transition-all duration-500",
+        "flex flex-col gap-3 transition-all duration-500",
         contentVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}
     >
-      {/* Breadcrumb */}
+      {/* Breadcrumb Navigation - Compact */}
       <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link
           href="/products"
-          className="hover:text-foreground transition-colors"
+          className="hover:text-foreground transition-colors duration-200"
         >
           {t("page.title")}
         </Link>
@@ -425,7 +425,7 @@ export default function CreateProductPage() {
           <>
             <Link
               href={`/products/${sourceProduct.id}`}
-              className="hover:text-foreground transition-colors max-w-[200px] truncate"
+              className="hover:text-foreground transition-colors duration-200 max-w-[200px] truncate"
             >
               {sourceProduct.name}
             </Link>
@@ -437,7 +437,7 @@ export default function CreateProductPage() {
         </span>
       </nav>
 
-      {/* Premium Page Header */}
+      {/* Premium Page Header - Compact */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
@@ -450,7 +450,7 @@ export default function CreateProductPage() {
           </Button>
           <div className="flex items-center gap-4">
             <div className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm",
+              "flex h-12 w-12 items-center justify-center rounded-xl border shadow-sm transition-all duration-200 hover:scale-105",
               duplicateId
                 ? "bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/20"
                 : "bg-gradient-to-br from-primary/20 to-primary/5 border-primary/20"
@@ -476,7 +476,7 @@ export default function CreateProductPage() {
         <Button
           onClick={handleSubmit}
           disabled={isSubmitting || isLoadingSource}
-          className="h-10 px-6 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          className="h-10 px-6 rounded-xl transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:scale-[1.02]"
         >
           {isSubmitting || isLoadingSource ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -487,11 +487,11 @@ export default function CreateProductPage() {
         </Button>
       </div>
 
-      {/* Multi-Tab Form Card */}
+      {/* Multi-Tab Form Card - Compact Design */}
       <Card className="rounded-xl border-border/50 shadow-sm overflow-hidden">
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            {/* Premium Tab Navigation */}
+            {/* Premium Tab Navigation - Compact */}
             <div className="border-b border-border/50 bg-gradient-to-r from-muted/30 to-muted/10">
               <TabsList className="h-auto w-full justify-start gap-0 rounded-none bg-transparent p-0">
                 {tabConfigs.map((tab, index) => {
@@ -504,9 +504,9 @@ export default function CreateProductPage() {
                       key={tab.id}
                       value={tab.id}
                       className={cn(
-                        "relative flex items-center gap-2 rounded-none border-b-2 px-6 py-4",
+                        "relative flex items-center gap-2 rounded-none border-b-2 px-5 py-3",
                         "transition-all duration-200 ease-out",
-                        "data-[state=active]:bg-background data-[state=active]:border-primary",
+                        "data-[state=active]:bg-background data-[state=active]:border-primary data-[state=active]:shadow-sm",
                         "data-[state=inactive]:border-transparent data-[state=inactive]:hover:bg-muted/50",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0"
                       )}
@@ -516,20 +516,25 @@ export default function CreateProductPage() {
                     >
                       <span
                         className={cn(
-                          "transition-colors duration-200",
-                          isActive ? "text-primary" : "text-muted-foreground"
+                          "transition-all duration-200",
+                          isActive ? "text-primary scale-110" : "text-muted-foreground"
                         )}
                       >
                         {tab.icon}
                       </span>
-                      <span className="font-medium">{t(tab.labelKey)}</span>
+                      <span className={cn(
+                        "font-medium transition-colors duration-200",
+                        isActive ? "text-foreground" : "text-muted-foreground"
+                      )}>
+                        {t(tab.labelKey)}
+                      </span>
                       {count !== null && count > 0 && (
                         <Badge
                           variant="secondary"
                           className={cn(
-                            "ml-1 h-5 min-w-[20px] px-1.5 text-xs font-medium transition-colors duration-200",
+                            "ml-1 h-5 min-w-[20px] px-1.5 text-xs font-medium transition-all duration-200",
                             isActive
-                              ? "bg-primary/10 text-primary border-primary/20"
+                              ? "bg-primary/10 text-primary border-primary/20 scale-105"
                               : "bg-muted text-muted-foreground"
                           )}
                         >
@@ -539,8 +544,8 @@ export default function CreateProductPage() {
                       {isCompleted && !count && (
                         <CheckCircle2
                           className={cn(
-                            "ml-1 h-4 w-4 transition-colors duration-200",
-                            isActive ? "text-primary" : "text-primary/50"
+                            "ml-1 h-4 w-4 transition-all duration-200",
+                            isActive ? "text-primary scale-110" : "text-primary/50"
                           )}
                         />
                       )}
@@ -550,8 +555,8 @@ export default function CreateProductPage() {
               </TabsList>
             </div>
 
-            {/* Tab Content with Smooth Transitions */}
-            <div className="p-6">
+            {/* Tab Content with Smooth Transitions - Compact padding */}
+            <div className="p-4">
               <TabsContent
                 value="basic"
                 className="m-0 focus-visible:outline-none focus-visible:ring-0 data-[state=inactive]:hidden"
@@ -591,8 +596,8 @@ export default function CreateProductPage() {
               </TabsContent>
             </div>
 
-            {/* Bottom Action Bar */}
-            <div className="border-t border-border/50 bg-muted/20 px-6 py-4">
+            {/* Bottom Action Bar - Compact */}
+            <div className="border-t border-border/50 bg-muted/20 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>
@@ -608,7 +613,7 @@ export default function CreateProductPage() {
                     <Button
                       variant="outline"
                       onClick={goToNextTab}
-                      className="transition-all duration-200 hover:bg-muted"
+                      className="transition-all duration-200 hover:bg-muted hover:shadow-sm hover:-translate-y-0.5"
                     >
                       {t("navigation.continue")}
                       <ChevronRight className="ml-1 h-4 w-4" />
@@ -617,7 +622,7 @@ export default function CreateProductPage() {
                   <Button
                     onClick={handleSubmit}
                     disabled={isSubmitting || isLoadingSource}
-                    className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                    className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:scale-[1.02]"
                   >
                     {isSubmitting || isLoadingSource ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

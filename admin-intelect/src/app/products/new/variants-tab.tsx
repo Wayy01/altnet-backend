@@ -99,40 +99,40 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
   const VariantIcon = getVariantIcon();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Header - Compact */}
       <Section index={0}>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-            <GitBranch className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+            <GitBranch className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <Label className="text-base font-semibold">{t("variants.title")}</Label>
-            <p className="text-sm text-muted-foreground">
+            <Label className="text-sm font-semibold">{t("variants.title")}</Label>
+            <p className="text-xs text-muted-foreground">
               {t("variants.description")}
             </p>
           </div>
         </div>
       </Section>
 
-      {/* Auto-Detection Info */}
+      {/* Auto-Detection Info - Compact */}
       <Section index={1}>
-        <div className="rounded-xl border-2 border-blue-500/30 bg-blue-500/5 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <Sparkles className="h-5 w-5 text-blue-500" />
+        <div className="rounded-xl border-2 border-blue-500/30 bg-blue-500/5 p-3">
+          <div className="flex items-start gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <Sparkles className="h-4 w-4 text-blue-500" />
             </div>
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-semibold text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-2 mb-0.5">
+                <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                   {t("variants.autoDetected")}
                 </h4>
-                <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20">
+                <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20 text-xs">
                   {t("variants.automatic")}
                 </Badge>
               </div>
               <p
-                className="text-sm text-muted-foreground"
+                className="text-xs text-muted-foreground"
                 dangerouslySetInnerHTML={{ __html: t("variants.autoDetectedDesc") }}
               />
             </div>
@@ -140,16 +140,16 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
         </div>
       </Section>
 
-      {/* Current Variant Info (if any) */}
+      {/* Current Variant Info (if any) - Compact */}
       {(data.variant_type || data.variant_value || data.parent_id) && (
         <Section index={2}>
-          <div className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
+          <div className="rounded-xl border border-border/50 bg-card p-3 space-y-3">
             <div className="flex items-center gap-2">
-              <VariantIcon className="h-5 w-5 text-primary" />
+              <VariantIcon className="h-4 w-4 text-primary" />
               <Label className="text-sm font-semibold">{t("variants.variantInfo")}</Label>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {data.variant_type && (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">{t("variants.variantType")}</p>
@@ -168,12 +168,12 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
               )}
             </div>
 
-            {/* Parent Product Display */}
+            {/* Parent Product Display - Compact */}
             {selectedParent && (
-              <div className="pt-3 border-t border-border/50">
-                <p className="text-xs text-muted-foreground mb-2">{t("variants.linkedToParent")}</p>
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border/50">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background border border-border/50 overflow-hidden">
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-xs text-muted-foreground mb-1.5">{t("variants.linkedToParent")}</p>
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 border border-border/50">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-background border border-border/50 overflow-hidden">
                     {selectedParent.main_image_url ? (
                       <img
                         src={selectedParent.main_image_url}
@@ -181,11 +181,11 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <Package className="h-6 w-6 text-muted-foreground" />
+                      <Package className="h-5 w-5 text-muted-foreground" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{selectedParent.name}</p>
+                    <p className="text-sm font-medium truncate">{selectedParent.name}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       {selectedParent.code && (
                         <span className="font-mono">{selectedParent.code}</span>
@@ -202,12 +202,12 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
                     href={`/products/${selectedParent.id}`}
                     target="_blank"
                     className={cn(
-                      "flex items-center justify-center h-9 w-9 rounded-lg",
+                      "flex items-center justify-center h-8 w-8 rounded-lg",
                       "border border-border/50 bg-background",
-                      "transition-all duration-200 hover:bg-muted hover:border-border"
+                      "hover:bg-muted hover:border-border"
                     )}
                   >
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                   </Link>
                 </div>
               </div>
@@ -216,16 +216,16 @@ export function VariantsTab({ data, onChange, sourceProduct }: VariantsTabProps)
         </Section>
       )}
 
-      {/* Info Box */}
+      {/* Info Box - Compact */}
       <Section index={data.variant_type || data.parent_id ? 3 : 2}>
-        <div className="rounded-xl border border-border/50 bg-muted/30 p-4">
-          <div className="flex items-start gap-3">
+        <div className="rounded-xl border border-border/50 bg-muted/30 p-3">
+          <div className="flex items-start gap-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
               <Info className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h4 className="font-medium mb-2">{t("variants.howItWorks")}</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="text-sm font-medium mb-1.5">{t("variants.howItWorks")}</h4>
+              <ul className="space-y-1.5 text-xs text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <Palette className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
                   <span>

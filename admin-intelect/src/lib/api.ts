@@ -17,7 +17,6 @@ import {
   UpdatePropertyPayload,
   BulkUpdatePropertiesPayload,
   BulkDeletePropertiesPayload,
-  Characteristic,
   ProductFilters,
   DashboardStats,
   SyncLog,
@@ -37,10 +36,6 @@ import {
   BulkUpdateBrandsByIdsPayload,
   StockSummaryItem,
   PriceSummary,
-  CharacteristicName,
-  CharacteristicValue,
-  CharacteristicNamesResponse,
-  CharacteristicValuesResponse,
   DeletionImpact,
   PropertyGroup,
   PropertyName,
@@ -192,13 +187,6 @@ class ApiClient {
 
   async getProductProperties(id: string): Promise<Property[]> {
     const response = await this.fetch<{ data: Property[] }>(`/api/v1/products/${id}/properties`);
-    return response.data;
-  }
-
-  async getProductCharacteristics(id: string): Promise<Characteristic[]> {
-    const response = await this.fetch<{ data: Characteristic[] }>(
-      `/api/v1/products/${id}/characteristics`
-    );
     return response.data;
   }
 
@@ -1119,114 +1107,6 @@ class ApiClient {
     );
   }
 
-  // Characteristic Hierarchy - Names (Level 1)
-  async getCharacteristicNames(
-    limit = 50,
-    offset = 0,
-    search?: string
-  ): Promise<CharacteristicNamesResponse> {
-    const params = new URLSearchParams();
-    params.append("limit", limit.toString());
-    params.append("offset", offset.toString());
-    if (search) params.append("search", search);
-
-    return await this.fetch<CharacteristicNamesResponse>(
-      `/api/v1/characteristics/hierarchy/names?${params.toString()}`
-    );
-  }
-
-  async getCharacteristicName(name: string): Promise<CharacteristicName> {
-    const encodedName = encodeURIComponent(name);
-    return await this.fetch<CharacteristicName>(
-      `/api/v1/characteristics/hierarchy/names/${encodedName}`
-    );
-  }
-
-  async deleteCharacteristicName(name: string): Promise<void> {
-    const encodedName = encodeURIComponent(name);
-    await this.fetch<void>(`/api/v1/characteristics/hierarchy/names/${encodedName}`, {
-      method: "DELETE",
-    });
-  }
-
-  async getCharacteristicNameDeletionImpact(name: string): Promise<DeletionImpact> {
-    const encodedName = encodeURIComponent(name);
-    return await this.fetch<DeletionImpact>(
-      `/api/v1/characteristics/hierarchy/names/${encodedName}/impact`
-    );
-  }
-
-  // Characteristic Hierarchy - Values (Level 2)
-  async getCharacteristicValues(
-    name: string,
-    limit = 100,
-    offset = 0,
-    search?: string
-  ): Promise<CharacteristicValuesResponse> {
-    const encodedName = encodeURIComponent(name);
-    const params = new URLSearchParams();
-    params.append("limit", limit.toString());
-    params.append("offset", offset.toString());
-    if (search) params.append("search", search);
-
-    return await this.fetch<CharacteristicValuesResponse>(
-      `/api/v1/characteristics/hierarchy/names/${encodedName}/values?${params.toString()}`
-    );
-  }
-
-  async updateCharacteristicValue(
-    id: string,
-    updates: {
-      code?: string;
-      reference?: string;
-      stock_warehouse?: number;
-      stock_showroom?: number;
-      stock_total?: number;
-      is_active?: boolean;
-    }
-  ): Promise<void> {
-    await this.fetch<void>(`/api/v1/characteristics/hierarchy/values/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(updates),
-    });
-  }
-
-  async deleteCharacteristicValue(id: string): Promise<void> {
-    await this.fetch<void>(`/api/v1/characteristics/hierarchy/values/${id}`, {
-      method: "DELETE",
-    });
-  }
-
-  async bulkUpdateCharacteristicValues(
-    ids: string[],
-    updates: {
-      stock_warehouse?: number;
-      stock_showroom?: number;
-      stock_total?: number;
-      is_active?: boolean;
-    }
-  ): Promise<{ count: number }> {
-    const response = await this.fetch<{ count: number }>(
-      `/api/v1/characteristics/hierarchy/values/bulk-update`,
-      {
-        method: "POST",
-        body: JSON.stringify({ ids, updates }),
-      }
-    );
-    return response;
-  }
-
-  async bulkDeleteCharacteristicValues(ids: string[]): Promise<{ count: number }> {
-    const response = await this.fetch<{ count: number }>(
-      `/api/v1/characteristics/hierarchy/values/bulk-delete`,
-      {
-        method: "POST",
-        body: JSON.stringify({ ids }),
-      }
-    );
-    return response;
-  }
-
   // ============================================================================
   // UPLOAD METHODS
   // ============================================================================
@@ -1437,18 +1317,6 @@ class ApiClient {
           .filter((v): v is string => v !== null && v !== "")
       );
       return Array.from(uniqueValues).sort();
-    } catch {
-      return [];
-    }
-  }
-
-  /**
-   * Get characteristic names for SKU creation dropdown
-   */
-  async getCharacteristicNameOptions(): Promise<string[]> {
-    try {
-      const response = await this.getCharacteristicNames(1000, 0);
-      return response.data.map((c) => c.name);
     } catch {
       return [];
     }

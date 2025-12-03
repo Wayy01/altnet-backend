@@ -255,25 +255,25 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Images Section */}
+    <div className="space-y-4">
+      {/* Images Section - Compact */}
       <Section index={0} visible={sectionsVisible}>
-        <div className="space-y-4">
-          {/* Section Header */}
+        <div className="space-y-3">
+          {/* Section Header - Compact */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-                <ImagePlus className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+                <ImagePlus className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <Label className="text-base font-semibold">{t("media.productImages")}</Label>
-                <p className="text-sm text-muted-foreground">
+                <Label className="text-sm font-semibold">{t("media.productImages")}</Label>
+                <p className="text-xs text-muted-foreground">
                   {t("media.imageFormats")}
                 </p>
               </div>
             </div>
             {data.images.length > 0 && (
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
                 {data.images.length !== 1 ? t("media.imagesCountPlural", { count: data.images.length }) : t("media.imagesCount", { count: data.images.length })}
               </Badge>
             )}
@@ -293,33 +293,28 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
             {...getImageRootProps()}
             onClick={() => imageInputRef.current?.click()}
             className={cn(
-              "relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center",
-              "transition-all duration-300 ease-out",
+              "relative cursor-pointer rounded-xl border-2 border-dashed p-6 text-center",
+              "transition-all duration-200",
               isImageDragActive
-                ? "border-primary bg-primary/5 scale-[1.01]"
+                ? "border-primary bg-primary/5"
                 : "border-border/50 hover:border-primary/50 hover:bg-muted/30",
               isUploadingImage && "pointer-events-none opacity-50"
             )}
           >
             <input {...getImageInputProps()} />
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               {isUploadingImage ? (
                 <>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                    <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
-                  <div>
-                    <p className="font-medium">{t("media.uploadingImages")}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {t("media.uploadingImagesHint")}
-                    </p>
-                  </div>
+                  <p className="text-sm font-medium">{t("media.uploadingImages")}</p>
                 </>
               ) : (
                 <>
                   <div
                     className={cn(
-                      "flex h-14 w-14 items-center justify-center rounded-full transition-colors duration-200",
+                      "flex h-10 w-10 items-center justify-center rounded-full",
                       isImageDragActive
                         ? "bg-primary/20"
                         : "bg-muted"
@@ -327,7 +322,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                   >
                     <Upload
                       className={cn(
-                        "h-7 w-7 transition-colors duration-200",
+                        "h-5 w-5",
                         isImageDragActive
                           ? "text-primary"
                           : "text-muted-foreground"
@@ -335,32 +330,23 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                     />
                   </div>
                   <div>
-                    <p className="font-medium">
+                    <p className="text-sm font-medium">
                       {isImageDragActive
                         ? t("media.dropImagesHere")
                         : t("media.dragDropImages")}
                     </p>
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-xs text-muted-foreground">
                       {t("media.orClickBrowse")}
                     </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 pointer-events-none"
-                    >
-                      <ImageIcon className="h-4 w-4" />
-                      {t("media.browseFiles")}
-                    </Button>
                   </div>
                 </>
               )}
             </div>
           </div>
 
-          {/* Image Preview Grid */}
+          {/* Image Preview Grid - Compact (more items per row) */}
           {data.images.length > 0 && (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
               {data.images.map((image, index) => {
                 const isMain = data.main_image_url === image.url;
                 return (
@@ -384,14 +370,14 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                     />
                     {/* Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-                    {/* Action Buttons */}
-                    <div className="absolute right-2 top-2 flex gap-1.5 opacity-0 transition-all duration-200 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0">
+                    {/* Action Buttons - Compact */}
+                    <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition-all duration-200 group-hover:opacity-100">
                       <Button
                         type="button"
                         variant="secondary"
                         size="icon"
                         className={cn(
-                          "h-8 w-8 rounded-lg backdrop-blur-sm transition-all duration-200",
+                          "h-7 w-7 rounded-lg backdrop-blur-sm",
                           "bg-white/90 hover:bg-white shadow-sm",
                           isMain && "bg-yellow-500/90 hover:bg-yellow-500 text-white"
                         )}
@@ -400,7 +386,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                       >
                         <Star
                           className={cn(
-                            "h-4 w-4",
+                            "h-3.5 w-3.5",
                             isMain && "fill-current"
                           )}
                         />
@@ -409,11 +395,11 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                         type="button"
                         variant="secondary"
                         size="icon"
-                        className="h-8 w-8 rounded-lg backdrop-blur-sm bg-white/90 hover:bg-destructive hover:text-white shadow-sm transition-all duration-200"
+                        className="h-7 w-7 rounded-lg backdrop-blur-sm bg-white/90 hover:bg-destructive hover:text-white shadow-sm"
                         onClick={() => removeImage(index)}
                         title={t("media.removeImage")}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                     {/* Main Image Badge */}
@@ -433,24 +419,24 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
         </div>
       </Section>
 
-      {/* Videos Section */}
+      {/* Videos Section - Compact */}
       <Section index={1} visible={sectionsVisible}>
-        <div className="space-y-4">
-          {/* Section Header */}
+        <div className="space-y-3">
+          {/* Section Header - Compact */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
-                <VideoIcon className="h-5 w-5 text-primary" />
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+                <VideoIcon className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <Label className="text-base font-semibold">{t("media.productVideos")}</Label>
-                <p className="text-sm text-muted-foreground">
+                <Label className="text-sm font-semibold">{t("media.productVideos")}</Label>
+                <p className="text-xs text-muted-foreground">
                   {t("media.videoFormats")}
                 </p>
               </div>
             </div>
             {data.videos.length > 0 && (
-              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+              <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs">
                 {data.videos.length !== 1 ? t("media.videosCountPlural", { count: data.videos.length }) : t("media.videosCount", { count: data.videos.length })}
               </Badge>
             )}
@@ -470,33 +456,28 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
             {...getVideoRootProps()}
             onClick={() => videoInputRef.current?.click()}
             className={cn(
-              "relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center",
-              "transition-all duration-300 ease-out",
+              "relative cursor-pointer rounded-xl border-2 border-dashed p-6 text-center",
+              "transition-all duration-200",
               isVideoDragActive
-                ? "border-primary bg-primary/5 scale-[1.01]"
+                ? "border-primary bg-primary/5"
                 : "border-border/50 hover:border-primary/50 hover:bg-muted/30",
               isUploadingVideo && "pointer-events-none opacity-50"
             )}
           >
             <input {...getVideoInputProps()} />
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               {isUploadingVideo ? (
                 <>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-                    <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
-                  <div>
-                    <p className="font-medium">{t("media.uploadingVideos")}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {t("media.uploadingVideosHint")}
-                    </p>
-                  </div>
+                  <p className="text-sm font-medium">{t("media.uploadingVideos")}</p>
                 </>
               ) : (
                 <>
                   <div
                     className={cn(
-                      "flex h-14 w-14 items-center justify-center rounded-full transition-colors duration-200",
+                      "flex h-10 w-10 items-center justify-center rounded-full",
                       isVideoDragActive
                         ? "bg-primary/20"
                         : "bg-muted"
@@ -504,7 +485,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                   >
                     <Video
                       className={cn(
-                        "h-7 w-7 transition-colors duration-200",
+                        "h-5 w-5",
                         isVideoDragActive
                           ? "text-primary"
                           : "text-muted-foreground"
@@ -512,48 +493,34 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                     />
                   </div>
                   <div>
-                    <p className="font-medium">
+                    <p className="text-sm font-medium">
                       {isVideoDragActive
                         ? t("media.dropVideosHere")
                         : t("media.dragDropVideos")}
                     </p>
-                    <p className="text-sm text-muted-foreground mb-3">
+                    <p className="text-xs text-muted-foreground">
                       {t("media.orClickBrowse")}
                     </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 pointer-events-none"
-                    >
-                      <Video className="h-4 w-4" />
-                      {t("media.browseFiles")}
-                    </Button>
                   </div>
                 </>
               )}
             </div>
           </div>
 
-          {/* Video Preview List */}
+          {/* Video Preview List - Compact */}
           {data.videos.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {data.videos.map((video, index) => (
                 <div
                   key={video.uuid}
-                  className={cn(
-                    "group flex items-center gap-4 rounded-xl border border-border/50 bg-card p-4",
-                    "transition-all duration-200 hover:shadow-sm hover:border-border",
-                    "animate-in fade-in-0 slide-in-from-bottom-2"
-                  )}
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="group flex items-center gap-3 rounded-lg border border-border/50 bg-card p-3 hover:shadow-sm"
                 >
-                  {/* Video Thumbnail Placeholder */}
-                  <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-lg bg-muted border border-border/50">
-                    <Video className="h-8 w-8 text-muted-foreground" />
+                  {/* Video Thumbnail Placeholder - Smaller */}
+                  <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-lg bg-muted border border-border/50">
+                    <Video className="h-6 w-6 text-muted-foreground" />
                   </div>
-                  {/* Video Info */}
-                  <div className="flex-1 min-w-0 space-y-2">
+                  {/* Video Info - Compact */}
+                  <div className="flex-1 min-w-0 space-y-1.5">
                     <Input
                       value={video.title || ""}
                       onChange={(e) => {
@@ -565,11 +532,7 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                         onChange({ videos: updatedVideos });
                       }}
                       placeholder={t("media.videoTitle")}
-                      className={cn(
-                        "h-9 rounded-lg transition-all duration-200",
-                        "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                        "hover:border-primary/50"
-                      )}
+                      className="h-8 rounded-lg text-sm"
                     />
                     <Input
                       value={video.description || ""}
@@ -582,25 +545,18 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
                         onChange({ videos: updatedVideos });
                       }}
                       placeholder={t("media.videoDescription")}
-                      className={cn(
-                        "h-9 rounded-lg text-sm transition-all duration-200",
-                        "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                        "hover:border-primary/50"
-                      )}
+                      className="h-8 rounded-lg text-sm"
                     />
                   </div>
-                  {/* Actions */}
+                  {/* Actions - Compact */}
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className={cn(
-                      "shrink-0 h-9 w-9 rounded-lg transition-all duration-200",
-                      "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    )}
+                    className="shrink-0 h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                     onClick={() => removeVideo(index)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
@@ -609,12 +565,12 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
         </div>
       </Section>
 
-      {/* Main Image URL Override */}
+      {/* Main Image URL Override - Compact */}
       <Section index={2} visible={sectionsVisible}>
-        <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted border border-border/50">
-              <LinkIcon className="h-5 w-5 text-muted-foreground" />
+        <div className="rounded-xl border border-border/50 bg-card p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted border border-border/50">
+              <LinkIcon className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
               <Label htmlFor="main_image_url" className="text-sm font-medium">
@@ -631,18 +587,14 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
               placeholder={t("media.mainImageUrlPlaceholder")}
               value={data.main_image_url}
               onChange={(e) => onChange({ main_image_url: e.target.value })}
-              className={cn(
-                "h-11 rounded-lg font-mono text-sm transition-all duration-200",
-                "focus:ring-2 focus:ring-primary/20 focus:border-primary",
-                "hover:border-primary/50"
-              )}
+              className="h-9 rounded-lg font-mono text-sm"
             />
             {data.main_image_url && (
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-11 w-11 shrink-0 rounded-lg transition-all duration-200 hover:bg-muted"
+                className="h-9 w-9 shrink-0 rounded-lg hover:bg-muted"
                 onClick={() => window.open(data.main_image_url, "_blank")}
                 title="Open in new tab"
               >
@@ -653,21 +605,21 @@ export function MediaTab({ data, onChange }: MediaTabProps) {
         </div>
       </Section>
 
-      {/* Summary Stats */}
+      {/* Summary Stats - Compact */}
       {(data.images.length > 0 || data.videos.length > 0) && (
         <Section index={3} visible={sectionsVisible}>
-          <div className="rounded-xl border border-border/50 bg-muted/30 p-4">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="space-y-1">
-                <p className="text-2xl font-bold tabular-nums">{data.images.length}</p>
+          <div className="rounded-xl border border-border/50 bg-muted/30 p-3">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="space-y-0.5">
+                <p className="text-xl font-bold tabular-nums">{data.images.length}</p>
                 <p className="text-xs text-muted-foreground">{t("media.images")}</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold tabular-nums">{data.videos.length}</p>
+              <div className="space-y-0.5">
+                <p className="text-xl font-bold tabular-nums">{data.videos.length}</p>
                 <p className="text-xs text-muted-foreground">{t("media.videos")}</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold tabular-nums">
+              <div className="space-y-0.5">
+                <p className="text-xl font-bold tabular-nums">
                   {data.images.length + data.videos.length}
                 </p>
                 <p className="text-xs text-muted-foreground">{t("media.totalMedia")}</p>

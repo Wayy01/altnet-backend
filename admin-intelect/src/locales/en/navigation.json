@@ -59,8 +59,14 @@
     "schedules": "Scheduled sync tasks",
     "notifications": "Sync alerts & notifications",
     "analytics": "Sync performance analytics",
-    "filters": "Sync data filters"
+    "filters": "Sync data filters",
+    "basicInfoDesc": "Enter product name, code, and basic details",
+    "mediaDesc": "Upload product images and videos",
+    "propertiesDesc": "Add technical specifications and attributes",
+    "variantsDesc": "Configure product variants and groupings"
   },
+  "step": "Step {{current}} of {{total}}",
+  "continue": "Continue",
   "breadcrumbs": {
     "dashboard": "Dashboard",
     "products": "Products",

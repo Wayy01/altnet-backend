@@ -22,6 +22,7 @@ export const NAMESPACES = [
   "sync",
   "settings",
   "translate",
+  "variants",
 ] as const;
 
 export type TranslationNamespace = (typeof NAMESPACES)[number];

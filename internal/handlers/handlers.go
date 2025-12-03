@@ -745,11 +745,6 @@ func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	response.Properties = properties
 	response.PropertyCount = len(properties)
 
-	// Fetch characteristics
-	characteristics, _ := h.repo.GetProductCharacteristics(r.Context(), id)
-	response.Characteristics = characteristics
-	response.VariantCount = len(characteristics)
-
 	h.respondJSON(w, http.StatusOK, map[string]interface{}{
 		"data": response,
 	})
@@ -1064,26 +1059,6 @@ func (h *Handler) GetPropertyGroups(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetProductCharacteristics handles GET /api/v1/products/{id}/characteristics
-func (h *Handler) GetProductCharacteristics(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
-	if err != nil {
-		h.respondError(w, http.StatusBadRequest, "Invalid product ID", err.Error())
-		return
-	}
-
-	characteristics, err := h.repo.GetProductCharacteristics(r.Context(), id)
-	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, "Failed to fetch characteristics", err.Error())
-		return
-	}
-
-	h.respondJSON(w, http.StatusOK, map[string]interface{}{
-		"data": characteristics,
-	})
-}
-
 // SearchProducts handles GET /api/v1/search
 func (h *Handler) SearchProducts(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
@@ -1177,9 +1152,8 @@ type DashboardStats struct {
 	TotalProducts        int                      `json:"total_products"`
 	TotalBrands          int                      `json:"total_brands"`
 	TotalCategories      int                      `json:"total_categories"`
-	TotalProperties      int                      `json:"total_properties"`
-	TotalCharacteristics int                      `json:"total_characteristics"`
-	TotalPrices          int                      `json:"total_prices"`
+	TotalProperties int                      `json:"total_properties"`
+	TotalPrices     int                      `json:"total_prices"`
 	ProductsInStock      int                      `json:"products_in_stock"`
 	ProductsOutOfStock   int                      `json:"products_out_of_stock"`
 	TotalStockValue      float64                  `json:"total_stock_value"`
@@ -1377,27 +1351,24 @@ type SyncProgressResponse struct {
 	SelectedSteps             []string   `json:"selectedSteps,omitempty"`
 
 	// Detailed counts
-	BrandsSynced          int `json:"brandsSynced"`
-	CategoriesSynced      int `json:"categoriesSynced"`
-	ProductsSynced        int `json:"productsSynced"`
-	CharacteristicsSynced int `json:"characteristicsSynced"`
-	PropertiesSynced      int `json:"propertiesSynced"`
-	PricesSynced          int `json:"pricesSynced"`
-	StockSynced           int `json:"stockSynced"`
+	BrandsSynced     int `json:"brandsSynced"`
+	CategoriesSynced int `json:"categoriesSynced"`
+	ProductsSynced   int `json:"productsSynced"`
+	PropertiesSynced int `json:"propertiesSynced"`
+	PricesSynced     int `json:"pricesSynced"`
+	StockSynced      int `json:"stockSynced"`
 
 	// Change deltas
-	BrandsInserted          int `json:"brandsInserted"`
-	BrandsUpdated           int `json:"brandsUpdated"`
-	CategoriesInserted      int `json:"categoriesInserted"`
-	CategoriesUpdated       int `json:"categoriesUpdated"`
-	ProductsInserted        int `json:"productsInserted"`
-	ProductsUpdated         int `json:"productsUpdated"`
-	PropertiesInserted      int `json:"propertiesInserted"`
-	PropertiesUpdated       int `json:"propertiesUpdated"`
-	CharacteristicsInserted int `json:"characteristicsInserted"`
-	CharacteristicsUpdated  int `json:"characteristicsUpdated"`
-	PricesUpdated           int `json:"pricesUpdated"`
-	StockUpdatedCount       int `json:"stockUpdatedCount"`
+	BrandsInserted     int `json:"brandsInserted"`
+	BrandsUpdated      int `json:"brandsUpdated"`
+	CategoriesInserted int `json:"categoriesInserted"`
+	CategoriesUpdated  int `json:"categoriesUpdated"`
+	ProductsInserted   int `json:"productsInserted"`
+	ProductsUpdated    int `json:"productsUpdated"`
+	PropertiesInserted int `json:"propertiesInserted"`
+	PropertiesUpdated  int `json:"propertiesUpdated"`
+	PricesUpdated      int `json:"pricesUpdated"`
+	StockUpdatedCount  int `json:"stockUpdatedCount"`
 
 	// Category progress for properties step
 	CategoriesProcessed int `json:"categoriesProcessed"`
@@ -1409,11 +1380,10 @@ type SyncProgressResponse struct {
 
 // DbTotals holds database count totals
 type DbTotals struct {
-	Brands          int `json:"brands"`
-	Categories      int `json:"categories"`
-	Products        int `json:"products"`
-	Characteristics int `json:"characteristics"`
-	Properties      int `json:"properties"`
+	Brands     int `json:"brands"`
+	Categories int `json:"categories"`
+	Products   int `json:"products"`
+	Properties int `json:"properties"`
 }
 
 // GetSyncProgress handles GET /api/v1/sync/progress
@@ -1489,7 +1459,6 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 	brandsSynced := dbTotals.Brands
 	categoriesSynced := dbTotals.Categories
 	productsSynced := dbTotals.Products
-	characteristicsSynced := dbTotals.Characteristics
 	propertiesSynced := dbTotals.Properties
 	pricesSynced := 0
 	stockSynced := 0
@@ -1504,7 +1473,6 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 	var categoriesInserted, categoriesUpdated int
 	var productsInserted, productsUpdated int
 	var propertiesInserted, propertiesUpdated int
-	var characteristicsInserted, characteristicsUpdated int
 	var pricesUpdatedCount, stockUpdatedCount int
 
 	if syncLog != nil {
@@ -1516,8 +1484,6 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 		productsUpdated = syncLog.ProductsUpdated
 		propertiesInserted = syncLog.PropertiesInserted
 		propertiesUpdated = syncLog.PropertiesUpdated
-		characteristicsInserted = syncLog.CharacteristicsInserted
-		characteristicsUpdated = syncLog.CharacteristicsUpdated
 		pricesUpdatedCount = syncLog.PricesUpdated
 		stockUpdatedCount = syncLog.StockUpdated
 	}
@@ -1535,7 +1501,6 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 		BrandsSynced:              brandsSynced,
 		CategoriesSynced:          categoriesSynced,
 		ProductsSynced:            productsSynced,
-		CharacteristicsSynced:     characteristicsSynced,
 		PropertiesSynced:          propertiesSynced,
 		PricesSynced:              pricesSynced,
 		StockSynced:               stockSynced,
@@ -1547,8 +1512,6 @@ func (h *Handler) GetSyncProgress(w http.ResponseWriter, r *http.Request) {
 		ProductsUpdated:           productsUpdated,
 		PropertiesInserted:        propertiesInserted,
 		PropertiesUpdated:         propertiesUpdated,
-		CharacteristicsInserted:   characteristicsInserted,
-		CharacteristicsUpdated:    characteristicsUpdated,
 		PricesUpdated:             pricesUpdatedCount,
 		StockUpdatedCount:         stockUpdatedCount,
 		CategoriesProcessed:       0,
@@ -1599,15 +1562,13 @@ func (h *Handler) getDbTotals(ctx context.Context) DbTotals {
 	brands, _ := h.repo.CountBrands(ctx)
 	categories, _ := h.repo.CountCategories(ctx, nil)
 	products, _ := h.repo.CountAllProducts(ctx)
-	characteristics, _ := h.repo.CountCharacteristics(ctx)
 	properties, _ := h.repo.CountProperties(ctx)
 
 	return DbTotals{
-		Brands:          brands,
-		Categories:      categories,
-		Products:        products,
-		Characteristics: characteristics,
-		Properties:      properties,
+		Brands:     brands,
+		Categories: categories,
+		Products:   products,
+		Properties: properties,
 	}
 }
 
@@ -1616,7 +1577,6 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 	expectedBrands := 1133
 	expectedCategories := 418
 	expectedProducts := 48316
-	expectedCharacteristics := 460
 	expectedProperties := 876081
 
 	// Use actual DB counts as expected if they're higher (data has grown)
@@ -1628,9 +1588,6 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 	}
 	if dbTotals.Products > expectedProducts {
 		expectedProducts = dbTotals.Products
-	}
-	if dbTotals.Characteristics > expectedCharacteristics {
-		expectedCharacteristics = dbTotals.Characteristics
 	}
 	if dbTotals.Properties > expectedProperties {
 		expectedProperties = dbTotals.Properties
@@ -1656,7 +1613,7 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 		{
 			Number:      3,
 			Name:        "Products",
-			Description: "Fetch products with images, barcodes, and characteristics",
+			Description: "Fetch products with images and barcodes",
 			Status:      "pending",
 			Count:       0,
 			Total:       expectedProducts,
@@ -1672,18 +1629,18 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 		{
 			Number:      5,
 			Name:        "Prices",
-			Description: "Update characteristic prices (multi-currency)",
+			Description: "Update product prices (multi-currency)",
 			Status:      "pending",
 			Count:       0,
-			Total:       expectedCharacteristics,
+			Total:       expectedProducts,
 		},
 		{
 			Number:      6,
 			Name:        "Stock",
-			Description: "Update characteristic stock levels",
+			Description: "Update product stock levels",
 			Status:      "pending",
 			Count:       0,
-			Total:       expectedCharacteristics,
+			Total:       expectedProducts,
 		},
 		{
 			Number:      7,
@@ -1726,7 +1683,7 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 		steps[1].Updated = syncLog.CategoriesUpdated
 	}
 
-	// Step 3: Products - use actual DB count (also implies characteristics are synced)
+	// Step 3: Products - use actual DB count
 	if dbTotals.Products > 0 {
 		steps[2].Status = "completed"
 		steps[2].Count = dbTotals.Products
@@ -1751,7 +1708,7 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 		steps[3].Updated = syncLog.PropertiesUpdated
 	}
 
-	// Step 5: Prices - check sync log since prices update characteristics in place
+	// Step 5: Prices - check sync log since prices update products in place
 	if syncLog.PricesSynced > 0 {
 		steps[4].Status = "completed"
 		steps[4].Count = syncLog.PricesSynced
@@ -1759,7 +1716,7 @@ func (h *Handler) buildSyncSteps(syncLog *models.SyncLog, dbTotals DbTotals) []S
 		steps[4].Updated = syncLog.PricesUpdated
 	}
 
-	// Step 6: Stock - check sync log since stock updates characteristics in place
+	// Step 6: Stock - check sync log since stock updates products in place
 	if syncLog.StockSynced > 0 {
 		steps[5].Status = "completed"
 		steps[5].Count = syncLog.StockSynced
@@ -1871,7 +1828,7 @@ func (h *Handler) determineCurrentStep(syncLog *models.SyncLog, isRunning bool, 
 
 // CreateProduct handles POST /api/v1/products
 // @Summary Create a new product
-// @Description Creates a new product in the database with all fields including properties and characteristics
+// @Description Creates a new product in the database with all fields including properties
 // @Tags Products
 // @Accept json
 // @Produce json
@@ -1952,7 +1909,7 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 // UpdateProductFull handles PUT /api/v1/products/{id}/full
 // @Summary Update a product with all fields including properties
-// @Description Updates an existing product by ID with full support for properties and characteristics
+// @Description Updates an existing product by ID with full support for properties
 // @Tags Products
 // @Accept json
 // @Produce json

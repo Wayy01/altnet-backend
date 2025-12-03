@@ -961,7 +961,7 @@ func (s *SelectiveSync) processProductsSelective(ctx context.Context, syncLogID 
 	}
 
 	// Fetch products from Ultra API
-	products, characteristics, err := s.fetcher.FetchProducts(ctx, true)
+	products, _, err := s.fetcher.FetchProducts(ctx, true)
 	if err != nil {
 		return fmt.Errorf("failed to fetch products: %w", err)
 	}
@@ -1047,12 +1047,6 @@ func (s *SelectiveSync) processProductsSelective(ctx context.Context, syncLogID 
 					})
 				}
 
-				// Insert characteristics if they exist
-				if chars, ok := characteristics[product.UltraID]; ok && len(chars) > 0 {
-					if _, err := s.repo.UpsertCharacteristics(ctx, product.UltraID, chars); err != nil {
-						log.Printf("Failed to insert characteristics for product %s: %v", product.UltraID, err)
-					}
-				}
 			}
 		} else {
 			// Update existing product with selective fields
@@ -1276,10 +1270,10 @@ func (s *SelectiveSync) processPricesSelective(ctx context.Context, syncLogID uu
 	result.Extracted = len(prices)
 	log.Printf("Fetched %d prices from Ultra API", len(prices))
 
-	// Update characteristic prices
-	updated, err := s.repo.UpdateCharacteristicPrices(ctx, prices)
+	// Update product prices
+	updated, err := s.repo.UpdateProductPrices(ctx, prices)
 	if err != nil {
-		return fmt.Errorf("failed to update characteristic prices: %w", err)
+		return fmt.Errorf("failed to update product prices: %w", err)
 	}
 
 	result.Updated = updated
@@ -1287,11 +1281,6 @@ func (s *SelectiveSync) processPricesSelective(ctx context.Context, syncLogID uu
 	// Extract multi-currency prices to product-level columns
 	if err := s.repo.UpdateProductPricesFromJSONB(ctx); err != nil {
 		log.Printf("Warning: failed to extract multi-currency prices: %v", err)
-	}
-
-	// Update product aggregates
-	if err := s.repo.UpdateProductAggregates(ctx); err != nil {
-		log.Printf("Warning: failed to update product aggregates: %v", err)
 	}
 
 	log.Printf("Prices sync: %d updated", updated)
@@ -1310,18 +1299,13 @@ func (s *SelectiveSync) processStockSelective(ctx context.Context, syncLogID uui
 	result.Extracted = len(stocks)
 	log.Printf("Fetched %d stock records from Ultra API", len(stocks))
 
-	// Update characteristic stock
-	updated, err := s.repo.UpdateCharacteristicStock(ctx, stocks)
+	// Update product stock
+	updated, err := s.repo.UpdateProductStock(ctx, stocks)
 	if err != nil {
-		return fmt.Errorf("failed to update characteristic stock: %w", err)
+		return fmt.Errorf("failed to update product stock: %w", err)
 	}
 
 	result.Updated = updated
-
-	// Update product aggregates (includes stock aggregation)
-	if err := s.repo.UpdateProductAggregates(ctx); err != nil {
-		log.Printf("Warning: failed to update product aggregates: %v", err)
-	}
 
 	log.Printf("Stock sync: %d updated", updated)
 

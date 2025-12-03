@@ -1,0 +1,135 @@
+{
+  "page": {
+    "title": "Управление вариантами",
+    "description": "Создавайте и управляйте группами вариантов продуктов",
+    "detailTitle": "Детали группы вариантов",
+    "detailDescription": "Просмотр и управление продуктами в этой группе вариантов"
+  },
+  "stats": {
+    "totalGroups": "Всего групп",
+    "productsInGroups": "Продуктов в группах",
+    "aiEngineStatus": "Статус AI движка",
+    "available": "Доступен",
+    "unavailable": "Недоступен",
+    "organized": "организовано",
+    "groupsCreated": "Создано групп вариантов",
+    "productsOrganized": "Организовано продуктов",
+    "ollamaAI": "Ollama AI для группировки"
+  },
+  "table": {
+    "baseName": "Базовое имя",
+    "members": "Участники",
+    "created": "Создано",
+    "actions": "Действия"
+  },
+  "filters": {
+    "searchGroups": "Поиск групп..."
+  },
+  "actions": {
+    "generateVariants": "Генерировать варианты",
+    "refresh": "Обновить",
+    "backToVariants": "Назад к вариантам",
+    "viewGroup": "Просмотр группы"
+  },
+  "progress": {
+    "generationStarted": "Генерация начата",
+    "generationStartedDesc": "Задание генерации вариантов было запущено",
+    "generationComplete": "Генерация завершена",
+    "generationStopped": "Генерация остановлена",
+    "generationCompleteDesc": "Создано {{groups}} групп вариантов из {{total}} продуктов",
+    "generation": "Генерация {{status}}",
+    "jobCancelled": "Задание отменено",
+    "jobCancelledDesc": "Задание генерации вариантов было отменено"
+  },
+  "empty": {
+    "noGroups": "Группы вариантов не найдены",
+    "tryDifferentSearch": "Попробуйте другой поиск",
+    "generateToStart": "Создайте варианты для начала",
+    "noProducts": "Нет продуктов в этой группе",
+    "noJobs": "Заданий пока нет",
+    "noVariantProps": "Свойства вариантов не обнаружены"
+  },
+  "delete": {
+    "title": "Удалить группу вариантов?",
+    "description": "Это удалит группу вариантов \"{{name}}\". Продукты в этой группе будут разъединены, но не удалены.",
+    "deleting": "Удаление...",
+    "deleteGroup": "Удалить группу",
+    "groupDeleted": "Группа удалена",
+    "groupDeletedDesc": "Группа вариантов \"{{name}}\" была удалена"
+  },
+  "errors": {
+    "loadStats": "Не удалось загрузить статистику вариантов",
+    "loadGroup": "Не удалось загрузить детали группы вариантов",
+    "startGeneration": "Не удалось начать генерацию",
+    "cancelJob": "Не удалось отменить задание",
+    "deleteGroup": "Не удалось удалить группу вариантов"
+  },
+  "loading": {
+    "variantData": "Загрузка данных вариантов...",
+    "variantGroup": "Загрузка группы вариантов...",
+    "groups": "групп"
+  },
+  "cards": {
+    "variantGroups": "Группы вариантов",
+    "groupsFound": "Найдено {{count}} группа",
+    "groupsFoundPlural": "Найдено {{count}} групп",
+    "jobHistory": "История заданий",
+    "recentJobs": "Недавние задания генерации",
+    "groupInfo": "Информация о группе",
+    "variantProperties": "Свойства вариантов",
+    "quickStats": "Быстрая статистика",
+    "memberProducts": "Продукты-участники",
+    "variantMatrix": "Матрица вариантов"
+  },
+  "details": {
+    "baseName": "Базовое имя",
+    "normalized": "Нормализовано",
+    "created": "Создано {{date}}",
+    "products": "Продукты",
+    "variantProps": "Свойства вариантов",
+    "matrixColumns": "Столбцы матрицы",
+    "productsCount": "{{count}} продукт",
+    "productsCountPlural": "{{count}} продуктов",
+    "inGroup": "в этой группе",
+    "matrixDescription": "Визуальное сравнение вариантов продуктов по свойствам",
+    "unknownProduct": "Неизвестный продукт",
+    "groupNotFound": "Группа не найдена",
+    "groupNotFoundDesc": "Группа вариантов, которую вы ищете, не существует."
+  },
+  "status": {
+    "completed": "Завершено",
+    "running": "Выполняется",
+    "pending": "Ожидание",
+    "failed": "Ошибка",
+    "cancelled": "Отменено"
+  },
+  "job": {
+    "groups": "групп из",
+    "productsText": "продуктов",
+    "progress": "Прогресс"
+  },
+  "breadcrumbs": {
+    "dashboard": "Панель управления",
+    "variants": "Варианты"
+  },
+  "pagination": {
+    "page": "Страница {{current}} из {{total}}"
+  },
+  "matrix": {
+    "noData": "Нет данных матрицы",
+    "noDataDesc": "Матрица вариантов появится здесь после анализа свойств",
+    "variantProperties": "Вариантные свойства ({{count}})",
+    "commonProperties": "Общие свойства ({{count}})",
+    "product": "Продукт",
+    "products": "{{count}} продукт",
+    "productsPlural": "{{count}} продуктов",
+    "variant": "Вариант",
+    "variantTooltip": "Это свойство различается между продуктами в этой группе",
+    "value": "{{count}} значение",
+    "values": "{{count}} значений",
+    "showing": "Показано {{products}} по {{properties}}",
+    "property": "свойство",
+    "properties": "свойств",
+    "more": "+{{count}} еще"
+  }
+}

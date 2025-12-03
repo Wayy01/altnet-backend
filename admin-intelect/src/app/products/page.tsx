@@ -737,12 +737,14 @@ export default function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
-          <p className="text-muted-foreground">
-            {t("page.description")}
-          </p>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              {t("page.description")}
+            </p>
+          </div>
         </div>
         <ProductsPageSkeleton />
       </div>
@@ -751,40 +753,72 @@ export default function ProductsPage() {
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
-          <p className="text-muted-foreground">
-            {t("page.description")}
-          </p>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
+            <p className="text-sm text-muted-foreground mt-1.5">
+              {t("page.description")}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col items-center justify-center py-12 rounded-xl border bg-card shadow-sm">
-          <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground">{error}</p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            {tCommon("actions.tryAgain")}
-          </Button>
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="p-4 rounded-full bg-destructive/10 mb-4">
+              <Package className="h-10 w-10 text-destructive" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">{tCommon("errors.somethingWentWrong")}</p>
+            <p className="text-xs text-muted-foreground text-center mb-4">{error}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.reload()}
+              className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+            >
+              {tCommon("actions.tryAgain")}
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
-        <p className="text-muted-foreground">
-          {t("page.description")}
-        </p>
+    <div className="space-y-4">
+      {/* Page Header - Compact style matching dashboard */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t("page.title")}</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">
+            {t("page.description")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={isProcessing}
+            className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+          >
+            <Download className="h-4 w-4 mr-1.5" />
+            {t("actions.exportCSV")}
+          </Button>
+          <Button
+            size="sm"
+            asChild
+            className="transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
+          >
+            <Link href="/products/new">
+              <Package className="h-4 w-4 mr-1.5" />
+              {t("page.newProduct")}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
-        {/* Stats Bar - Enhanced with hover effects and better visual hierarchy */}
+        {/* Stats Bar */}
         <div className="flex flex-wrap items-center gap-3">
           {statsIndicators.map((stat, index) => (
             <div
@@ -817,266 +851,320 @@ export default function ProductsPage() {
               )}
             </div>
           ))}
-
-          {/* Export Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isProcessing}
-            className="ml-auto transition-all duration-200 hover:shadow-sm hover:-translate-y-0.5"
-          >
-            <Download className="h-4 w-4 mr-1.5" />
-            {t("actions.exportCSV")}
-          </Button>
         </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border bg-card/50 shadow-sm">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              ref={searchInputRef}
-              name="search"
-              placeholder={t("filters.searchProducts")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[250px] pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-            />
-            {isSearching && (
-              <Loader2 className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-            )}
-            {searchQuery && !isSearching && (
-              <button
-                onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors"
-              >
-                <X className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-
-          <div className="h-6 w-px bg-border" />
-
-          {/* Brand Filter */}
-          <div className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-muted-foreground" />
-            <Select value={brandFilter || "all"} onValueChange={handleBrandChange} disabled={isLoadingFilters}>
-              <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder={t("table.brand")} />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                <SelectItem value="all">{t("filters.allBrands")}</SelectItem>
-                {allBrands.map(brand => (
-                  <SelectItem key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex items-center gap-2">
-            <FolderTree className="h-4 w-4 text-muted-foreground" />
-            <Select value={categoryFilter || "all"} onValueChange={handleCategoryChange} disabled={isLoadingFilters}>
-              <SelectTrigger className="w-[180px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder={t("table.category")} />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
-                {allCategories.map(category => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Source Filter */}
-          <div className="flex items-center gap-2">
-            <Layers className="h-4 w-4 text-muted-foreground" />
-            <Select value={sourceFilter || "all"} onValueChange={handleSourceChange} disabled={isLoadingFilters}>
-              <SelectTrigger className="w-[140px] transition-all duration-200 hover:border-primary/50">
-                <SelectValue placeholder={t("table.source")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("filters.allSources")}</SelectItem>
-                {allSources.map(source => (
-                  <SelectItem key={source.id} value={source.id}>
-                    {source.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Price Filter */}
-          <Select value={priceFilter || "all"} onValueChange={handlePriceFilterChange}>
-            <SelectTrigger className="w-[130px] transition-all duration-200 hover:border-primary/50">
-              <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder={t("filters.price")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
-              <SelectItem value="with_price">{t("filters.withPrice")}</SelectItem>
-              <SelectItem value="no_price">{t("filters.noPrice")}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Stock Filter */}
-          <Select value={stockFilter || "all"} onValueChange={handleStockFilterChange}>
-            <SelectTrigger className="w-[140px] transition-all duration-200 hover:border-primary/50">
-              <PackageOpen className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder={t("filters.stock")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
-              <SelectItem value="in_stock">{t("filters.inStock")}</SelectItem>
-              <SelectItem value="out_stock">{t("filters.outOfStock")}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Status Filter */}
-          <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
-            <SelectTrigger className="w-[130px] transition-all duration-200 hover:border-primary/50">
-              <Power className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder={t("filters.status")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
-              <SelectItem value="active">{t("filters.active")}</SelectItem>
-              <SelectItem value="inactive">{t("filters.inactive")}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Sort By */}
-          <Select value={sortBy} onValueChange={handleSortByChange}>
-            <SelectTrigger className="w-[160px] transition-all duration-200 hover:border-primary/50">
-              <ArrowUpDown className="h-4 w-4 mr-1 text-muted-foreground" />
-              <SelectValue placeholder={t("filters.sortBy")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name_asc">{t("filters.nameAZ")}</SelectItem>
-              <SelectItem value="name_desc">{t("filters.nameZA")}</SelectItem>
-              <SelectItem value="price_high">{t("filters.highestPrice")}</SelectItem>
-              <SelectItem value="price_low">{t("filters.lowestPrice")}</SelectItem>
-              <SelectItem value="stock_high">{t("filters.mostStock")}</SelectItem>
-              <SelectItem value="stock_low">{t("filters.leastStock")}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Active Filter Chips */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap items-center gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="font-medium">{activeFilters.length} active filter{activeFilters.length !== 1 ? "s" : ""}:</span>
-            </div>
-            {activeFilters.map((filter, index) => (
-              <Badge
-                key={filter.key}
-                variant="secondary"
-                className="
-                  pl-2.5 pr-1.5 py-1 gap-1.5
-                  bg-primary/10 text-primary border-primary/20
-                  hover:bg-primary/15 transition-all duration-200
-                  animate-in fade-in-0 slide-in-from-left-2
-                "
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <span className="text-xs font-normal text-primary/70">{filter.label}:</span>
-                <span className="text-xs font-medium max-w-[150px] truncate">{filter.displayValue}</span>
-                <button
-                  onClick={() => handleRemoveFilter(filter.key)}
-                  className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-colors"
-                  aria-label={`Remove ${filter.label} filter`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearFilters}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              {tCommon("actions.clearAll")}
-            </Button>
-          </div>
-        )}
-
-        {/* Bulk Actions Bar */}
-        {isSomeSelected && (
-          <div className="flex items-center gap-4 p-3 bg-primary/5 rounded-xl border border-primary/20 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+        {/* Filters Section - Organized Grid Layout */}
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300
+            ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+          `}
+          style={{ transitionDelay: rowsVisible ? "200ms" : "0ms" }}
+        >
+          <div className="p-4 border-b">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <CheckSquare className="h-4 w-4 text-primary" />
+              <div className="p-1.5 rounded-lg bg-muted">
+                <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
               </div>
-              <span className="text-sm font-medium text-foreground">
-                {selectAllMode
-                  ? t("bulk.allMatching", { count: total })
-                  : selectedIds.size === 1
-                    ? t("bulk.selected", { count: selectedIds.size })
-                    : t("bulk.selectedPlural", { count: selectedIds.size })
-                }
-              </span>
+              <h3 className="font-semibold text-sm">{t("filters.searchProducts")}</h3>
+            </div>
+          </div>
+          <div className="p-5 space-y-4">
+            {/* Search Bar - Full Width */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                name="search"
+                placeholder={t("filters.searchProducts")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-8 transition-all duration-200 focus:ring-2 focus:ring-primary/20 hover:border-primary/30"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              )}
+              {searchQuery && !isSearching && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-all duration-200"
+                >
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
             </div>
 
-            {isAllOnPageSelected && !selectAllMode && total > filteredProducts.length && (
-              <Button
-                variant="link"
-                size="sm"
-                className="text-primary p-0 h-auto"
-                onClick={handleSelectAllMatching}
-              >
-                {t("bulk.selectAllMatching", { count: total })}
-              </Button>
-            )}
+            {/* Primary Filters - Catalog Organization */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t("filters.catalogFilters")}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* Brand Filter */}
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={brandFilter || "all"} onValueChange={handleBrandChange} disabled={isLoadingFilters}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("table.brand")} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <SelectItem value="all">{t("filters.allBrands")}</SelectItem>
+                      {allBrands.map(brand => (
+                        <SelectItem key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="flex items-center gap-2 ml-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkActivate}
-                disabled={isProcessing || isPending}
-                className="transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
-              >
-                <Power className="h-4 w-4 mr-1.5" />
-                {t("actions.activate")}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkDeactivate}
-                disabled={isProcessing || isPending}
-                className="transition-all duration-200 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-              >
-                <PowerOff className="h-4 w-4 mr-1.5" />
-                {t("actions.deactivate")}
-              </Button>
+                {/* Category Filter */}
+                <div className="flex items-center gap-2">
+                  <FolderTree className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={categoryFilter || "all"} onValueChange={handleCategoryChange} disabled={isLoadingFilters}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("table.category")} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      <SelectItem value="all">{t("filters.allCategories")}</SelectItem>
+                      {allCategories.map(category => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Source Filter */}
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={sourceFilter || "all"} onValueChange={handleSourceChange} disabled={isLoadingFilters}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("table.source")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("filters.allSources")}</SelectItem>
+                      {allSources.map(source => (
+                        <SelectItem key={source.id} value={source.id}>
+                          {source.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary Filters - Attributes & Sorting */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t("filters.attributesSorting")}
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Price Filter */}
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={priceFilter || "all"} onValueChange={handlePriceFilterChange}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("filters.price")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
+                      <SelectItem value="with_price">{t("filters.withPrice")}</SelectItem>
+                      <SelectItem value="no_price">{t("filters.noPrice")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Stock Filter */}
+                <div className="flex items-center gap-2">
+                  <PackageOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={stockFilter || "all"} onValueChange={handleStockFilterChange}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("filters.stock")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
+                      <SelectItem value="in_stock">{t("filters.inStock")}</SelectItem>
+                      <SelectItem value="out_stock">{t("filters.outOfStock")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="flex items-center gap-2">
+                  <Power className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("filters.status")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{tCommon("filters.all")}</SelectItem>
+                      <SelectItem value="active">{t("filters.active")}</SelectItem>
+                      <SelectItem value="inactive">{t("filters.inactive")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sort By */}
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Select value={sortBy} onValueChange={handleSortByChange}>
+                    <SelectTrigger className="w-full transition-all duration-200 hover:border-primary/30">
+                      <SelectValue placeholder={t("filters.sortBy")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name_asc">{t("filters.nameAZ")}</SelectItem>
+                      <SelectItem value="name_desc">{t("filters.nameZA")}</SelectItem>
+                      <SelectItem value="price_high">{t("filters.highestPrice")}</SelectItem>
+                      <SelectItem value="price_low">{t("filters.lowestPrice")}</SelectItem>
+                      <SelectItem value="stock_high">{t("filters.mostStock")}</SelectItem>
+                      <SelectItem value="stock_low">{t("filters.leastStock")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Filter Chips - Enhanced styling */}
+        {hasActiveFilters && (
+          <div
+            className={`
+              rounded-xl border bg-card/50 shadow-sm p-3
+              transition-all duration-300
+              ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+            `}
+            style={{ transitionDelay: rowsVisible ? "250ms" : "0ms" }}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="p-1 rounded bg-muted">
+                  <SlidersHorizontal className="h-3 w-3" />
+                </div>
+                <span className="font-medium">{activeFilters.length} {activeFilters.length === 1 ? t("filters.activeFilter") : t("filters.activeFilters")}</span>
+              </div>
+              {activeFilters.map((filter, index) => (
+                <Badge
+                  key={filter.key}
+                  variant="secondary"
+                  className="
+                    pl-2.5 pr-1.5 py-1 gap-1.5
+                    bg-primary/10 text-primary border-primary/20
+                    hover:bg-primary/15 hover:border-primary/30 transition-all duration-200
+                    animate-in fade-in-0 slide-in-from-left-2
+                  "
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <span className="text-xs font-normal text-primary/70">{filter.label}:</span>
+                  <span className="text-xs font-medium max-w-[150px] truncate">{filter.displayValue}</span>
+                  <button
+                    onClick={() => handleRemoveFilter(filter.key)}
+                    className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-all duration-200"
+                    aria-label={`Remove ${filter.label} filter`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleClearSelection}
-                disabled={isProcessing || isPending}
+                onClick={handleClearFilters}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
               >
-                <X className="h-4 w-4 mr-1" />
-                {tCommon("actions.clear")}
+                {tCommon("actions.clearAll")}
               </Button>
             </div>
           </div>
         )}
 
-        {/* Products Table - Enhanced with shadow and rounded corners */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        {/* Bulk Actions Bar - Premium styling */}
+        {isSomeSelected && (
+          <div
+            className="
+              rounded-xl border shadow-sm p-4 overflow-hidden
+              bg-gradient-to-br from-primary/5 via-primary/3 to-transparent border-primary/20
+              animate-in fade-in-0 slide-in-from-top-2 duration-300
+            "
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <CheckSquare className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-sm font-medium text-foreground">
+                  {selectAllMode
+                    ? t("bulk.allMatching", { count: total })
+                    : selectedIds.size === 1
+                      ? t("bulk.selected", { count: selectedIds.size })
+                      : t("bulk.selectedPlural", { count: selectedIds.size })
+                  }
+                </span>
+              </div>
+
+              {isAllOnPageSelected && !selectAllMode && total > filteredProducts.length && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-primary p-0 h-auto hover:underline transition-all duration-200"
+                  onClick={handleSelectAllMatching}
+                >
+                  {t("bulk.selectAllMatching", { count: total })}
+                </Button>
+              )}
+
+              <div className="flex items-center gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkActivate}
+                  disabled={isProcessing || isPending}
+                  className="transition-all duration-200 hover:shadow-sm hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                >
+                  <Power className="h-4 w-4 mr-1.5" />
+                  {t("actions.activate")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkDeactivate}
+                  disabled={isProcessing || isPending}
+                  className="transition-all duration-200 hover:shadow-sm hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                >
+                  <PowerOff className="h-4 w-4 mr-1.5" />
+                  {t("actions.deactivate")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearSelection}
+                  disabled={isProcessing || isPending}
+                  className="transition-all duration-200 hover:bg-muted/50"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  {tCommon("actions.clear")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Products Table - Premium styling matching dashboard */}
+        <div
+          className={`
+            rounded-xl border bg-card shadow-sm overflow-hidden
+            transition-all duration-300
+            ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+          `}
+          style={{ transitionDelay: rowsVisible ? "300ms" : "0ms" }}
+        >
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/30 hover:bg-muted/30">
+              <TableRow className="bg-muted/30 hover:bg-muted/30 border-b">
                 <TableHead className="w-[40px]">
                   <Checkbox
                     checked={isAllOnPageSelected && filteredProducts.length > 0}
@@ -1088,10 +1176,10 @@ export default function ProductsPage() {
                 <TableHead>
                   <button
                     onClick={() => handleColumnSort("name")}
-                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
+                    className="inline-flex items-center gap-1.5 font-semibold text-xs hover:text-primary transition-colors duration-200 group"
                   >
                     {t("table.name")}
-                    <span className={`transition-all duration-200 ${currentSortField === "name" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
+                    <span className={`transition-all duration-200 ${currentSortField === "name" ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "name" && currentSortDirection === "asc" ? (
                         <ArrowUp className="h-3.5 w-3.5" />
                       ) : (
@@ -1100,17 +1188,17 @@ export default function ProductsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead>{t("table.code")}</TableHead>
-                <TableHead>{t("table.brand")}</TableHead>
-                <TableHead>{t("table.category")}</TableHead>
-                <TableHead>{t("table.source")}</TableHead>
+                <TableHead className="font-semibold text-xs">{t("table.code")}</TableHead>
+                <TableHead className="font-semibold text-xs">{t("table.brand")}</TableHead>
+                <TableHead className="font-semibold text-xs">{t("table.category")}</TableHead>
+                <TableHead className="font-semibold text-xs">{t("table.source")}</TableHead>
                 <TableHead className="text-right">
                   <button
                     onClick={() => handleColumnSort("price")}
-                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
+                    className="inline-flex items-center gap-1.5 font-semibold text-xs hover:text-primary transition-colors duration-200 group ml-auto"
                   >
                     {t("table.priceMDL")}
-                    <span className={`transition-all duration-200 ${currentSortField === "price" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
+                    <span className={`transition-all duration-200 ${currentSortField === "price" ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "price" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
                       ) : (
@@ -1122,10 +1210,10 @@ export default function ProductsPage() {
                 <TableHead className="text-right">
                   <button
                     onClick={() => handleColumnSort("stock")}
-                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group ml-auto"
+                    className="inline-flex items-center gap-1.5 font-semibold text-xs hover:text-primary transition-colors duration-200 group ml-auto"
                   >
                     {t("table.stock")}
-                    <span className={`transition-all duration-200 ${currentSortField === "stock" ? "opacity-100" : "opacity-0 group-hover:opacity-50"}`}>
+                    <span className={`transition-all duration-200 ${currentSortField === "stock" ? "opacity-100 text-primary" : "opacity-0 group-hover:opacity-50"}`}>
                       {currentSortField === "stock" && currentSortDirection === "desc" ? (
                         <ArrowDown className="h-3.5 w-3.5" />
                       ) : (
@@ -1134,36 +1222,47 @@ export default function ProductsPage() {
                     </span>
                   </button>
                 </TableHead>
-                <TableHead className="w-[80px]">{t("table.active")}</TableHead>
-                <TableHead className="w-[100px]">{t("table.actions")}</TableHead>
+                <TableHead className="w-[80px] font-semibold text-xs">{t("table.active")}</TableHead>
+                <TableHead className="w-[100px] font-semibold text-xs">{t("table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-48">
-                    <div className="flex flex-col items-center justify-center gap-3 py-8">
-                      <div className="p-4 rounded-full bg-muted/50">
+                  <TableCell colSpan={10} className="h-64">
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <div className="p-4 rounded-full bg-muted/50 mb-3">
                         <Package className="h-10 w-10 text-muted-foreground/50" />
                       </div>
-                      <div className="text-center">
-                        <p className="font-medium text-foreground">{t("empty.title")}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
+                      <div className="text-center mb-4">
+                        <p className="text-sm font-semibold text-foreground mb-1">{t("empty.title")}</p>
+                        <p className="text-xs text-muted-foreground max-w-md">
                           {hasActiveFilters
                             ? t("empty.withFilters")
                             : t("empty.noFilters")
                           }
                         </p>
                       </div>
-                      {hasActiveFilters && (
+                      {hasActiveFilters ? (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={handleClearFilters}
-                          className="mt-2 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                          className="transition-all duration-200 hover:shadow-sm hover:bg-primary/10 hover:text-primary hover:border-primary/30"
                         >
                           <X className="h-4 w-4 mr-1.5" />
                           {t("empty.clearFilters")}
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          asChild
+                          className="transition-all duration-200 hover:shadow-sm"
+                        >
+                          <Link href="/products/new">
+                            <Package className="h-4 w-4 mr-1.5" />
+                            {t("page.newProduct")}
+                          </Link>
                         </Button>
                       )}
                     </div>
@@ -1174,8 +1273,9 @@ export default function ProductsPage() {
                   <TableRow
                     key={product.id}
                     className={`
-                      transition-all duration-200
-                      ${selectedIds.has(product.id) || selectAllMode ? "bg-primary/5" : ""}
+                      border-b transition-all duration-200
+                      hover:bg-muted/30
+                      ${selectedIds.has(product.id) || selectAllMode ? "bg-primary/5 hover:bg-primary/8" : ""}
                       ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
                     `}
                     style={{
@@ -1190,30 +1290,30 @@ export default function ProductsPage() {
                         className="transition-transform duration-200 hover:scale-110"
                       />
                     </TableCell>
-                    <TableCell className="font-medium max-w-[300px] truncate">
+                    <TableCell className="font-medium max-w-[300px]">
                       <Link
                         href={`/products/${product.id}`}
-                        className="hover:text-primary hover:underline underline-offset-4 transition-colors"
+                        className="hover:text-primary hover:underline underline-offset-4 transition-colors duration-200 line-clamp-1"
                       >
                         {localize(product, "name")}
                       </Link>
                     </TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">
+                    <TableCell className="font-mono text-xs text-muted-foreground">
                       {product.code}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground">
                       {product.brand_name || (
                         <span className="text-muted-foreground/50">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground">
                       {product.category_name || (
                         <span className="text-muted-foreground/50">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-xs text-muted-foreground">
                       {product.source_name ? (
-                        <Badge variant="outline" className="font-normal">
+                        <Badge variant="outline" className="font-normal text-xs">
                           {product.source_name}
                         </Badge>
                       ) : (
@@ -1222,11 +1322,11 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       {product.price_mdl !== null ? (
-                        <span className="font-medium tabular-nums">
+                        <span className="font-medium tabular-nums text-sm">
                           {product.price_mdl.toLocaleString()} MDL
                         </span>
                       ) : (
-                        <Badge variant="outline" className="font-normal text-muted-foreground">
+                        <Badge variant="outline" className="font-normal text-xs text-muted-foreground">
                           {t("badges.noPrice")}
                         </Badge>
                       )}
@@ -1235,14 +1335,14 @@ export default function ProductsPage() {
                       {product.is_in_stock ? (
                         <Badge
                           variant="default"
-                          className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors"
+                          className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors duration-200 text-xs font-semibold tabular-nums"
                         >
                           {product.total_stock}
                         </Badge>
                       ) : (
                         <Badge
                           variant="destructive"
-                          className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 transition-colors"
+                          className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 transition-colors duration-200 text-xs"
                         >
                           {t("badges.outOfStock")}
                         </Badge>
@@ -1266,7 +1366,7 @@ export default function ProductsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 transition-all duration-200 hover:bg-muted"
+                            className="h-8 w-8 transition-all duration-200 hover:bg-muted hover:scale-105"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                             <span className="sr-only">Actions</span>
@@ -1321,101 +1421,110 @@ export default function ProductsPage() {
           </Table>
         </div>
 
-        {/* Enhanced Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <p>
-              {tCommon("pagination.showing")} <span className="font-medium text-foreground">{filteredProducts.length}</span> {tCommon("pagination.of")}{" "}
-              <span className="font-medium text-foreground">{total}</span> {tCommon("pagination.items")}
-            </p>
-            <div className="h-4 w-px bg-border" />
-            <div className="flex items-center gap-2">
-              <span>{tCommon("pagination.rowsPerPage")}:</span>
-              <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-                <SelectTrigger className="w-[70px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              {/* First Page */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handlePageChange(1)}
-                disabled={currentPage === 1}
-                className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                title={tCommon("pagination.firstPage")}
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-
-              {/* Previous Page */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="transition-all duration-200 hover:bg-muted"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                {tCommon("actions.previous")}
-              </Button>
-
-              {/* Page Info & Jump */}
-              <div className="flex items-center gap-2 px-2">
-                <span className="text-sm text-muted-foreground">{tCommon("pagination.page")}</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={totalPages}
-                  value={jumpToPage}
-                  onChange={(e) => setJumpToPage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleJumpToPage();
-                    }
-                  }}
-                  onBlur={handleJumpToPage}
-                  placeholder={currentPage.toString()}
-                  className="w-14 h-8 text-center tabular-nums"
-                />
-                <span className="text-sm text-muted-foreground">of {totalPages}</span>
+        {/* Pagination - Compact style matching dashboard */}
+        <div
+          className={`
+            rounded-xl border bg-card/50 shadow-sm p-4
+            transition-all duration-300
+            ${rowsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+          `}
+          style={{ transitionDelay: rowsVisible ? "350ms" : "0ms" }}
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <p>
+                {tCommon("pagination.showing")} <span className="font-semibold text-foreground tabular-nums">{filteredProducts.length}</span> {tCommon("pagination.of")}{" "}
+                <span className="font-semibold text-foreground tabular-nums">{total}</span> {tCommon("pagination.items")}
+              </p>
+              <div className="h-4 w-px bg-border" />
+              <div className="flex items-center gap-2">
+                <span>{tCommon("pagination.rowsPerPage")}:</span>
+                <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                  <SelectTrigger className="w-[70px] h-8 transition-all duration-200 hover:border-primary/30">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-
-              {/* Next Page */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="transition-all duration-200 hover:bg-muted"
-              >
-                {tCommon("actions.next")}
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-
-              {/* Last Page */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handlePageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                className="h-8 w-8 transition-all duration-200 hover:bg-muted"
-                title={tCommon("pagination.lastPage")}
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
             </div>
-          )}
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                {/* First Page */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 transition-all duration-200 hover:bg-muted hover:shadow-sm"
+                  title={tCommon("pagination.firstPage")}
+                >
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+
+                {/* Previous Page */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="transition-all duration-200 hover:bg-muted hover:shadow-sm"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  {tCommon("actions.previous")}
+                </Button>
+
+                {/* Page Info & Jump */}
+                <div className="flex items-center gap-2 px-2">
+                  <span className="text-xs text-muted-foreground">{tCommon("pagination.page")}</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={jumpToPage}
+                    onChange={(e) => setJumpToPage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleJumpToPage();
+                      }
+                    }}
+                    onBlur={handleJumpToPage}
+                    placeholder={currentPage.toString()}
+                    className="w-14 h-8 text-center tabular-nums transition-all duration-200 hover:border-primary/30"
+                  />
+                  <span className="text-xs text-muted-foreground">of {totalPages}</span>
+                </div>
+
+                {/* Next Page */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="transition-all duration-200 hover:bg-muted hover:shadow-sm"
+                >
+                  {tCommon("actions.next")}
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+
+                {/* Last Page */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 transition-all duration-200 hover:bg-muted hover:shadow-sm"
+                  title={tCommon("pagination.lastPage")}
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1435,51 +1544,83 @@ export default function ProductsPage() {
 }
 
 /**
- * Enhanced skeleton loader with row-by-row loading animation
- * Provides better visual feedback during initial load
+ * Enhanced skeleton loader matching dashboard design system
+ * Compact spacing, staggered animations, premium feel
  */
 function ProductsPageSkeleton() {
   return (
     <div className="space-y-4">
-      {/* Stats Skeleton */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Stats Skeleton - Grid layout like actual stats */}
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton
+          <div
             key={i}
-            className="h-10 w-32 rounded-lg"
-            style={{ animationDelay: `${i * 100}ms` }}
-          />
+            className="rounded-xl border bg-card shadow-sm p-4 animate-pulse"
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-8 w-8 rounded-lg" />
+            </div>
+            <Skeleton className="h-6 w-16 mb-1" />
+          </div>
         ))}
-        <Skeleton className="h-9 w-28 ml-auto rounded-md" />
       </div>
 
-      {/* Filters Skeleton */}
-      <div className="flex flex-wrap gap-3 p-4 rounded-xl border bg-card/50">
-        <Skeleton className="h-10 w-[250px] rounded-md" />
-        <Skeleton className="h-10 w-[180px] rounded-md" />
-        <Skeleton className="h-10 w-[180px] rounded-md" />
-        <Skeleton className="h-10 w-[130px] rounded-md" />
-        <Skeleton className="h-10 w-[140px] rounded-md" />
-        <Skeleton className="h-10 w-[130px] rounded-md" />
-        <Skeleton className="h-10 w-[160px] rounded-md" />
+      {/* Filters Skeleton - Organized Grid Layout */}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden animate-pulse">
+        <div className="p-4 border-b">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-lg" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* Search Bar Skeleton */}
+          <Skeleton className="h-10 w-full rounded-md" />
+
+          {/* Primary Filters Skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-24" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          </div>
+
+          {/* Secondary Filters Skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-32" />
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Table Skeleton with row-by-row animation */}
+      {/* Table Skeleton - Staggered row animation */}
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         {/* Header */}
-        <div className="flex items-center gap-4 p-4 bg-muted/30 border-b">
-          <Skeleton className="h-4 w-4 rounded" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 w-24 ml-auto" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-12" />
-          <Skeleton className="h-4 w-16" />
+        <div className="bg-muted/30 border-b p-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-4 w-4 rounded" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-24 ml-auto" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+          </div>
         </div>
 
-        {/* Rows */}
+        {/* Rows with staggered fade-in */}
         {Array.from({ length: 10 }).map((_, i) => (
           <div
             key={i}
@@ -1491,29 +1632,33 @@ function ProductsPageSkeleton() {
           >
             <Skeleton className="h-4 w-4 rounded" />
             <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-5 w-16 rounded" />
             <Skeleton className="h-4 w-20 ml-auto" />
-            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className="h-6 w-12 rounded-full" />
             <Skeleton className="h-5 w-9 rounded-full" />
             <Skeleton className="h-8 w-8 rounded-md" />
           </div>
         ))}
       </div>
 
-      {/* Pagination Skeleton */}
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-4 w-48" />
-          <Skeleton className="h-8 w-[70px] rounded-md" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-8 rounded-md" />
-          <Skeleton className="h-8 w-24 rounded-md" />
-          <Skeleton className="h-8 w-20 rounded-md" />
-          <Skeleton className="h-8 w-24 rounded-md" />
-          <Skeleton className="h-8 w-8 rounded-md" />
+      {/* Pagination Skeleton - Card style */}
+      <div className="rounded-xl border bg-card/50 shadow-sm p-4 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-4 w-px" />
+            <Skeleton className="h-8 w-[70px] rounded-md" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-md" />
+            <Skeleton className="h-8 w-24 rounded-md" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+            <Skeleton className="h-8 w-24 rounded-md" />
+            <Skeleton className="h-8 w-8 rounded-md" />
+          </div>
         </div>
       </div>
     </div>

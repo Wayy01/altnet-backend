@@ -1,0 +1,135 @@
+{
+  "page": {
+    "title": "Gestionarea variantelor",
+    "description": "Generați și gestionați grupuri de variante de produse",
+    "detailTitle": "Detalii grup variante",
+    "detailDescription": "Vizualizați și gestionați produsele din acest grup de variante"
+  },
+  "stats": {
+    "totalGroups": "Total grupuri",
+    "productsInGroups": "Produse în grupuri",
+    "aiEngineStatus": "Status motor AI",
+    "available": "Disponibil",
+    "unavailable": "Indisponibil",
+    "organized": "organizate",
+    "groupsCreated": "Grupuri de variante create",
+    "productsOrganized": "Produse organizate",
+    "ollamaAI": "Ollama AI pentru grupare"
+  },
+  "table": {
+    "baseName": "Nume de bază",
+    "members": "Membri",
+    "created": "Creat",
+    "actions": "Acțiuni"
+  },
+  "filters": {
+    "searchGroups": "Căutați grupuri..."
+  },
+  "actions": {
+    "generateVariants": "Generează variante",
+    "refresh": "Reîmprospătare",
+    "backToVariants": "Înapoi la variante",
+    "viewGroup": "Vizualizare grup"
+  },
+  "progress": {
+    "generationStarted": "Generare începută",
+    "generationStartedDesc": "Sarcina de generare a variantelor a fost pornită",
+    "generationComplete": "Generare completă",
+    "generationStopped": "Generare oprită",
+    "generationCompleteDesc": "Create {{groups}} grupuri de variante din {{total}} produse",
+    "generation": "Generare {{status}}",
+    "jobCancelled": "Sarcină anulată",
+    "jobCancelledDesc": "Sarcina de generare a variantelor a fost anulată"
+  },
+  "empty": {
+    "noGroups": "Nu s-au găsit grupuri de variante",
+    "tryDifferentSearch": "Încercați o căutare diferită",
+    "generateToStart": "Generați variante pentru a începe",
+    "noProducts": "Niciun produs în acest grup",
+    "noJobs": "Încă nu există sarcini",
+    "noVariantProps": "Nu s-au detectat proprietăți de variante"
+  },
+  "delete": {
+    "title": "Ștergeți grupul de variante?",
+    "description": "Aceasta va șterge grupul de variante \"{{name}}\". Produsele din acest grup vor fi deconectate, dar nu șterse.",
+    "deleting": "Se șterge...",
+    "deleteGroup": "Șterge grup",
+    "groupDeleted": "Grup șters",
+    "groupDeletedDesc": "Grupul de variante \"{{name}}\" a fost șters"
+  },
+  "errors": {
+    "loadStats": "Eroare la încărcarea statisticilor variantelor",
+    "loadGroup": "Eroare la încărcarea detaliilor grupului de variante",
+    "startGeneration": "Eroare la pornirea generării",
+    "cancelJob": "Eroare la anularea sarcinii",
+    "deleteGroup": "Eroare la ștergerea grupului de variante"
+  },
+  "loading": {
+    "variantData": "Se încarcă datele variantelor...",
+    "variantGroup": "Se încarcă grupul de variante...",
+    "groups": "grupuri"
+  },
+  "cards": {
+    "variantGroups": "Grupuri de variante",
+    "groupsFound": "{{count}} grup găsit",
+    "groupsFoundPlural": "{{count}} grupuri găsite",
+    "jobHistory": "Istoric sarcini",
+    "recentJobs": "Sarcini de generare recente",
+    "groupInfo": "Informații grup",
+    "variantProperties": "Proprietăți variante",
+    "quickStats": "Statistici rapide",
+    "memberProducts": "Produse membre",
+    "variantMatrix": "Matrice variante"
+  },
+  "details": {
+    "baseName": "Nume de bază",
+    "normalized": "Normalizat",
+    "created": "Creat {{date}}",
+    "products": "Produse",
+    "variantProps": "Proprietăți variante",
+    "matrixColumns": "Coloane matrice",
+    "productsCount": "{{count}} produs",
+    "productsCountPlural": "{{count}} produse",
+    "inGroup": "în acest grup",
+    "matrixDescription": "Comparație vizuală a variantelor de produse pe proprietăți",
+    "unknownProduct": "Produs necunoscut",
+    "groupNotFound": "Grup negăsit",
+    "groupNotFoundDesc": "Grupul de variante pe care îl căutați nu există."
+  },
+  "status": {
+    "completed": "Finalizat",
+    "running": "În curs",
+    "pending": "În așteptare",
+    "failed": "Eșuat",
+    "cancelled": "Anulat"
+  },
+  "job": {
+    "groups": "grupuri din",
+    "productsText": "produse",
+    "progress": "Progres"
+  },
+  "breadcrumbs": {
+    "dashboard": "Tablou de bord",
+    "variants": "Variante"
+  },
+  "pagination": {
+    "page": "Pagina {{current}} din {{total}}"
+  },
+  "matrix": {
+    "noData": "Nu există date matriceale",
+    "noDataDesc": "Matricea variantelor va apărea aici după analiza proprietăților",
+    "variantProperties": "Proprietăți variante ({{count}})",
+    "commonProperties": "Proprietăți comune ({{count}})",
+    "product": "Produs",
+    "products": "{{count}} produs",
+    "productsPlural": "{{count}} produse",
+    "variant": "Variantă",
+    "variantTooltip": "Această proprietate diferă între produsele din acest grup",
+    "value": "{{count}} valoare",
+    "values": "{{count}} valori",
+    "showing": "Se afișează {{products}} pe {{properties}}",
+    "property": "proprietate",
+    "properties": "proprietăți",
+    "more": "+{{count}} mai mult"
+  }
+}

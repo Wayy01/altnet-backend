@@ -8,7 +8,6 @@
     "brands": "Marci",
     "categories": "Categorii",
     "properties": "Proprietati",
-    "characteristics": "Caracteristici",
     "prices": "Preturi",
     "stockEntries": "Inregistrari stoc",
     "inStock": "In stoc",
@@ -19,7 +18,6 @@
     "activeBrands": "Marci active",
     "productCategories": "Categorii de produse",
     "productSpecifications": "Specificatii produse",
-    "productVariantsSKUs": "Variante produse/SKU-uri",
     "priceEntries": "Inregistrari de pret",
     "stockRecords": "Inregistrari stoc",
     "productsAvailable": "Produse disponibile",
@@ -64,5 +62,20 @@
   "category": {
     "products": "produse",
     "avg": "Mediu"
+  },
+  "variants": {
+    "groups": "Grupuri de variante",
+    "aiGenerated": "Variante de produse generate de AI"
+  },
+  "time": {
+    "lastSync": "Ultima sincronizare",
+    "na": "N/A"
+  },
+  "buttons": {
+    "sync": "Sincronizare",
+    "alerts": "Alerte"
+  },
+  "common": {
+    "items": "elemente"
   }
 }

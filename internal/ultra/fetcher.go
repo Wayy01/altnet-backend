@@ -223,7 +223,7 @@ type ProductXML struct {
 	} `xml:"barcodeList>barcode"`
 }
 
-func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.ProductInput, map[string][]*models.CharacteristicInput, error) {
+func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.ProductInput, map[string]interface{}, error) {
 	log.Println("Fetching NOMENCLATURE service...")
 
 	xmlData, err := f.client.FetchDataAsync(ctx, RequestTypeProducts, all, "")
@@ -237,7 +237,6 @@ func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.Produc
 	}
 
 	products := make([]*models.ProductInput, 0, len(prodList.Products))
-	charInputs := make(map[string][]*models.CharacteristicInput)
 
 	for _, p := range prodList.Products {
 		// Build images
@@ -265,26 +264,6 @@ func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.Produc
 				"code": barcode.Code,
 				"type": barcode.Type,
 			})
-		}
-
-		// Build characteristics
-		for _, char := range p.CharacteristicList {
-			var codePtr, refPtr *string
-			if char.Code != "" {
-				codePtr = &char.Code
-			}
-			if char.Reference != "" {
-				refPtr = &char.Reference
-			}
-
-			charInput := &models.CharacteristicInput{
-				ProductUltraID: p.UUID,
-				UltraID:        char.UUID,
-				Code:           codePtr,
-				Reference:      refPtr,
-				Name:           char.Name,
-			}
-			charInputs[p.UUID] = append(charInputs[p.UUID], charInput)
 		}
 
 		var brandUltraID, catUltraID, parentUltraID *string
@@ -330,7 +309,7 @@ func (f *Fetcher) FetchProducts(ctx context.Context, all bool) ([]*models.Produc
 	}
 
 	log.Printf("Fetched %d products\n", len(products))
-	return products, charInputs, nil
+	return products, nil, nil
 }
 
 // ============================================================================
@@ -373,18 +352,12 @@ func (f *Fetcher) FetchPrices(ctx context.Context, all bool) ([]*models.PriceInp
 	for _, p := range priceList.Prices {
 		price, _ := strconv.ParseFloat(p.Price, 64)
 
-		charUUID := ""
-		if p.Characteristic != "" && p.Characteristic != "00000000-0000-0000-0000-000000000000" {
-			charUUID = p.Characteristic
-		}
-
 		priceInput := &models.PriceInput{
-			ProductUltraID:     p.UUID,
-			CharacteristicUUID: charUUID,
-			Price:              price,
-			Currency:           p.PriceType.Currency.Code,
-			PriceType:          p.PriceType.Name,
-			PriceTypeUUID:      p.PriceType.UUID,
+			ProductUltraID: p.UUID,
+			Price:          price,
+			Currency:       p.PriceType.Currency.Code,
+			PriceType:      p.PriceType.Name,
+			PriceTypeUUID:  p.PriceType.UUID,
 		}
 
 		prices = append(prices, priceInput)
@@ -429,16 +402,10 @@ func (f *Fetcher) FetchStock(ctx context.Context, all bool) ([]*models.StockInpu
 		qty, _ := strconv.ParseFloat(b.Quantity, 64)
 		qtyShowroom, _ := strconv.ParseFloat(b.QuantityShowroom, 64)
 
-		charUUID := ""
-		if b.Characteristic != "" && b.Characteristic != "00000000-0000-0000-0000-000000000000" {
-			charUUID = b.Characteristic
-		}
-
 		stockInput := &models.StockInput{
-			ProductUltraID:     b.UUID,
-			CharacteristicUUID: charUUID,
-			Warehouse:          int(qty),
-			Showroom:           int(qtyShowroom),
+			ProductUltraID: b.UUID,
+			Warehouse:      int(qty),
+			Showroom:       int(qtyShowroom),
 		}
 
 		stocks = append(stocks, stockInput)

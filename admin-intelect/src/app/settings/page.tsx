@@ -67,7 +67,6 @@ export default function SettingsPage() {
                 <Badge variant="outline">brands</Badge>
                 <Badge variant="outline">categories</Badge>
                 <Badge variant="outline">properties</Badge>
-                <Badge variant="outline">characteristics</Badge>
                 <Badge variant="outline">exchange_rates</Badge>
                 <Badge variant="outline">sync_logs</Badge>
               </div>

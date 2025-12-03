@@ -163,30 +163,7 @@ CREATE INDEX idx_properties_group_name ON properties(group_name);
 CREATE INDEX idx_properties_property_name ON properties(property_name);
 CREATE INDEX idx_properties_hierarchy ON properties(group_name, property_name, value);
 
--- 6. CHARACTERISTICS (VARIANTS/SKUs)
-CREATE TABLE characteristics (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    ultra_id TEXT NOT NULL,
-    code TEXT,
-    reference TEXT,
-    name TEXT NOT NULL,
-    prices JSONB DEFAULT '[]',
-    stock_warehouse INT DEFAULT 0,
-    stock_showroom INT DEFAULT 0,
-    stock_total INT DEFAULT 0,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(product_id, ultra_id)
-);
-
-CREATE INDEX idx_characteristics_product_id ON characteristics(product_id);
-CREATE INDEX idx_characteristics_ultra_id ON characteristics(ultra_id);
-CREATE INDEX idx_characteristics_name ON characteristics(name);
-CREATE INDEX idx_characteristics_hierarchy ON characteristics(name);
-
--- 7. EXCHANGE RATES
+-- 6. EXCHANGE RATES
 CREATE TABLE exchange_rates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     currency_uuid TEXT UNIQUE NOT NULL,
@@ -212,7 +189,6 @@ CREATE TABLE sync_logs (
     categories_synced INT DEFAULT 0,
     products_synced INT DEFAULT 0,
     properties_synced INT DEFAULT 0,
-    characteristics_synced INT DEFAULT 0,
     prices_synced INT DEFAULT 0,
     stock_synced INT DEFAULT 0,
     brands_inserted INT DEFAULT 0,
@@ -223,8 +199,6 @@ CREATE TABLE sync_logs (
     products_updated INT DEFAULT 0,
     properties_inserted INT DEFAULT 0,
     properties_updated INT DEFAULT 0,
-    characteristics_inserted INT DEFAULT 0,
-    characteristics_updated INT DEFAULT 0,
     prices_updated INT DEFAULT 0,
     stock_updated INT DEFAULT 0,
     selected_steps sync_step[] DEFAULT NULL,
@@ -526,7 +500,6 @@ COMMENT ON TABLE brands IS 'Product brands synced from Ultra B2B API';
 COMMENT ON TABLE categories IS 'Product categories with hierarchical structure';
 COMMENT ON TABLE products IS 'Core product catalog';
 COMMENT ON TABLE properties IS 'Product specifications and attributes';
-COMMENT ON TABLE characteristics IS 'Product variants/SKUs with pricing and stock';
 COMMENT ON TABLE product_sources IS 'Origin tracking for products (Ultra sync vs manual)';
 COMMENT ON TABLE sync_logs IS 'High-level sync operation logs';
 COMMENT ON TABLE sync_step_details IS 'Per-step metrics within a sync operation';

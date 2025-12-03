@@ -174,7 +174,6 @@ func main() {
 	fmt.Println("  GET  /api/v1/products                      - List products (with filters)")
 	fmt.Println("  GET  /api/v1/products/{id}                 - Get product details")
 	fmt.Println("  GET  /api/v1/products/{id}/properties      - Get product properties")
-	fmt.Println("  GET  /api/v1/products/{id}/characteristics - Get product variants")
 	fmt.Println("  GET  /api/v1/search?q=query                - Search products")
 	fmt.Println()
 	fmt.Println("Query parameters:")
@@ -256,7 +255,6 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/products", handler.ListProducts).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}", handler.GetProduct).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/properties", handler.GetProductProperties).Methods("GET", "OPTIONS")
-	api.HandleFunc("/products/{id}/characteristics", handler.GetProductCharacteristics).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/variants", variantHandler.GetProductVariants).Methods("GET", "OPTIONS")
 
 	// Properties (specific routes before parameterized routes)
@@ -288,20 +286,6 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/values/bulk", handler.BulkDeletePropertyValues).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/properties/hierarchy/values/{value_id}", handler.UpdatePropertyValue).Methods("PUT", "OPTIONS")
 	api.HandleFunc("/properties/hierarchy/values/{value_id}", handler.DeletePropertyValue).Methods("DELETE", "OPTIONS")
-
-	// Characteristic Hierarchy (Level 1: Names)
-	api.HandleFunc("/characteristics/hierarchy/names", handler.ListCharacteristicNames).Methods("GET", "OPTIONS")
-	api.HandleFunc("/characteristics/hierarchy/names/{name}", handler.GetCharacteristicName).Methods("GET", "OPTIONS")
-	api.HandleFunc("/characteristics/hierarchy/names/{name}", handler.DeleteCharacteristicName).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/characteristics/hierarchy/names/{name}/impact", handler.GetCharacteristicNameDeletionImpact).Methods("GET", "OPTIONS")
-
-	// Characteristic Hierarchy (Level 2: Values)
-	api.HandleFunc("/characteristics/hierarchy/names/{name}/values", handler.ListCharacteristicValues).Methods("GET", "OPTIONS")
-	api.HandleFunc("/characteristics/hierarchy/values/{id}", handler.UpdateCharacteristicValue).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/characteristics/hierarchy/values/{id}", handler.DeleteCharacteristicValue).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/characteristics/hierarchy/values/bulk-update", handler.BulkUpdateCharacteristicValues).Methods("POST", "OPTIONS")
-	api.HandleFunc("/characteristics/hierarchy/values/bulk-delete", handler.BulkDeleteCharacteristicValues).Methods("POST", "OPTIONS")
-
 
 	// Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
@@ -495,7 +479,7 @@ func displayStatistics(repo *repository.Repository) {
 
 	var brandCount, categoryCount, productCount int
 	var productsWithPrices, productsInStock int
-	var propertyCount, characteristicCount int
+	var propertyCount int
 
 	pool.QueryRow(ctx, "SELECT COUNT(*) FROM brands").Scan(&brandCount)
 	pool.QueryRow(ctx, "SELECT COUNT(*) FROM categories").Scan(&categoryCount)
@@ -503,7 +487,6 @@ func displayStatistics(repo *repository.Repository) {
 	pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE price_min IS NOT NULL").Scan(&productsWithPrices)
 	pool.QueryRow(ctx, "SELECT COUNT(*) FROM products WHERE is_in_stock = true").Scan(&productsInStock)
 	pool.QueryRow(ctx, "SELECT COUNT(*) FROM properties").Scan(&propertyCount)
-	pool.QueryRow(ctx, "SELECT COUNT(*) FROM characteristics").Scan(&characteristicCount)
 
 	fmt.Println()
 	fmt.Println("DATABASE STATISTICS:")
@@ -516,5 +499,4 @@ func displayStatistics(repo *repository.Repository) {
 		fmt.Printf("  - In stock:    %d (%.1f%%)\n", productsInStock, float64(productsInStock)/float64(productCount)*100)
 	}
 	fmt.Printf("Properties:      %d\n", propertyCount)
-	fmt.Printf("Characteristics: %d\n", characteristicCount)
 }
