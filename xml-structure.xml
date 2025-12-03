@@ -1,0 +1,1110 @@
+This XML file does not appear to have any style information associated with it. The document tree is shown below.
+<definitions name="b2b" targetNamespace="http://ultra.b2b.md">
+<types>
+<xs:schema targetNamespace="http://ultra.b2b.md" attributeFormDefault="unqualified" elementFormDefault="qualified">
+<xs:import namespace="http://v8.1c.ru/8.1/data/core"/>
+<xs:complexType name="object">
+<xs:sequence>
+<xs:element name="name" type="xs:string"/>
+<xs:element name="code" type="xs:string" nillable="true"/>
+<xs:element name="UUID" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="priceGroup">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="parent" type="xs:string"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="image">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="path" type="xs:string" nillable="true"/>
+<xs:element name="data" type="xs:base64Binary" nillable="true" minOccurs="0"/>
+<xs:element name="pathGlobal" type="xs:string" nillable="true"/>
+<xs:element name="deletionMark" type="xs:boolean"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="imageLine">
+<xs:sequence>
+<xs:element name="image" type="tns:image" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="property">
+<xs:complexContent>
+<xs:extension base="tns:object"/>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="nomenclatureType">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="parent" type="xs:string" nillable="true"/>
+<xs:element name="active" type="xs:boolean"/>
+<xs:element name="orderBy" type="xs:int"/>
+<xs:element name="propertyList" type="tns:propertyLine" nillable="true" minOccurs="0"/>
+<xs:element name="propertyCharacteristicList" type="tns:propertyLine" nillable="true" minOccurs="0"/>
+<xs:element name="image" type="tns:image" nillable="true" minOccurs="0"/>
+<xs:element name="quantity" type="xs:integer"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="propertyValue">
+<xs:sequence>
+<xs:element name="property" type="tns:property" nillable="true"/>
+<xs:element name="value" type="tns:value" nillable="true"/>
+<xs:element name="filter" type="xs:boolean"/>
+<xs:element name="propertyGroup" type="tns:propertyGroup" nillable="true"/>
+<xs:element name="orderBy" type="xs:int"/>
+<xs:element name="modification" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="propertyLine">
+<xs:sequence>
+<xs:element name="propertyValue" type="tns:propertyValue" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="nomenclatureList">
+<xs:sequence>
+<xs:element name="nomenclature" type="tns:nomenclature" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="nomenclature">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="parent" type="xs:string" nillable="true"/>
+<xs:element name="nomenclatureType" type="xs:string" nillable="true"/>
+<xs:element name="mainImage" type="xs:string" nillable="true"/>
+<xs:element name="article" type="xs:string" nillable="true"/>
+<xs:element name="brand" type="xs:string" nillable="true"/>
+<xs:element name="priceGroup" type="tns:priceGroup" nillable="true"/>
+<xs:element name="description" type="xs:string" nillable="true"/>
+<xs:element name="characteristicsAccounting" type="xs:boolean" nillable="true"/>
+<xs:element name="fullName" type="xs:string" nillable="true"/>
+<xs:element name="active" type="xs:boolean"/>
+<xs:element name="set" type="xs:boolean"/>
+<xs:element name="service" type="xs:boolean"/>
+<xs:element name="nomenclatureGrouping" type="tns:nomenclatureGrouping"/>
+<xs:element name="characteristicList" type="tns:characteristicLine" nillable="true"/>
+<xs:element name="imageList" type="tns:imageLine" nillable="true"/>
+<xs:element name="propertyList" type="tns:propertyLine" nillable="true"/>
+<xs:element name="accessoriesList" type="tns:accessoriesLine" nillable="true"/>
+<xs:element name="warranty" type="xs:int"/>
+<xs:element name="barcode" type="xs:string" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="category" type="xs:string"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="characteristic">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="mainImage" type="xs:string" nillable="true"/>
+<xs:element name="propertyList" type="tns:propertyLine" nillable="true" minOccurs="0"/>
+<xs:element name="imageList" type="tns:imageLine" nillable="true" minOccurs="0"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="characteristicLine">
+<xs:sequence>
+<xs:element name="characteristic" type="tns:characteristic" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="value">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="type" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="simpleValue" type="xs:string" nillable="true" minOccurs="0"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="balanceList">
+<xs:sequence>
+<xs:element name="balance" type="tns:balance" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="balance">
+<xs:sequence>
+<xs:element name="UUID" type="xs:string"/>
+<xs:element name="characteristic" type="xs:string" nillable="true"/>
+<xs:element name="quantity" type="xs:float"/>
+<xs:element name="quantityShowroom" type="xs:float"/>
+<xs:element name="code" type="xs:string"/>
+<xs:element name="name" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="priceList">
+<xs:sequence>
+<xs:element name="price" type="tns:price" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="price">
+<xs:sequence>
+<xs:element name="UUID" type="xs:string"/>
+<xs:element name="characteristic" type="xs:string" nillable="true"/>
+<xs:element name="Price" type="xs:float"/>
+<xs:element name="priceType" type="tns:priceType"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="nomenclatureTypeList">
+<xs:sequence>
+<xs:element name="nomenclatureType" type="tns:nomenclatureType" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="parentList">
+<xs:sequence>
+<xs:element name="parent" type="tns:parent" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="parent">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="object" type="xs:string"/>
+<xs:element name="orderBy" type="xs:integer" nillable="true" minOccurs="0"/>
+<xs:element name="active" type="xs:boolean" nillable="true" minOccurs="0"/>
+<xs:element name="image" type="tns:image" nillable="true" minOccurs="0"/>
+<xs:element name="parent" type="tns:parent" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="response">
+<xs:sequence>
+<xs:element name="data" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="message" type="xs:string" nillable="true" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="valute">
+<xs:complexContent>
+<xs:extension base="tns:object"/>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="rateList">
+<xs:sequence>
+<xs:element name="rate" type="tns:rate" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="rate">
+<xs:sequence>
+<xs:element name="valute" type="tns:valute"/>
+<xs:element name="rate" type="xs:float"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="categoryList">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="parent" type="xs:string"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="brand">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="image" type="tns:image" nillable="true" minOccurs="0"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="brandList">
+<xs:sequence>
+<xs:element name="brand" type="tns:brand" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="priceType">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="valute" type="xs:string"/>
+<xs:element name="valuteCode" type="xs:string" nillable="true" minOccurs="0"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="propertyGroup">
+<xs:complexContent>
+<xs:extension base="tns:object"/>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="orderList">
+<xs:sequence>
+<xs:element name="order" type="tns:order" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="order">
+<xs:sequence>
+<xs:element name="UUIDLine" type="xs:string"/>
+<xs:element name="client" type="xs:string" nillable="true"/>
+<xs:element name="date" type="xs:dateTime"/>
+<xs:element name="nomenclature" type="xs:string"/>
+<xs:element name="characteristic" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="quantity" type="xs:float"/>
+<xs:element name="price" type="xs:float"/>
+<xs:element name="sum" type="xs:float" nillable="true" minOccurs="0"/>
+<xs:element name="UUIDOrder" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="reserve" type="xs:boolean" minOccurs="0"/>
+<xs:element name="confirmed" type="xs:boolean" minOccurs="0"/>
+<xs:element name="shipped" type="xs:boolean" nillable="true" minOccurs="0"/>
+<xs:element name="text" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="canceled" type="xs:boolean"/>
+<xs:element name="delivery" type="xs:boolean" nillable="true" minOccurs="0"/>
+<xs:element name="plannedDate" type="xs:dateTime" nillable="true" minOccurs="0"/>
+<xs:element name="reserveDate" type="xs:dateTime" nillable="true" minOccurs="0"/>
+<xs:element name="documentType" type="xs:int" nillable="true" minOccurs="0"/>
+<xs:element name="error" type="xs:boolean" nillable="true" minOccurs="0"/>
+<xs:element name="errorMessage" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="orderNumber" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="issuePlace" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="orderNumberUltra" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="sellingPrice" type="xs:float" nillable="true" minOccurs="0"/>
+<xs:element name="sellingSum" type="xs:float" nillable="true" minOccurs="0"/>
+<xs:element name="contractUUID" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="saleNumberUltra" type="xs:string" nillable="true" minOccurs="0"/>
+<xs:element name="saleNumberUltraFisc" type="xs:string" nillable="true" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="orderRequest">
+<xs:sequence>
+<xs:element name="order" type="xs:string" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="imageList">
+<xs:sequence>
+<xs:element name="nomenclatureList" type="tns:imageNomenclature" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="imageNomenclature">
+<xs:sequence>
+<xs:element name="nomenclature" type="xs:string"/>
+<xs:element name="nomenclatureCode" type="xs:string"/>
+<xs:element name="mainImage" type="xs:string"/>
+<xs:element name="ImageList" type="tns:imageLine"/>
+<xs:element name="characteristicList" type="tns:characteristicLine"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="translationList">
+<xs:sequence>
+<xs:element name="nomenclatureRequisitesList" type="tns:nomenclatureRequisite" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="nomenclatureRequisitesValueList" type="tns:nomenclatureRequisitesValue" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="objectPropertyValueList" type="tns:objectPropertyValue" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="nomenclatureRequisite">
+<xs:sequence>
+<xs:element name="requisite" type="xs:string"/>
+<xs:element name="type" type="xs:int"/>
+<xs:element name="value" type="xs:string"/>
+<xs:element name="valueJSON" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="nomenclatureRequisitesValue">
+<xs:sequence>
+<xs:element name="nomenclature" type="xs:string"/>
+<xs:element name="requisite" type="xs:string"/>
+<xs:element name="ref" type="xs:boolean"/>
+<xs:element name="value" type="xs:string"/>
+<xs:element name="valueJSON" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="objectPropertyValue">
+<xs:sequence>
+<xs:element name="object" type="xs:string"/>
+<xs:element name="objectType" type="xs:int"/>
+<xs:element name="value" type="xs:string"/>
+<xs:element name="valueJSON" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="nomenclatureGroupingList">
+<xs:sequence>
+<xs:element name="nomenclatureGrouping" type="tns:nomenclatureGrouping" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="nomenclatureGrouping">
+<xs:complexContent>
+<xs:extension base="tns:object"/>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="nomenclaturePropertyList">
+<xs:sequence>
+<xs:element name="nomenclature" type="tns:nomenclatureProperty" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="nomenclatureProperty">
+<xs:sequence>
+<xs:element name="UUID" type="xs:string"/>
+<xs:element name="propertyList" type="tns:propertyLine" nillable="true"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="accessoriesLine">
+<xs:sequence>
+<xs:element name="accessories" type="tns:accessories" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="accessories">
+<xs:sequence>
+<xs:element name="nomenclature" type="xs:string"/>
+<xs:element name="characteristics" type="xs:string"/>
+<xs:element name="component" type="xs:string"/>
+<xs:element name="componentCharacterisics" type="xs:string"/>
+<xs:element name="quantity" type="xs:integer"/>
+<xs:element name="main" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="manualList">
+<xs:sequence>
+<xs:element name="manual" type="tns:manual" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="manual">
+<xs:complexContent>
+<xs:extension base="tns:object">
+<xs:sequence>
+<xs:element name="openEnded" type="xs:boolean"/>
+<xs:element name="startDate" type="xs:date"/>
+<xs:element name="endDate" type="xs:date"/>
+<xs:element name="image" type="tns:image"/>
+<xs:element name="nomenclature" type="xs:string"/>
+<xs:element name="brand" type="xs:string"/>
+<xs:element name="category" type="xs:string"/>
+<xs:element name="deletionMark" type="xs:boolean"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="marketingList">
+<xs:sequence>
+<xs:element name="marketing" type="tns:marketing" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="marketing">
+<xs:sequence>
+<xs:element name="nomenclature" type="xs:string"/>
+<xs:element name="percent" type="xs:float"/>
+<xs:element name="description" type="xs:string"/>
+<xs:element name="startDate" type="xs:date"/>
+<xs:element name="endDate" type="xs:date"/>
+</xs:sequence>
+</xs:complexType>
+<xs:element name="requestData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Service" type="xs:string"/>
+<xs:element name="all" type="xs:boolean" nillable="true"/>
+<xs:element name="additionalParameters" type="xs:string" nillable="true"/>
+<xs:element name="compress" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="requestDataResponse">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="return" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="putData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Service" type="xs:string"/>
+<xs:element name="data" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="putDataResponse">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="return" type="tns:response"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="CommitReceivingData">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Service" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="CommitReceivingDataResponse">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="return" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="testService">
+<xs:complexType>
+<xs:sequence/>
+</xs:complexType>
+</xs:element>
+<xs:element name="testServiceResponse">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="return" type="xs:string" nillable="true"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="putOrder">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="orderList" type="tns:orderList"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="putOrderResponse">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="return" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="getDataByID">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="ID" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="getDataByIDResponse">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="return" type="tns:response"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="isReady">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="ID" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+<xs:element name="isReadyResponse">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="return" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+</xs:element>
+</xs:schema>
+<xs:schema targetNamespace="http://v8.1c.ru/8.1/data/core" attributeFormDefault="unqualified" elementFormDefault="qualified">
+<xs:simpleType name="AllowedLength">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Fixed"/>
+<xs:enumeration value="Variable"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="AllowedSign">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Any"/>
+<xs:enumeration value="Nonnegative"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="CompositeID">
+<xs:restriction base="xs:string">
+<xs:pattern value="-?[0-9]+(:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})?"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="DateFractions">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Date"/>
+<xs:enumeration value="Time"/>
+<xs:enumeration value="DateTime"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="ErrorCategory">
+<xs:restriction base="xs:string">
+<xs:enumeration value="AccessViolation"/>
+<xs:enumeration value="LocalFileAccessError"/>
+<xs:enumeration value="NetworkError"/>
+<xs:enumeration value="PrinterError"/>
+<xs:enumeration value="ScriptCompileError"/>
+<xs:enumeration value="ScriptRuntimeError"/>
+<xs:enumeration value="ScriptUseError"/>
+<xs:enumeration value="ExceptionRaisedFromScript"/>
+<xs:enumeration value="CollaborationSystemError"/>
+<xs:enumeration value="DataCompositionSettingsError"/>
+<xs:enumeration value="SessionError"/>
+<xs:enumeration value="StoredDataError"/>
+<xs:enumeration value="FullTextSearchError"/>
+<xs:enumeration value="ExternalDataSourceError"/>
+<xs:enumeration value="GotoURLError"/>
+<xs:enumeration value="DatabaseCopyError"/>
+<xs:enumeration value="NoPermissionToUseFunctionality"/>
+<xs:enumeration value="MultimediaToolsError"/>
+<xs:enumeration value="DocumentConversionError"/>
+<xs:enumeration value="InvalidPassword"/>
+<xs:enumeration value="SignatureVerificationError"/>
+<xs:enumeration value="ConfigurationError"/>
+<xs:enumeration value="DatabaseTablespaceError"/>
+<xs:enumeration value="SpeechProcessingError"/>
+<xs:enumeration value="ForcedShutdown"/>
+<xs:enumeration value="OtherError"/>
+<xs:enumeration value="AllErrors"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="FileDragMode">
+<xs:restriction base="xs:string">
+<xs:enumeration value="AsFile"/>
+<xs:enumeration value="AsFileRef"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="FillCheckErrorStatus">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Error"/>
+<xs:enumeration value="Warning"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="FillChecking">
+<xs:restriction base="xs:string">
+<xs:enumeration value="DontCheck"/>
+<xs:enumeration value="ShowError"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="MainClientApplicationWindowMode">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Normal"/>
+<xs:enumeration value="Workplace"/>
+<xs:enumeration value="FullscreenWorkplace"/>
+<xs:enumeration value="Kiosk"/>
+<xs:enumeration value="EmbeddedWorkplace"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="Null">
+<xs:restriction base="xs:string">
+<xs:length value="0"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="ObjectVersion">
+<xs:restriction base="xs:string">
+<xs:pattern value="[0-9a-fA-F]{40}"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="StandardBeginningDateVariant">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Custom"/>
+<xs:enumeration value="BeginningOfThisDay"/>
+<xs:enumeration value="BeginningOfThisWeek"/>
+<xs:enumeration value="BeginningOfThisTenDays"/>
+<xs:enumeration value="BeginningOfThisMonth"/>
+<xs:enumeration value="BeginningOfThisQuarter"/>
+<xs:enumeration value="BeginningOfThisHalfYear"/>
+<xs:enumeration value="BeginningOfThisYear"/>
+<xs:enumeration value="BeginningOfLastDay"/>
+<xs:enumeration value="BeginningOfLastWeek"/>
+<xs:enumeration value="BeginningOfLastTenDays"/>
+<xs:enumeration value="BeginningOfLastMonth"/>
+<xs:enumeration value="BeginningOfLastQuarter"/>
+<xs:enumeration value="BeginningOfLastHalfYear"/>
+<xs:enumeration value="BeginningOfLastYear"/>
+<xs:enumeration value="BeginningOfNextDay"/>
+<xs:enumeration value="BeginningOfNextWeek"/>
+<xs:enumeration value="BeginningOfNextTenDays"/>
+<xs:enumeration value="BeginningOfNextMonth"/>
+<xs:enumeration value="BeginningOfNextQuarter"/>
+<xs:enumeration value="BeginningOfNextHalfYear"/>
+<xs:enumeration value="BeginningOfNextYear"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="StandardPeriodVariant">
+<xs:restriction base="xs:string">
+<xs:enumeration value="Custom"/>
+<xs:enumeration value="Today"/>
+<xs:enumeration value="ThisWeek"/>
+<xs:enumeration value="ThisTenDays"/>
+<xs:enumeration value="ThisMonth"/>
+<xs:enumeration value="ThisQuarter"/>
+<xs:enumeration value="ThisHalfYear"/>
+<xs:enumeration value="ThisYear"/>
+<xs:enumeration value="FromBeginningOfThisWeek"/>
+<xs:enumeration value="FromBeginningOfThisTenDays"/>
+<xs:enumeration value="FromBeginningOfThisMonth"/>
+<xs:enumeration value="FromBeginningOfThisQuarter"/>
+<xs:enumeration value="FromBeginningOfThisHalfYear"/>
+<xs:enumeration value="FromBeginningOfThisYear"/>
+<xs:enumeration value="Yesterday"/>
+<xs:enumeration value="LastWeek"/>
+<xs:enumeration value="LastTenDays"/>
+<xs:enumeration value="LastMonth"/>
+<xs:enumeration value="LastQuarter"/>
+<xs:enumeration value="LastHalfYear"/>
+<xs:enumeration value="LastYear"/>
+<xs:enumeration value="LastWeekTillSameWeekDay"/>
+<xs:enumeration value="LastTenDaysTillSameDayNumber"/>
+<xs:enumeration value="LastMonthTillSameDate"/>
+<xs:enumeration value="LastQuarterTillSameDate"/>
+<xs:enumeration value="LastHalfYearTillSameDate"/>
+<xs:enumeration value="LastYearTillSameDate"/>
+<xs:enumeration value="Tomorrow"/>
+<xs:enumeration value="NextWeek"/>
+<xs:enumeration value="NextTenDays"/>
+<xs:enumeration value="NextMonth"/>
+<xs:enumeration value="NextQuarter"/>
+<xs:enumeration value="NextHalfYear"/>
+<xs:enumeration value="NextYear"/>
+<xs:enumeration value="NextWeekTillSameWeekDay"/>
+<xs:enumeration value="NextTenDaysTillSameDayNumber"/>
+<xs:enumeration value="NextMonthTillSameDate"/>
+<xs:enumeration value="NextQuarterTillSameDate"/>
+<xs:enumeration value="NextHalfYearTillSameDate"/>
+<xs:enumeration value="NextYearTillSameDate"/>
+<xs:enumeration value="TillEndOfThisWeek"/>
+<xs:enumeration value="TillEndOfThisTenDays"/>
+<xs:enumeration value="TillEndOfThisMonth"/>
+<xs:enumeration value="TillEndOfThisQuarter"/>
+<xs:enumeration value="TillEndOfThisHalfYear"/>
+<xs:enumeration value="TillEndOfThisYear"/>
+<xs:enumeration value="Last7Days"/>
+<xs:enumeration value="Next7Days"/>
+<xs:enumeration value="Month"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="Type">
+<xs:restriction base="xs:QName"/>
+</xs:simpleType>
+<xs:simpleType name="UUID">
+<xs:restriction base="xs:string">
+<xs:pattern value="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"/>
+</xs:restriction>
+</xs:simpleType>
+<xs:simpleType name="ValueStorage">
+<xs:restriction base="xs:base64Binary"/>
+</xs:simpleType>
+<xs:complexType name="Array">
+<xs:sequence>
+<xs:element name="Value" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="BinaryDataQualifiers">
+<xs:sequence>
+<xs:element name="Length" type="xs:decimal"/>
+<xs:element name="AllowedLength" type="tns:AllowedLength"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="DataFillError">
+<xs:sequence>
+<xs:element name="Data" type="xs:string"/>
+<xs:element name="DataDescr" type="xs:string"/>
+<xs:element name="Text" type="xs:string"/>
+<xs:element name="Status" type="tns:FillCheckErrorStatus"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="DataFillErrors">
+<xs:sequence>
+<xs:element name="item" type="tns:DataFillError" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="DateQualifiers">
+<xs:sequence>
+<xs:element name="DateFractions" type="tns:DateFractions"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="Exception">
+<xs:complexContent>
+<xs:extension base="tns:GenericException">
+<xs:sequence>
+<xs:element name="data" type="xs:base64Binary" minOccurs="0"/>
+</xs:sequence>
+</xs:extension>
+</xs:complexContent>
+</xs:complexType>
+<xs:complexType name="FixedArray">
+<xs:sequence>
+<xs:element name="Value" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="FixedMap">
+<xs:sequence>
+<xs:element name="pair" type="tns:KeyAndValue" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="FixedStructure">
+<xs:sequence>
+<xs:element name="Property" minOccurs="0" maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Value" nillable="true"/>
+</xs:sequence>
+<xs:attribute name="name" type="xs:NMTOKEN" use="required"/>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="GenericException" abstract="true">
+<xs:sequence>
+<xs:element name="descr" type="xs:string"/>
+<xs:element name="inner" type="tns:GenericException" minOccurs="0"/>
+<xs:element name="category" type="xs:string" minOccurs="0"/>
+<xs:element name="uiHelperUUID" type="tns:UUID" minOccurs="0"/>
+<xs:element name="creationStack" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+<xs:attribute name="clsid" type="tns:UUID" use="required"/>
+<xs:attribute name="encoded" type="xs:boolean" default="false"/>
+</xs:complexType>
+<xs:complexType name="KeyAndValue">
+<xs:sequence>
+<xs:element name="Key"/>
+<xs:element name="Value" nillable="true"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="LocalStringItemType">
+<xs:sequence>
+<xs:element name="lang" type="xs:NMTOKEN"/>
+<xs:element name="content" type="xs:string"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="LocalStringType">
+<xs:sequence>
+<xs:element name="item" type="tns:LocalStringItemType" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="Map">
+<xs:sequence>
+<xs:element name="pair" type="tns:KeyAndValue" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="NumberQualifiers">
+<xs:sequence>
+<xs:element name="Digits" type="xs:decimal"/>
+<xs:element name="FractionDigits" type="xs:decimal"/>
+<xs:element name="AllowedSign" type="tns:AllowedSign"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="StandardBeginningDate">
+<xs:sequence>
+<xs:element name="variant"/>
+<xs:element name="date" type="xs:dateTime" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="StandardPeriod">
+<xs:sequence>
+<xs:element name="variant"/>
+<xs:element name="startDate" type="xs:dateTime" minOccurs="0"/>
+<xs:element name="endDate" type="xs:dateTime" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="StringQualifiers">
+<xs:sequence>
+<xs:element name="Length" type="xs:decimal"/>
+<xs:element name="AllowedLength" type="tns:AllowedLength"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="Structure">
+<xs:sequence>
+<xs:element name="Property" minOccurs="0" maxOccurs="unbounded">
+<xs:complexType>
+<xs:sequence>
+<xs:element name="Value" nillable="true"/>
+</xs:sequence>
+<xs:attribute name="name" type="xs:NMTOKEN" use="required"/>
+</xs:complexType>
+</xs:element>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="TypeDescription">
+<xs:sequence>
+<xs:element name="Type" type="xs:QName" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="TypeSet" type="xs:QName" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="TypeId" type="tns:UUID" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="NumberQualifiers" type="tns:NumberQualifiers" minOccurs="0"/>
+<xs:element name="StringQualifiers" type="tns:StringQualifiers" minOccurs="0"/>
+<xs:element name="DateQualifiers" type="tns:DateQualifiers" minOccurs="0"/>
+<xs:element name="BinaryDataQualifiers" type="tns:BinaryDataQualifiers" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="ValueListItemType">
+<xs:sequence>
+<xs:element name="value" nillable="true"/>
+<xs:element name="presentation" type="xs:string" minOccurs="0"/>
+<xs:element name="checkState" type="xs:decimal" minOccurs="0"/>
+<xs:element name="picture" minOccurs="0"/>
+<xs:element name="id" type="xs:long" minOccurs="0"/>
+<xs:element name="formatPresentationSpecified" type="xs:boolean" minOccurs="0"/>
+<xs:element name="formatPresentation" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="ValueListType">
+<xs:choice>
+<xs:element name="valueType" type="tns:TypeDescription"/>
+<xs:element name="availableValues" type="tns:ValueListType" minOccurs="0"/>
+<xs:element name="lastId" type="xs:long" minOccurs="0"/>
+<xs:element name="item" type="tns:ValueListItemType" minOccurs="0" maxOccurs="unbounded"/>
+</xs:choice>
+</xs:complexType>
+<xs:complexType name="ValueTable">
+<xs:sequence>
+<xs:element name="column" type="tns:ValueTableColumn" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="index" type="tns:ValueTableIndex" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="row" type="tns:ValueTableRow" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="ValueTableColumn">
+<xs:sequence>
+<xs:element name="Name" type="xs:NMTOKEN" minOccurs="0"/>
+<xs:element name="ValueType" type="tns:TypeDescription" minOccurs="0"/>
+<xs:element name="Title" type="xs:string" minOccurs="0"/>
+<xs:element name="Width" type="xs:nonNegativeInteger" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="ValueTableIndex">
+<xs:sequence>
+<xs:element name="column" type="xs:NMTOKEN" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="ValueTableRow">
+<xs:sequence>
+<xs:element name="Value" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="ValueTree">
+<xs:sequence>
+<xs:element name="column" type="tns:ValueTreeColumn" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="row" type="tns:ValueTreeRow" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="ValueTreeColumn">
+<xs:sequence>
+<xs:element name="Name" type="xs:NMTOKEN" minOccurs="0"/>
+<xs:element name="ValueType" type="tns:TypeDescription" minOccurs="0"/>
+<xs:element name="Title" type="xs:string" minOccurs="0"/>
+<xs:element name="Width" type="xs:nonNegativeInteger" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+<xs:complexType name="ValueTreeRow">
+<xs:sequence>
+<xs:element name="row" type="tns:ValueTreeRow" minOccurs="0" maxOccurs="unbounded"/>
+<xs:element name="Value" nillable="true" minOccurs="0" maxOccurs="unbounded"/>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>
+</types>
+<message name="requestDataRequestMessage">
+<part name="parameters" element="tns:requestData"/>
+</message>
+<message name="requestDataResponseMessage">
+<part name="parameters" element="tns:requestDataResponse"/>
+</message>
+<message name="putDataRequestMessage">
+<part name="parameters" element="tns:putData"/>
+</message>
+<message name="putDataResponseMessage">
+<part name="parameters" element="tns:putDataResponse"/>
+</message>
+<message name="CommitReceivingDataRequestMessage">
+<part name="parameters" element="tns:CommitReceivingData"/>
+</message>
+<message name="CommitReceivingDataResponseMessage">
+<part name="parameters" element="tns:CommitReceivingDataResponse"/>
+</message>
+<message name="testServiceRequestMessage">
+<part name="parameters" element="tns:testService"/>
+</message>
+<message name="testServiceResponseMessage">
+<part name="parameters" element="tns:testServiceResponse"/>
+</message>
+<message name="putOrderRequestMessage">
+<part name="parameters" element="tns:putOrder"/>
+</message>
+<message name="putOrderResponseMessage">
+<part name="parameters" element="tns:putOrderResponse"/>
+</message>
+<message name="getDataByIDRequestMessage">
+<part name="parameters" element="tns:getDataByID"/>
+</message>
+<message name="getDataByIDResponseMessage">
+<part name="parameters" element="tns:getDataByIDResponse"/>
+</message>
+<message name="isReadyRequestMessage">
+<part name="parameters" element="tns:isReady"/>
+</message>
+<message name="isReadyResponseMessage">
+<part name="parameters" element="tns:isReadyResponse"/>
+</message>
+<portType name="b2bPortType">
+<operation name="requestData">
+<input message="tns:requestDataRequestMessage"/>
+<output message="tns:requestDataResponseMessage"/>
+</operation>
+<operation name="putData">
+<input message="tns:putDataRequestMessage"/>
+<output message="tns:putDataResponseMessage"/>
+</operation>
+<operation name="CommitReceivingData">
+<input message="tns:CommitReceivingDataRequestMessage"/>
+<output message="tns:CommitReceivingDataResponseMessage"/>
+</operation>
+<operation name="testService">
+<input message="tns:testServiceRequestMessage"/>
+<output message="tns:testServiceResponseMessage"/>
+</operation>
+<operation name="putOrder">
+<input message="tns:putOrderRequestMessage"/>
+<output message="tns:putOrderResponseMessage"/>
+</operation>
+<operation name="getDataByID">
+<input message="tns:getDataByIDRequestMessage"/>
+<output message="tns:getDataByIDResponseMessage"/>
+</operation>
+<operation name="isReady">
+<input message="tns:isReadyRequestMessage"/>
+<output message="tns:isReadyResponseMessage"/>
+</operation>
+</portType>
+<binding name="b2bSoapBinding" type="tns:b2bPortType">
+<soapbind:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+<operation name="requestData">
+<soapbind:operation style="document" soapAction="http://ultra.b2b.md#b2b:requestData"/>
+<input>
+<soapbind:body use="literal"/>
+</input>
+<output>
+<soapbind:body use="literal"/>
+</output>
+</operation>
+<operation name="putData">
+<soapbind:operation style="document" soapAction="http://ultra.b2b.md#b2b:putData"/>
+<input>
+<soapbind:body use="literal"/>
+</input>
+<output>
+<soapbind:body use="literal"/>
+</output>
+</operation>
+<operation name="CommitReceivingData">
+<soapbind:operation style="document" soapAction="http://ultra.b2b.md#b2b:CommitReceivingData"/>
+<input>
+<soapbind:body use="literal"/>
+</input>
+<output>
+<soapbind:body use="literal"/>
+</output>
+</operation>
+<operation name="testService">
+<soapbind:operation style="document" soapAction="http://ultra.b2b.md#b2b:testService"/>
+<input>
+<soapbind:body use="literal"/>
+</input>
+<output>
+<soapbind:body use="literal"/>
+</output>
+</operation>
+<operation name="putOrder">
+<soapbind:operation style="document" soapAction="http://ultra.b2b.md#b2b:putOrder"/>
+<input>
+<soapbind:body use="literal"/>
+</input>
+<output>
+<soapbind:body use="literal"/>
+</output>
+</operation>
+<operation name="getDataByID">
+<soapbind:operation style="document" soapAction="http://ultra.b2b.md#b2b:getDataByID"/>
+<input>
+<soapbind:body use="literal"/>
+</input>
+<output>
+<soapbind:body use="literal"/>
+</output>
+</operation>
+<operation name="isReady">
+<soapbind:operation style="document" soapAction="http://ultra.b2b.md#b2b:isReady"/>
+<input>
+<soapbind:body use="literal"/>
+</input>
+<output>
+<soapbind:body use="literal"/>
+</output>
+</operation>
+</binding>
+<binding name="b2bSoap12Binding" type="tns:b2bPortType">
+<soap12bind:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+<operation name="requestData">
+<soap12bind:operation style="document" soapAction="http://ultra.b2b.md#b2b:requestData"/>
+<input>
+<soap12bind:body use="literal"/>
+</input>
+<output>
+<soap12bind:body use="literal"/>
+</output>
+</operation>
+<operation name="putData">
+<soap12bind:operation style="document" soapAction="http://ultra.b2b.md#b2b:putData"/>
+<input>
+<soap12bind:body use="literal"/>
+</input>
+<output>
+<soap12bind:body use="literal"/>
+</output>
+</operation>
+<operation name="CommitReceivingData">
+<soap12bind:operation style="document" soapAction="http://ultra.b2b.md#b2b:CommitReceivingData"/>
+<input>
+<soap12bind:body use="literal"/>
+</input>
+<output>
+<soap12bind:body use="literal"/>
+</output>
+</operation>
+<operation name="testService">
+<soap12bind:operation style="document" soapAction="http://ultra.b2b.md#b2b:testService"/>
+<input>
+<soap12bind:body use="literal"/>
+</input>
+<output>
+<soap12bind:body use="literal"/>
+</output>
+</operation>
+<operation name="putOrder">
+<soap12bind:operation style="document" soapAction="http://ultra.b2b.md#b2b:putOrder"/>
+<input>
+<soap12bind:body use="literal"/>
+</input>
+<output>
+<soap12bind:body use="literal"/>
+</output>
+</operation>
+<operation name="getDataByID">
+<soap12bind:operation style="document" soapAction="http://ultra.b2b.md#b2b:getDataByID"/>
+<input>
+<soap12bind:body use="literal"/>
+</input>
+<output>
+<soap12bind:body use="literal"/>
+</output>
+</operation>
+<operation name="isReady">
+<soap12bind:operation style="document" soapAction="http://ultra.b2b.md#b2b:isReady"/>
+<input>
+<soap12bind:body use="literal"/>
+</input>
+<output>
+<soap12bind:body use="literal"/>
+</output>
+</operation>
+</binding>
+<service name="b2b">
+<port name="b2bSoap" binding="tns:b2bSoapBinding">
+<documentation>
+<wsi:Claim conformsTo="http://ws-i.org/profiles/basic/1.1"/>
+</documentation>
+<soapbind:address location="https://portal.it-ultra.com/b2b/ws/b2b.1cws"/>
+</port>
+<port name="b2bSoap12" binding="tns:b2bSoap12Binding">
+<soap12bind:address location="https://portal.it-ultra.com/b2b/ws/b2b.1cws"/>
+</port>
+</service>
+</definitions>

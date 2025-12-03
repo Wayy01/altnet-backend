@@ -303,12 +303,13 @@ type ExchangeRate struct {
 // ProductWithDetails includes related brand and category info
 type ProductWithDetails struct {
 	*Product
-	Brand           *Brand            `json:"brand,omitempty"`
-	Category        *Category         `json:"category,omitempty"`
-	Properties      []*Property       `json:"properties,omitempty"`
-	Characteristics []*Characteristic `json:"characteristics,omitempty"`
-	VariantCount    int               `json:"variant_count"`
-	PropertyCount   int               `json:"property_count"`
+	Brand             *Brand                  `json:"brand,omitempty"`
+	Category          *Category               `json:"category,omitempty"`
+	Properties        []*Property             `json:"properties,omitempty"`
+	Characteristics   []*Characteristic       `json:"characteristics,omitempty"`
+	VariantProperties *VariantPropertiesInfo  `json:"variant_properties,omitempty"`
+	VariantCount      int                     `json:"variant_count"`
+	PropertyCount     int                     `json:"property_count"`
 }
 
 // CategoryWithChildren includes child categories

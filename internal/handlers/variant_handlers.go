@@ -377,12 +377,81 @@ func (h *VariantHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add Ollama status
-	stats["ollama_available"] = h.generator.IsOllamaAvailable(ctx)
-	stats["ollama_config"] = h.generator.GetOllamaInfo()
+	// Add variant property configuration info
+	allowedProps := h.generator.GetAllowedVariantProperties()
+	propNames := make([]string, len(allowedProps))
+	for i, p := range allowedProps {
+		propNames[i] = p.DisplayName
+	}
+	stats["allowed_variant_properties"] = propNames
+	stats["grouping_method"] = "ai_extracted_base_name" // Ollama AI extracts base name + brand_id + category_id
 
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"data": stats,
+	})
+}
+
+// ============================================================================
+// PRODUCT VARIANT ENDPOINT
+// ============================================================================
+
+// GetProductVariants handles GET /api/v1/products/{id}/variants
+// Returns all other products in the same variant group as the given product,
+// enriched with their variant properties (Color, Storage, RAM).
+func (h *VariantHandler) GetProductVariants(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	vars := mux.Vars(r)
+	productID, err := uuid.Parse(vars["id"])
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "Invalid product ID", err.Error())
+		return
+	}
+
+	// Get all other products in the same variant group
+	variantProducts, err := h.repo.GetVariantsForProduct(ctx, productID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "Failed to get product variants", err.Error())
+		return
+	}
+
+	// Get the variant group ID for additional context
+	groupID, err := h.repo.GetVariantGroupIDForProduct(ctx, productID)
+	if err != nil {
+		log.Printf("Warning: failed to get variant group ID for product %s: %v", productID, err)
+	}
+
+	// Build list of product IDs to fetch variant properties for
+	productIDs := make([]uuid.UUID, len(variantProducts))
+	for i, p := range variantProducts {
+		productIDs[i] = p.ID
+	}
+
+	// Fetch variant properties (Color, Storage, RAM) for all variant products
+	variantPropsMap, err := h.repo.GetVariantPropertiesForProducts(ctx, productIDs)
+	if err != nil {
+		log.Printf("Warning: failed to get variant properties for products: %v", err)
+		// Continue without variant properties rather than failing the request
+		variantPropsMap = make(map[uuid.UUID]*models.VariantPropertiesInfo)
+	}
+
+	// Build response with products enriched with variant properties
+	variantsWithProps := make([]*models.ProductWithVariantProperties, len(variantProducts))
+	for i, p := range variantProducts {
+		variantsWithProps[i] = &models.ProductWithVariantProperties{
+			Product:           p,
+			VariantProperties: variantPropsMap[p.ID],
+		}
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"data": variantsWithProps,
+		"meta": map[string]interface{}{
+			"product_id":       productID,
+			"variant_group_id": groupID,
+			"variant_count":    len(variantsWithProps),
+		},
 	})
 }
 

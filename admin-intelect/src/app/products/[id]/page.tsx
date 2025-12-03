@@ -76,7 +76,7 @@ import { api } from "@/lib/api";
 import { Property, Characteristic, ProductDetail, ImageEntry, Product } from "@/types";
 import { useCurrency, getPriceByCurrency } from "@/contexts/currency-context";
 import { useLocalizedValue, useTranslation } from "@/contexts/language-context";
-import { VariantSelector } from "@/components/variant-selector";
+import { VariantMatrix } from "@/components/products/variant-matrix";
 
 interface ProductDetailPageProps {
   params: Promise<{
@@ -902,8 +902,8 @@ export default function ProductDetailPage({
         ))}
       </div>
 
-      {/* Variant Selector */}
-      {variants.length > 1 && (
+      {/* Variant Matrix - Color, Storage, RAM */}
+      {variants.length >= 1 && (
         <div
           className={`
             transition-all duration-300 ease-out
@@ -911,8 +911,8 @@ export default function ProductDetailPage({
           `}
           style={{ transitionDelay: contentVisible ? "400ms" : "0ms" }}
         >
-          <VariantSelector
-            variants={variants}
+          <VariantMatrix
+            variants={[product, ...variants]}
             currentProductId={product.id}
           />
         </div>

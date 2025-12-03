@@ -166,3 +166,22 @@ type ListVariantGroupsRequest struct {
 	Limit  int    `json:"limit"`
 	Offset int    `json:"offset"`
 }
+
+// ============================================================================
+// PRODUCT VARIANT RESPONSE TYPES
+// ============================================================================
+
+// VariantPropertiesInfo represents the variant property values for a product
+// Contains the 3 key variant properties: Color, Storage, and RAM
+type VariantPropertiesInfo struct {
+	Color   *string `json:"color,omitempty"`
+	Storage *string `json:"storage,omitempty"`
+	RAM     *string `json:"ram,omitempty"`
+}
+
+// ProductWithVariantProperties extends Product with variant property info
+// Used in the GET /api/v1/products/{id}/variants response
+type ProductWithVariantProperties struct {
+	*Product
+	VariantProperties *VariantPropertiesInfo `json:"variant_properties,omitempty"`
+}

@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
         hostname: 'cdn-ultra.esempla.com',
         pathname: '/storage/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8080',
+        pathname: '/uploads/**',
+      },
     ],
   },
 };

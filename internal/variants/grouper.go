@@ -2,22 +2,28 @@ package variants
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
-	"sync"
 
+	"github.com/google/uuid"
 	"ultra-api-testing/internal/models"
+	"ultra-api-testing/internal/ollama"
 )
 
-// ProductGrouper groups products by their base name using Ollama AI
+// ProductGrouper groups products by AI-extracted base name + category + brand
 type ProductGrouper struct {
-	ollamaClient *OllamaClient
+	extractor *ollama.BaseNameExtractor
 }
 
-// NewProductGrouper creates a new ProductGrouper
-func NewProductGrouper(ollamaClient *OllamaClient) *ProductGrouper {
+// NewProductGrouper creates a new ProductGrouper with Ollama-based name extraction
+func NewProductGrouper(ollamaClient *ollama.Client) *ProductGrouper {
+	var extractor *ollama.BaseNameExtractor
+	if ollamaClient != nil {
+		extractor = ollama.NewBaseNameExtractor(ollamaClient)
+	}
 	return &ProductGrouper{
-		ollamaClient: ollamaClient,
+		extractor: extractor,
 	}
 }
 
@@ -25,12 +31,28 @@ func NewProductGrouper(ollamaClient *OllamaClient) *ProductGrouper {
 type GroupResult struct {
 	BaseName           string
 	BaseNameNormalized string
+	BrandID            *uuid.UUID
+	CategoryID         *uuid.UUID
 	Products           []*models.Product
 }
 
-// GroupProductsByBaseName groups products by their base name extracted via Ollama
-// Returns a map of normalized base name -> products
-func (g *ProductGrouper) GroupProductsByBaseName(
+// GroupKey represents the unique key for grouping products
+// Products are grouped by AI-extracted base name, category_id, and brand_id
+type GroupKey struct {
+	BaseName   string
+	BrandID    string // string representation of UUID (empty string for nil)
+	CategoryID string // string representation of UUID (empty string for nil)
+}
+
+// String returns a string representation of the group key for use as map key
+func (k GroupKey) String() string {
+	return fmt.Sprintf("%s|%s|%s", k.BaseName, k.BrandID, k.CategoryID)
+}
+
+// GroupProductsByAIExtractedName groups products by AI-extracted base name + category + brand
+// Uses Ollama to extract base product names by removing color, storage, and RAM info
+// Returns a map of group key -> products
+func (g *ProductGrouper) GroupProductsByAIExtractedName(
 	ctx context.Context,
 	products []*models.Product,
 ) (map[string]*GroupResult, error) {
@@ -38,52 +60,73 @@ func (g *ProductGrouper) GroupProductsByBaseName(
 		return nil, nil
 	}
 
-	// Extract titles
-	titles := make([]string, len(products))
-	titleToProduct := make(map[string][]*models.Product)
+	// Check if Ollama extractor is available
+	if g.extractor == nil {
+		log.Println("Grouper: Ollama extractor not configured, falling back to exact match")
+		return g.groupByExactName(ctx, products)
+	}
 
+	// Collect all product names for batch extraction
+	productNames := make([]string, len(products))
 	for i, product := range products {
-		titles[i] = product.Name
-		titleToProduct[product.Name] = append(titleToProduct[product.Name], product)
+		productNames[i] = product.Name
 	}
 
-	// Get unique titles to reduce API calls
-	uniqueTitles := make([]string, 0, len(titleToProduct))
-	for title := range titleToProduct {
-		uniqueTitles = append(uniqueTitles, title)
-	}
-
-	log.Printf("Grouper: Extracting base names for %d unique product titles", len(uniqueTitles))
-
-	// Extract base names using Ollama
-	baseNames, err := g.ollamaClient.ExtractBaseNameBatch(ctx, uniqueTitles)
+	// Extract base names using Ollama (with caching and batching)
+	log.Printf("Grouper: Extracting base names for %d products using Ollama AI...", len(products))
+	baseNames, err := g.extractor.ExtractBaseNamesBatch(ctx, productNames)
 	if err != nil {
-		return nil, err
+		log.Printf("Grouper: Ollama batch extraction failed: %v, falling back to individual extraction", err)
+		// Try individual extraction as fallback
+		baseNames = make(map[string]string)
+		for _, name := range productNames {
+			baseName, err := g.extractor.ExtractWithRetry(ctx, name, 2)
+			if err != nil {
+				log.Printf("Grouper: Failed to extract base name for '%s': %v", name, err)
+				baseName = NormalizeBaseName(name) // Use original as fallback
+			}
+			baseNames[name] = baseName
+		}
 	}
 
-	// Group products by normalized base name
-	groups := make(map[string]*GroupResult)
-	var mu sync.Mutex
+	log.Printf("Grouper: Extracted %d base names from %d product names", len(baseNames), len(productNames))
 
-	for title, baseName := range baseNames {
-		normalizedBase := NormalizeBaseName(baseName)
-		if normalizedBase == "" {
-			continue
+	// Group products by extracted base name + brand_id + category_id
+	groups := make(map[string]*GroupResult)
+
+	for _, product := range products {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
 		}
 
-		mu.Lock()
-		if existing, ok := groups[normalizedBase]; ok {
-			// Add products with this title to existing group
-			existing.Products = append(existing.Products, titleToProduct[title]...)
+		// Get extracted base name or fall back to original
+		baseName, ok := baseNames[product.Name]
+		if !ok || baseName == "" {
+			baseName = NormalizeBaseName(product.Name)
+		}
+
+		// Create group key from extracted base name, brand_id, and category_id
+		key := GroupKey{
+			BaseName:   baseName,
+			BrandID:    uuidToString(product.BrandID),
+			CategoryID: uuidToString(product.CategoryID),
+		}
+
+		keyStr := key.String()
+
+		if existing, ok := groups[keyStr]; ok {
+			existing.Products = append(existing.Products, product)
 		} else {
-			// Create new group
-			groups[normalizedBase] = &GroupResult{
+			groups[keyStr] = &GroupResult{
 				BaseName:           baseName,
-				BaseNameNormalized: normalizedBase,
-				Products:           titleToProduct[title],
+				BaseNameNormalized: NormalizeBaseName(baseName),
+				BrandID:            product.BrandID,
+				CategoryID:         product.CategoryID,
+				Products:           []*models.Product{product},
 			}
 		}
-		mu.Unlock()
 	}
 
 	// Filter out single-product groups (no variants if only 1 product)
@@ -94,45 +137,43 @@ func (g *ProductGrouper) GroupProductsByBaseName(
 		}
 	}
 
-	log.Printf("Grouper: Created %d variant groups (filtered from %d)", len(filtered), len(groups))
+	log.Printf("Grouper: Created %d variant groups from %d products (AI-extracted base name+brand+category)",
+		len(filtered), len(products))
 
 	return filtered, nil
 }
 
-// GroupProductsByBaseNameWithFallback groups products using Ollama with fallback to simple normalization
-func (g *ProductGrouper) GroupProductsByBaseNameWithFallback(
+// groupByExactName groups products by exact name match (fallback when Ollama unavailable)
+func (g *ProductGrouper) groupByExactName(
 	ctx context.Context,
 	products []*models.Product,
 ) (map[string]*GroupResult, error) {
-	// Check if Ollama is available
-	if !g.ollamaClient.IsAvailable(ctx) {
-		log.Printf("Grouper: Ollama not available, using fallback grouping")
-		return g.groupBySimpleNormalization(products), nil
-	}
-
-	return g.GroupProductsByBaseName(ctx, products)
-}
-
-// groupBySimpleNormalization is a fallback when Ollama is not available
-// It uses simple string matching to group products
-func (g *ProductGrouper) groupBySimpleNormalization(products []*models.Product) map[string]*GroupResult {
 	groups := make(map[string]*GroupResult)
 
 	for _, product := range products {
-		// Simple base name extraction: take first few words before common variant markers
-		baseName := extractSimpleBaseName(product.Name)
-		normalizedBase := NormalizeBaseName(baseName)
-
-		if normalizedBase == "" {
-			continue
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
 		}
 
-		if existing, ok := groups[normalizedBase]; ok {
+		// Create group key from exact name, brand_id, and category_id
+		key := GroupKey{
+			BaseName:   strings.TrimSpace(product.Name),
+			BrandID:    uuidToString(product.BrandID),
+			CategoryID: uuidToString(product.CategoryID),
+		}
+
+		keyStr := key.String()
+
+		if existing, ok := groups[keyStr]; ok {
 			existing.Products = append(existing.Products, product)
 		} else {
-			groups[normalizedBase] = &GroupResult{
-				BaseName:           baseName,
-				BaseNameNormalized: normalizedBase,
+			groups[keyStr] = &GroupResult{
+				BaseName:           product.Name,
+				BaseNameNormalized: NormalizeBaseName(product.Name),
+				BrandID:            product.BrandID,
+				CategoryID:         product.CategoryID,
 				Products:           []*models.Product{product},
 			}
 		}
@@ -146,48 +187,14 @@ func (g *ProductGrouper) groupBySimpleNormalization(products []*models.Product) 
 		}
 	}
 
-	return filtered
-}
+	log.Printf("Grouper: Created %d variant groups from %d products (exact name match - Ollama unavailable)",
+		len(filtered), len(products))
 
-// extractSimpleBaseName extracts a base name using simple string matching
-// This is a fallback when Ollama is not available
-func extractSimpleBaseName(name string) string {
-	// Common variant markers that indicate the end of base name
-	variantMarkers := []string{
-		// Storage sizes
-		"1tb", "512gb", "256gb", "128gb", "64gb", "32gb", "16gb", "8gb", "4gb", "2gb", "1gb",
-		// Memory
-		"ddr4", "ddr5",
-		// Colors (common ones)
-		"black", "white", "blue", "red", "green", "gold", "silver", "gray", "grey",
-		"midnight", "starlight", "purple", "pink", "yellow", "orange",
-		// Sizes
-		"small", "medium", "large", "xl", "xxl", "xs", "s/m", "m/l",
-		// Other common variant indicators
-		"wifi", "cellular", "5g", "4g", "lte",
-	}
-
-	// Convert to lowercase for comparison
-	lowerName := strings.ToLower(name)
-
-	// Find the earliest marker position
-	earliestPos := len(name)
-	for _, marker := range variantMarkers {
-		if pos := strings.Index(lowerName, marker); pos != -1 && pos < earliestPos {
-			earliestPos = pos
-		}
-	}
-
-	// If we found a marker, take everything before it
-	if earliestPos < len(name) && earliestPos > 0 {
-		return strings.TrimSpace(name[:earliestPos])
-	}
-
-	// If no marker found, return the whole name
-	return name
+	return filtered, nil
 }
 
 // GroupProductsBatch processes products in batches for memory efficiency
+// Uses AI-extracted base name + brand + category matching
 func (g *ProductGrouper) GroupProductsBatch(
 	ctx context.Context,
 	products []*models.Product,
@@ -212,8 +219,8 @@ func (g *ProductGrouper) GroupProductsBatch(
 		default:
 		}
 
-		// Process batch
-		batchGroups, err := g.GroupProductsByBaseNameWithFallback(ctx, batch)
+		// Process batch using AI extraction
+		batchGroups, err := g.GroupProductsByAIExtractedName(ctx, batch)
 		if err != nil {
 			return nil, err
 		}
@@ -242,4 +249,36 @@ func (g *ProductGrouper) GroupProductsBatch(
 	}
 
 	return filtered, nil
+}
+
+// uuidToString converts a UUID pointer to string, returning empty string for nil
+func uuidToString(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
+}
+
+// NormalizeBaseName normalizes a product name for display
+func NormalizeBaseName(name string) string {
+	// Trim whitespace
+	result := strings.TrimSpace(name)
+	// Normalize multiple spaces to single space
+	result = strings.Join(strings.Fields(result), " ")
+	return result
+}
+
+// ClearCache clears the Ollama extraction cache (useful for testing or memory management)
+func (g *ProductGrouper) ClearCache() {
+	if g.extractor != nil {
+		g.extractor.ClearCache()
+	}
+}
+
+// GetCacheSize returns the number of cached base name extractions
+func (g *ProductGrouper) GetCacheSize() int {
+	if g.extractor != nil {
+		return g.extractor.CacheSize()
+	}
+	return 0
 }

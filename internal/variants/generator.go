@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"ultra-api-testing/internal/config"
 	"ultra-api-testing/internal/models"
+	"ultra-api-testing/internal/ollama"
 )
 
 const (
@@ -18,11 +18,12 @@ const (
 )
 
 // Generator orchestrates the variant generation process
+// Uses Ollama AI to extract base product names for grouping
 type Generator struct {
 	repo         *Repository
-	ollamaClient *OllamaClient
 	grouper      *ProductGrouper
 	analyzer     *PropertyAnalyzer
+	ollamaClient *ollama.Client
 
 	// Active job management
 	mu            sync.RWMutex
@@ -35,17 +36,16 @@ type Generator struct {
 	subscribersMu sync.RWMutex
 }
 
-// NewGenerator creates a new variant generator
-func NewGenerator(repo *Repository, cfg *config.OllamaConfig) *Generator {
-	ollamaClient := NewOllamaClient(cfg)
+// NewGenerator creates a new variant generator with Ollama AI support
+func NewGenerator(repo *Repository, ollamaClient *ollama.Client) *Generator {
 	grouper := NewProductGrouper(ollamaClient)
 	analyzer := NewPropertyAnalyzer()
 
 	return &Generator{
 		repo:         repo,
-		ollamaClient: ollamaClient,
 		grouper:      grouper,
 		analyzer:     analyzer,
+		ollamaClient: ollamaClient,
 		subscribers:  make(map[string]chan *models.VariantProgressUpdate),
 	}
 }
@@ -116,6 +116,8 @@ func (g *Generator) StartGeneration(ctx context.Context, clearExisting bool) (*m
 }
 
 // processGeneration runs the actual generation process
+// Groups products by AI-extracted base name + category + brand
+// Analyzes only Color, Storage, and RAM properties for variants
 func (g *Generator) processGeneration(ctx context.Context, job *models.VariantGenerationJob) {
 	// Mark job as running
 	if err := g.repo.StartJob(ctx, job.ID); err != nil {
@@ -128,8 +130,14 @@ func (g *Generator) processGeneration(ctx context.Context, job *models.VariantGe
 	now := time.Now()
 	job.StartedAt = &now
 
+	// Check if Ollama is available
+	ollamaStatus := "unavailable"
+	if g.ollamaClient != nil && g.ollamaClient.IsAvailable(ctx) {
+		ollamaStatus = "connected"
+	}
+
 	// Send initial progress
-	g.sendProgress(job, "Starting variant generation...")
+	g.sendProgress(job, fmt.Sprintf("Starting variant generation (Ollama AI: %s)...", ollamaStatus))
 
 	// Process in batches
 	totalBatches := (job.TotalProducts + BatchSize - 1) / BatchSize
@@ -154,8 +162,8 @@ func (g *Generator) processGeneration(ctx context.Context, job *models.VariantGe
 			break
 		}
 
-		// Group products in this batch
-		batchGroups, err := g.grouper.GroupProductsByBaseNameWithFallback(ctx, products)
+		// Group products using AI-extracted base name + brand + category matching
+		batchGroups, err := g.grouper.GroupProductsByAIExtractedName(ctx, products)
 		if err != nil {
 			log.Printf("Generator: Failed to group batch %d: %v", batch, err)
 			// Continue with next batch instead of failing completely
@@ -190,16 +198,40 @@ func (g *Generator) processGeneration(ctx context.Context, job *models.VariantGe
 		}
 	}
 
-	log.Printf("Generator: Found %d variant groups with 2+ products", len(filteredGroups))
+	log.Printf("Generator: Found %d variant groups with 2+ products (AI-extracted base names)", len(filteredGroups))
 
 	// Save groups and analyze properties
 	groupsCreated := 0
+	groupsWithVariants := 0
+
 	for _, groupResult := range filteredGroups {
 		select {
 		case <-ctx.Done():
 			g.completeJob(job, models.VariantJobStatusCancelled, "job cancelled by user")
 			return
 		default:
+		}
+
+		// Get properties for analysis BEFORE creating the group
+		// This allows us to skip groups that have no variant properties
+		productIDs := make([]uuid.UUID, len(groupResult.Products))
+		for i, p := range groupResult.Products {
+			productIDs[i] = p.ID
+		}
+
+		properties, err := g.repo.GetPropertiesForProducts(ctx, productIDs)
+		if err != nil {
+			log.Printf("Generator: Failed to get properties for group %s: %v", groupResult.BaseName, err)
+			continue
+		}
+
+		// Analyze variant properties (only Color, Storage, RAM)
+		variantProps := g.analyzer.AnalyzeVariantProperties(groupResult.Products, properties)
+
+		// Only create the group if it has at least one variant property
+		if len(variantProps) == 0 {
+			// Skip this group - products have same name/brand/category but no variant differences
+			continue
 		}
 
 		// Create group
@@ -216,21 +248,6 @@ func (g *Generator) processGeneration(ctx context.Context, job *models.VariantGe
 			}
 		}
 
-		// Get properties for analysis
-		productIDs := make([]uuid.UUID, len(groupResult.Products))
-		for i, p := range groupResult.Products {
-			productIDs[i] = p.ID
-		}
-
-		properties, err := g.repo.GetPropertiesForProducts(ctx, productIDs)
-		if err != nil {
-			log.Printf("Generator: Failed to get properties for group %s: %v", group.ID, err)
-			continue
-		}
-
-		// Analyze variant properties
-		variantProps := g.analyzer.AnalyzeVariantProperties(groupResult.Products, properties)
-
 		// Save variant properties
 		for _, prop := range variantProps {
 			if err := g.repo.AddVariantProperty(ctx, group.ID, prop); err != nil {
@@ -239,6 +256,7 @@ func (g *Generator) processGeneration(ctx context.Context, job *models.VariantGe
 		}
 
 		groupsCreated++
+		groupsWithVariants++
 		job.GroupsCreated = groupsCreated
 
 		if err := g.repo.UpdateJobProgress(ctx, job.ID, job.ProcessedProducts, groupsCreated); err != nil {
@@ -246,14 +264,14 @@ func (g *Generator) processGeneration(ctx context.Context, job *models.VariantGe
 		}
 
 		if groupsCreated%100 == 0 {
-			g.sendProgress(job, fmt.Sprintf("Created %d groups...", groupsCreated))
+			g.sendProgress(job, fmt.Sprintf("Created %d groups with variants...", groupsCreated))
 		}
 	}
 
 	// Complete job
 	g.completeJob(job, models.VariantJobStatusCompleted, "")
 
-	log.Printf("Generator: Completed job %s - created %d groups", job.ID, groupsCreated)
+	log.Printf("Generator: Completed job %s - created %d groups with Color/Storage/RAM variants", job.ID, groupsCreated)
 }
 
 // completeJob marks a job as complete and cleans up
@@ -371,14 +389,10 @@ func (g *Generator) GetActiveJob() *models.VariantGenerationJob {
 	return g.activeJob
 }
 
-// IsOllamaAvailable checks if Ollama is available
-func (g *Generator) IsOllamaAvailable(ctx context.Context) bool {
-	return g.ollamaClient.IsAvailable(ctx)
-}
-
-// GetOllamaInfo returns Ollama configuration info
-func (g *Generator) GetOllamaInfo() map[string]string {
-	return g.ollamaClient.GetModelInfo()
+// GetAllowedVariantProperties returns the list of allowed variant properties
+// This is useful for API responses to show what properties are used for variants
+func (g *Generator) GetAllowedVariantProperties() []VariantPropertyConfig {
+	return AllowedVariantProperties
 }
 
 // Shutdown gracefully shuts down the generator

@@ -708,3 +708,156 @@ func (r *Repository) getLatestJob(ctx context.Context) (*models.VariantGeneratio
 
 	return &job, nil
 }
+
+// ============================================================================
+// PRODUCT VARIANT LOOKUPS
+// ============================================================================
+
+// GetVariantsForProduct retrieves all other products in the same variant group as the given product.
+// Returns an empty slice if the product is not part of any variant group.
+func (r *Repository) GetVariantsForProduct(ctx context.Context, productID uuid.UUID) ([]*models.Product, error) {
+	// This query:
+	// 1. Finds the group_id for the given product from product_variant_group_members
+	// 2. Returns all OTHER products in that same group (excluding the input product)
+	query := `
+		SELECT p.id, p.ultra_id, p.code, p.article, p.name, p.slug, p.description, p.brand_id, p.category_id,
+		       p.parent_id, p.source_id, p.main_image_url, p.images, p.videos, p.warranty, p.barcodes,
+		       p.price_min, p.price_max, p.total_stock, p.is_in_stock, p.is_active, p.is_service,
+		       p.created_at, p.updated_at, p.prices, p.price_mdl, p.price_eur, p.price_usd,
+		       p.name_ru, p.name_ro, p.description_ru, p.description_ro
+		FROM products p
+		INNER JOIN product_variant_group_members pgm ON p.id = pgm.product_id
+		WHERE pgm.group_id = (
+			SELECT group_id FROM product_variant_group_members WHERE product_id = $1
+		)
+		AND p.id != $1
+		ORDER BY p.name
+	`
+
+	rows, err := r.pool.Query(ctx, query, productID)
+	if err != nil {
+		return nil, fmt.Errorf("querying product variants: %w", err)
+	}
+	defer rows.Close()
+
+	products := make([]*models.Product, 0)
+	for rows.Next() {
+		var p models.Product
+		if err := rows.Scan(
+			&p.ID, &p.UltraID, &p.Code, &p.Article, &p.Name, &p.Slug, &p.Description, &p.BrandID, &p.CategoryID,
+			&p.ParentID, &p.SourceID, &p.MainImageURL, &p.Images, &p.Videos, &p.Warranty, &p.Barcodes,
+			&p.PriceMin, &p.PriceMax, &p.TotalStock, &p.IsInStock, &p.IsActive, &p.IsService,
+			&p.CreatedAt, &p.UpdatedAt, &p.Prices, &p.PriceMDL, &p.PriceEUR, &p.PriceUSD,
+			&p.NameRU, &p.NameRO, &p.DescriptionRU, &p.DescriptionRO,
+		); err != nil {
+			return nil, fmt.Errorf("scanning product variant: %w", err)
+		}
+		products = append(products, &p)
+	}
+
+	return products, nil
+}
+
+// GetVariantGroupIDForProduct returns the variant group ID for a product, or nil if not in a group
+func (r *Repository) GetVariantGroupIDForProduct(ctx context.Context, productID uuid.UUID) (*uuid.UUID, error) {
+	query := `SELECT group_id FROM product_variant_group_members WHERE product_id = $1`
+
+	var groupID uuid.UUID
+	err := r.pool.QueryRow(ctx, query, productID).Scan(&groupID)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting variant group ID for product: %w", err)
+	}
+
+	return &groupID, nil
+}
+
+// VariantPropertyNames defines the exact property names used for variant differentiation
+// These match the properties in AllowedVariantProperties from analyzer.go
+const (
+	PropNameColor   = "Colour Name | Название Расцветки"
+	PropNameStorage = "Internal Storage {GB}"
+	PropNameRAM     = "RAM Size"
+)
+
+// GetVariantPropertiesForProducts retrieves the 3 key variant properties (Color, Storage, RAM)
+// for a list of product IDs. Returns a map of product ID -> VariantPropertiesInfo.
+func (r *Repository) GetVariantPropertiesForProducts(ctx context.Context, productIDs []uuid.UUID) (map[uuid.UUID]*models.VariantPropertiesInfo, error) {
+	if len(productIDs) == 0 {
+		return make(map[uuid.UUID]*models.VariantPropertiesInfo), nil
+	}
+
+	// Build placeholders for IN clause
+	placeholders := make([]string, len(productIDs))
+	args := make([]interface{}, len(productIDs)+3)
+	for i, id := range productIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	// Add the property names as the last 3 parameters
+	propNameStart := len(productIDs)
+	args[propNameStart] = PropNameColor
+	args[propNameStart+1] = PropNameStorage
+	args[propNameStart+2] = PropNameRAM
+
+	// Query only the 3 variant properties for efficiency
+	query := fmt.Sprintf(`
+		SELECT product_id, property_name, value
+		FROM properties
+		WHERE product_id IN (%s)
+		  AND property_name IN ($%d, $%d, $%d)
+		  AND value IS NOT NULL
+		  AND value != ''
+		ORDER BY product_id
+	`, strings.Join(placeholders, ","), propNameStart+1, propNameStart+2, propNameStart+3)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("querying variant properties: %w", err)
+	}
+	defer rows.Close()
+
+	// Build result map
+	result := make(map[uuid.UUID]*models.VariantPropertiesInfo)
+
+	// Initialize all requested products with empty VariantPropertiesInfo
+	for _, id := range productIDs {
+		result[id] = &models.VariantPropertiesInfo{}
+	}
+
+	for rows.Next() {
+		var productID uuid.UUID
+		var propertyName string
+		var value string
+
+		if err := rows.Scan(&productID, &propertyName, &value); err != nil {
+			return nil, fmt.Errorf("scanning variant property: %w", err)
+		}
+
+		// Get or create the variant properties info for this product
+		info := result[productID]
+		if info == nil {
+			info = &models.VariantPropertiesInfo{}
+			result[productID] = info
+		}
+
+		// Map property name to the appropriate field
+		switch propertyName {
+		case PropNameColor:
+			info.Color = &value
+		case PropNameStorage:
+			info.Storage = &value
+		case PropNameRAM:
+			info.RAM = &value
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating variant properties: %w", err)
+	}
+
+	return result, nil
+}

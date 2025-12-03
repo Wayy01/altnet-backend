@@ -284,6 +284,12 @@ export interface Product {
   name_ru?: string | null;
   description_ro?: string | null;
   description_ru?: string | null;
+  // Variant properties from API (for variant matrix display)
+  variant_properties?: {
+    color?: string | null;
+    storage?: string | null;
+    ram?: string | null;
+  } | null;
 }
 
 // Currency types

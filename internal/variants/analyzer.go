@@ -8,24 +8,68 @@ import (
 	"ultra-api-testing/internal/models"
 )
 
+// VariantPropertyConfig defines the allowed variant properties
+// Properties are matched by property name only - group name is ignored because
+// the same property can appear in multiple groups (e.g., "Internal Storage {GB}"
+// can be in "Essential Characteristics", "Memory", "Features", etc.)
+type VariantPropertyConfig struct {
+	PropertyName string // The property name to match (group-agnostic)
+	DisplayName  string // User-friendly name for the variant type
+}
+
+// AllowedVariantProperties defines the ONLY properties that can be used for variants
+// These are matched by property_name only from the properties table (group is ignored)
+var AllowedVariantProperties = []VariantPropertyConfig{
+	{
+		PropertyName: "Colour Name | Название Расцветки",
+		DisplayName:  "Color",
+	},
+	{
+		PropertyName: "Internal Storage {GB}",
+		DisplayName:  "Storage",
+	},
+	{
+		PropertyName: "RAM Size",
+		DisplayName:  "RAM",
+	},
+}
+
 // PropertyAnalyzer analyzes product properties to detect which ones are variant properties
-type PropertyAnalyzer struct{}
+type PropertyAnalyzer struct {
+	// Map for quick lookup of allowed properties (key: property name)
+	allowedProperties map[string]VariantPropertyConfig
+}
 
 // NewPropertyAnalyzer creates a new PropertyAnalyzer
 func NewPropertyAnalyzer() *PropertyAnalyzer {
-	return &PropertyAnalyzer{}
+	allowed := make(map[string]VariantPropertyConfig)
+	for _, config := range AllowedVariantProperties {
+		// Key by property name only - group is ignored
+		allowed[config.PropertyName] = config
+	}
+	return &PropertyAnalyzer{
+		allowedProperties: allowed,
+	}
+}
+
+// isAllowedVariantProperty checks if a property is in the allowed list by property name only
+func (a *PropertyAnalyzer) isAllowedVariantProperty(propertyName string) (VariantPropertyConfig, bool) {
+	config, ok := a.allowedProperties[propertyName]
+	return config, ok
 }
 
 // AnalyzeVariantProperties analyzes properties of products in a group to determine variant properties
 //
-// THE KEY RULE:
-// A property is a variant ONLY if it has multiple distinct values within the same parent scope.
+// ONLY the following 3 properties are considered for variants (matched by property name only):
+// 1. Property: "Colour Name | Название Расцветки" (Color)
+// 2. Property: "Internal Storage {GB}" (Storage)
+// 3. Property: "RAM Size" (RAM)
 //
-// Example: iPhone 16 Pro Max group
-// - 512GB has RAM: {16GB, 8GB} -> RAM is variant for 512GB (2 values)
-// - 256GB has RAM: {16GB} -> RAM is NOT variant for 256GB (1 value only)
+// Group name is ignored because the same property can appear in multiple groups.
 //
-// This returns variant properties with their parent scope (if any) and distinct values.
+// A property is a variant ONLY if:
+// 1. It is in the allowed list above
+// 2. It has multiple distinct values within the product group
 func (a *PropertyAnalyzer) AnalyzeVariantProperties(
 	products []*models.Product,
 	properties map[uuid.UUID][]*models.Property,
@@ -35,125 +79,40 @@ func (a *PropertyAnalyzer) AnalyzeVariantProperties(
 	}
 
 	results := make([]*models.VariantPropertyResult, 0)
-
-	// Get all unique property names across all products
-	allPropertyNames := a.getUniquePropertyNames(products, properties)
-
-	// Track which property combinations we've already recorded
 	seen := make(map[string]bool)
 
-	for _, propName := range allPropertyNames {
-		// First, check if this property varies globally (across entire group)
-		globalValues := a.getDistinctValues(products, properties, propName)
+	// Only analyze the allowed variant properties
+	for _, config := range AllowedVariantProperties {
+		// Get distinct values for this property across all products in the group
+		// Match by property name only - group is ignored
+		values := a.getDistinctValuesForProperty(products, properties, config.PropertyName)
 
-		if len(globalValues) > 1 {
-			// This property varies globally - record it as a global variant
-			key := propName + "::" // No parent
-			if !seen[key] {
+		// Only include if there are multiple distinct values (i.e., it varies)
+		if len(values) > 1 {
+			if !seen[config.PropertyName] {
 				results = append(results, &models.VariantPropertyResult{
-					PropertyName:   propName,
-					ParentProperty: nil,
+					PropertyName:   config.DisplayName, // Use display name for cleaner UI
+					ParentProperty: nil,                // We no longer do scoped variants
 					ParentValue:    nil,
-					Values:         globalValues,
+					Values:         values,
 					ProductCount:   len(products),
 				})
-				seen[key] = true
-			}
-		}
-
-		// Now check if this property varies within parent scopes
-		// Group products by each other property to find parent relationships
-		for _, otherPropName := range allPropertyNames {
-			if otherPropName == propName {
-				continue
-			}
-
-			// Group products by the value of otherPropName
-			grouped := a.groupByPropertyValue(products, properties, otherPropName)
-
-			for parentValue, productsInGroup := range grouped {
-				if len(productsInGroup) < 2 {
-					// Need at least 2 products to have variation
-					continue
-				}
-
-				// Check if propName varies within this parent group
-				valuesInParent := a.getDistinctValues(productsInGroup, properties, propName)
-
-				if len(valuesInParent) > 1 {
-					// This property varies within this parent scope
-					key := propName + "::" + otherPropName + "::" + parentValue
-					if !seen[key] {
-						parentProp := otherPropName
-						parentVal := parentValue
-						results = append(results, &models.VariantPropertyResult{
-							PropertyName:   propName,
-							ParentProperty: &parentProp,
-							ParentValue:    &parentVal,
-							Values:         valuesInParent,
-							ProductCount:   len(productsInGroup),
-						})
-						seen[key] = true
-					}
-				}
+				seen[config.PropertyName] = true
 			}
 		}
 	}
 
-	// Sort results by property name for consistent output
+	// Sort results by display name for consistent output (Color, RAM, Storage)
 	sort.Slice(results, func(i, j int) bool {
-		if results[i].PropertyName != results[j].PropertyName {
-			return results[i].PropertyName < results[j].PropertyName
-		}
-		// If same property name, global variants come first
-		if results[i].ParentProperty == nil && results[j].ParentProperty != nil {
-			return true
-		}
-		if results[i].ParentProperty != nil && results[j].ParentProperty == nil {
-			return false
-		}
-		// Both have parent properties, sort by parent property name
-		if results[i].ParentProperty != nil && results[j].ParentProperty != nil {
-			if *results[i].ParentProperty != *results[j].ParentProperty {
-				return *results[i].ParentProperty < *results[j].ParentProperty
-			}
-			// Same parent property, sort by parent value
-			if results[i].ParentValue != nil && results[j].ParentValue != nil {
-				return *results[i].ParentValue < *results[j].ParentValue
-			}
-		}
-		return false
+		return results[i].PropertyName < results[j].PropertyName
 	})
 
 	return results
 }
 
-// getUniquePropertyNames returns all unique property names across products
-func (a *PropertyAnalyzer) getUniquePropertyNames(
-	products []*models.Product,
-	properties map[uuid.UUID][]*models.Property,
-) []string {
-	nameSet := make(map[string]bool)
-
-	for _, product := range products {
-		if props, ok := properties[product.ID]; ok {
-			for _, prop := range props {
-				nameSet[prop.PropertyName] = true
-			}
-		}
-	}
-
-	names := make([]string, 0, len(nameSet))
-	for name := range nameSet {
-		names = append(names, name)
-	}
-
-	sort.Strings(names)
-	return names
-}
-
-// getDistinctValues returns distinct values for a property across products
-func (a *PropertyAnalyzer) getDistinctValues(
+// getDistinctValuesForProperty returns distinct values for a property name
+// Group name is ignored - property is matched by name only
+func (a *PropertyAnalyzer) getDistinctValuesForProperty(
 	products []*models.Product,
 	properties map[uuid.UUID][]*models.Property,
 	propertyName string,
@@ -163,6 +122,7 @@ func (a *PropertyAnalyzer) getDistinctValues(
 	for _, product := range products {
 		if props, ok := properties[product.ID]; ok {
 			for _, prop := range props {
+				// Match by property name only - group is ignored
 				if prop.PropertyName == propertyName && prop.Value != nil {
 					value := normalizePropertyValue(*prop.Value)
 					if value != "" {
@@ -182,31 +142,8 @@ func (a *PropertyAnalyzer) getDistinctValues(
 	return values
 }
 
-// groupByPropertyValue groups products by the value of a specific property
-func (a *PropertyAnalyzer) groupByPropertyValue(
-	products []*models.Product,
-	properties map[uuid.UUID][]*models.Property,
-	propertyName string,
-) map[string][]*models.Product {
-	grouped := make(map[string][]*models.Product)
-
-	for _, product := range products {
-		if props, ok := properties[product.ID]; ok {
-			for _, prop := range props {
-				if prop.PropertyName == propertyName && prop.Value != nil {
-					value := normalizePropertyValue(*prop.Value)
-					if value != "" {
-						grouped[value] = append(grouped[value], product)
-					}
-				}
-			}
-		}
-	}
-
-	return grouped
-}
-
 // BuildVariantMatrix builds a variant matrix for display in the UI
+// Only includes the 3 allowed variant properties as columns
 func (a *PropertyAnalyzer) BuildVariantMatrix(
 	products []*models.Product,
 	properties map[uuid.UUID][]*models.Property,
@@ -216,26 +153,21 @@ func (a *PropertyAnalyzer) BuildVariantMatrix(
 		return nil
 	}
 
-	// Collect all property names that appear in variant results (global only for columns)
+	// Build a map of display name -> values from variant results
 	variantPropNames := make(map[string]bool)
 	for _, vp := range variantProps {
-		if vp.ParentProperty == nil {
-			// Only include global variants as columns
-			variantPropNames[vp.PropertyName] = true
-		}
+		variantPropNames[vp.PropertyName] = true
 	}
 
-	// Get all unique property names for the matrix
-	allPropNames := a.getUniquePropertyNames(products, properties)
-
-	// Build columns
+	// Build columns only for allowed variant properties
 	columns := make([]models.VariantMatrixColumn, 0)
-	for _, propName := range allPropNames {
-		values := a.getDistinctValues(products, properties, propName)
-		isVariant := variantPropNames[propName]
+	for _, config := range AllowedVariantProperties {
+		// Match by property name only - group is ignored
+		values := a.getDistinctValuesForProperty(products, properties, config.PropertyName)
+		isVariant := len(values) > 1
 
 		columns = append(columns, models.VariantMatrixColumn{
-			PropertyName:  propName,
+			PropertyName:  config.DisplayName,
 			DistinctCount: len(values),
 			Values:        values,
 			IsVariant:     isVariant,
@@ -250,7 +182,7 @@ func (a *PropertyAnalyzer) BuildVariantMatrix(
 		return columns[i].PropertyName < columns[j].PropertyName
 	})
 
-	// Build rows
+	// Build rows with values for only the allowed variant properties
 	rows := make([]models.VariantMatrixRow, 0, len(products))
 	for _, product := range products {
 		values := make(map[string]string)
@@ -258,7 +190,10 @@ func (a *PropertyAnalyzer) BuildVariantMatrix(
 		if props, ok := properties[product.ID]; ok {
 			for _, prop := range props {
 				if prop.Value != nil {
-					values[prop.PropertyName] = *prop.Value
+					// Check if this is an allowed variant property by name only
+					if config, ok := a.isAllowedVariantProperty(prop.PropertyName); ok {
+						values[config.DisplayName] = *prop.Value
+					}
 				}
 			}
 		}

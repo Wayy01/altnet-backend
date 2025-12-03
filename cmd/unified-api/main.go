@@ -16,6 +16,7 @@ import (
 	"ultra-api-testing/internal/models"
 	"ultra-api-testing/internal/repository"
 	internalSync "ultra-api-testing/internal/sync"
+	"ultra-api-testing/internal/ollama"
 	"ultra-api-testing/internal/ultra"
 	"ultra-api-testing/internal/variants"
 )
@@ -65,7 +66,11 @@ func main() {
 	scheduleRepo := repository.NewScheduleRepository(db.Pool)
 	performanceRepo := repository.NewPerformanceRepository(db.Pool)
 	filterRepo := repository.NewFilterRepository(db.Pool)
-	handler := handlers.New(repo, syncConfigRepo, fetcher, syncManager)
+
+	// Create variant repository early so it can be passed to main handler
+	variantRepo := variants.NewRepository(db.Pool)
+
+	handler := handlers.New(repo, syncConfigRepo, fetcher, syncManager, variantRepo)
 	realtimeSyncHandler := handlers.NewRealtimeSyncHandlers(realtimeSyncRepo, repo)
 	syncControlHandler := handlers.NewSyncControlHandlers(repo, realtimeSyncRepo, syncManager)
 	sourceHandler := handlers.NewSourceHandler(sourceRepo)
@@ -73,9 +78,24 @@ func main() {
 	performanceHandler := handlers.NewPerformanceHandler(performanceRepo)
 	filterHandler := handlers.NewFilterHandler(filterRepo)
 
-	// Initialize variant generation components
-	variantRepo := variants.NewRepository(db.Pool)
-	variantGenerator := variants.NewGenerator(variantRepo, &cfg.Ollama)
+	// Initialize Ollama client for AI-powered variant grouping
+	ollamaClient := ollama.NewClient(ollama.Config{
+		URL:     cfg.Ollama.URL,
+		Model:   cfg.Ollama.Model,
+		Timeout: cfg.Ollama.Timeout,
+	})
+
+	// Check Ollama availability
+	ollamaCtx, ollamaCancel := context.WithTimeout(ctx, 5*time.Second)
+	if ollamaClient.IsAvailable(ollamaCtx) {
+		fmt.Printf("Ollama AI connected: %s (model: %s)\n", cfg.Ollama.URL, cfg.Ollama.Model)
+	} else {
+		fmt.Printf("Warning: Ollama AI not available at %s - variant grouping will use exact name matching\n", cfg.Ollama.URL)
+	}
+	ollamaCancel()
+
+	// Initialize variant generation components with Ollama AI support
+	variantGenerator := variants.NewGenerator(variantRepo, ollamaClient)
 	variantHandler := handlers.NewVariantHandler(variantGenerator, variantRepo)
 	defer variantGenerator.Shutdown()
 
@@ -237,6 +257,7 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	api.HandleFunc("/products/{id}", handler.GetProduct).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/properties", handler.GetProductProperties).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/characteristics", handler.GetProductCharacteristics).Methods("GET", "OPTIONS")
+	api.HandleFunc("/products/{id}/variants", variantHandler.GetProductVariants).Methods("GET", "OPTIONS")
 
 	// Properties (specific routes before parameterized routes)
 	api.HandleFunc("/properties/bulk", handler.BulkUpdateProperties).Methods("PATCH", "OPTIONS")

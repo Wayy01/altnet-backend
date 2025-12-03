@@ -165,7 +165,7 @@ func (c *OllamaClient) ExtractBaseName(ctx context.Context, productTitle string)
 		}
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("ngrok-skip-browser-warning", "true")
-	req.Header.Set("User-Agent", "Mozilla/5.0")
+		req.Header.Set("User-Agent", "Mozilla/5.0")
 
 		resp, err = c.httpClient.Do(req)
 		if err != nil {
@@ -243,7 +243,7 @@ func (c *OllamaClient) ExtractBaseNameBatch(ctx context.Context, titles []string
 			if err != nil {
 				log.Printf("Warning: failed to extract base name for %q: %v", t, err)
 				// Use original title as fallback, normalized
-				baseName = normalizeBaseName(t)
+				baseName = normalizeBaseNameLower(t)
 			}
 
 			mu.Lock()
@@ -324,8 +324,9 @@ func cleanBaseName(response string) string {
 	return strings.TrimSpace(result)
 }
 
-// normalizeBaseName normalizes a base name for comparison and grouping
-func normalizeBaseName(name string) string {
+// normalizeBaseNameLower normalizes a base name for comparison (used internally by Ollama)
+// Note: NormalizeBaseName is now defined in grouper.go as the canonical version
+func normalizeBaseNameLower(name string) string {
 	// Convert to lowercase
 	result := strings.ToLower(name)
 
@@ -334,9 +335,4 @@ func normalizeBaseName(name string) string {
 
 	// Trim
 	return strings.TrimSpace(result)
-}
-
-// NormalizeBaseName is the exported version for use in other packages
-func NormalizeBaseName(name string) string {
-	return normalizeBaseName(name)
 }

@@ -18,6 +18,7 @@ import (
 	"ultra-api-testing/internal/repository"
 	internalSync "ultra-api-testing/internal/sync"
 	"ultra-api-testing/internal/ultra"
+	"ultra-api-testing/internal/variants"
 )
 
 // Handler contains all HTTP handlers
@@ -28,10 +29,11 @@ type Handler struct {
 	selectiveSync  *internalSync.SelectiveSync
 	syncManager    *internalSync.SyncManager // Manages active syncs
 	syncMutex      sync.Mutex                // Global lock to prevent concurrent syncs
+	variantRepo    *variants.Repository      // Variant repository for variant properties
 }
 
 // New creates a new Handler instance
-func New(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher, syncManager *internalSync.SyncManager) *Handler {
+func New(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepository, fetcher *ultra.Fetcher, syncManager *internalSync.SyncManager, variantRepo *variants.Repository) *Handler {
 	selectiveSync := internalSync.NewSelectiveSync(repo, syncConfigRepo, fetcher, syncManager)
 
 	return &Handler{
@@ -41,6 +43,7 @@ func New(repo *repository.Repository, syncConfigRepo *repository.SyncConfigRepos
 		selectiveSync:  selectiveSync,
 		syncManager:    syncManager,
 		syncMutex:      sync.Mutex{},
+		variantRepo:    variantRepo,
 	}
 }
 
@@ -711,6 +714,13 @@ func (h *Handler) GetProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := &models.ProductWithDetails{Product: product}
+
+	// Fetch variant properties (Color, Storage, RAM) for this product
+	variantPropsMap, err := h.variantRepo.GetVariantPropertiesForProducts(r.Context(), []uuid.UUID{id})
+	if err == nil && len(variantPropsMap) > 0 {
+		// Attach variant properties to the response
+		response.VariantProperties = variantPropsMap[id]
+	}
 
 	// Fetch brand and set brand_name on product
 	if product.BrandID != nil {
