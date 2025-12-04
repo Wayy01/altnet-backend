@@ -27,6 +27,7 @@ import {
   Search,
   ShoppingCart,
   Store,
+  LayoutGrid,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -159,6 +160,12 @@ export function AppSidebar() {
       url: "/categories",
       icon: FolderTree,
       descriptionKey: "descriptions.categories",
+    },
+    {
+      titleKey: "menu.catalogBuilder",
+      url: "/catalog-builder",
+      icon: LayoutGrid,
+      descriptionKey: "descriptions.catalogBuilder",
     },
     {
       titleKey: "menu.searchTest",

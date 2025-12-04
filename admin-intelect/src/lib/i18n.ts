@@ -28,6 +28,7 @@ export const NAMESPACES = [
   "groupings",
   "orders",
   "stores",
+  "catalogBuilder",
 ] as const;
 
 export type TranslationNamespace = (typeof NAMESPACES)[number];

@@ -72,6 +72,7 @@ func main() {
 	adminUserRepo := repository.NewAdminUserRepository(db.Pool)
 	storeRepo := repository.NewStoreRepository(db.Pool)
 	orderRepo := repository.NewOrderRepository(db.Pool)
+	catalogRepo := repository.NewCatalogRepository(db.Pool)
 
 	// Create variant repository early so it can be passed to main handler
 	variantRepo := variants.NewRepository(db.Pool)
@@ -88,6 +89,7 @@ func main() {
 	storeHandler := handlers.NewStoreHandler(storeRepo)
 	orderHandler := handlers.NewOrderHandler(orderRepo)
 	publicOrderHandler := handlers.NewPublicOrderHandler(orderRepo, storeRepo)
+	catalogHandler := handlers.NewCatalogHandler(catalogRepo)
 
 	// Initialize Ollama client for AI-powered variant grouping
 	ollamaClient := ollama.NewClient(ollama.Config{
@@ -173,7 +175,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, storeHandler, orderHandler, publicOrderHandler, cfg)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, storeHandler, orderHandler, publicOrderHandler, catalogHandler, cfg)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -233,7 +235,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, storeHandler *handlers.StoreHandler, orderHandler *handlers.OrderHandler, publicOrderHandler *handlers.PublicOrderHandler, cfg *config.Config) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, storeHandler *handlers.StoreHandler, orderHandler *handlers.OrderHandler, publicOrderHandler *handlers.PublicOrderHandler, catalogHandler *handlers.CatalogHandler, cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -342,6 +344,11 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 
 	// Public GET routes - Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
+
+	// Public GET routes - Catalog
+	api.HandleFunc("/catalog", catalogHandler.GetFullCatalog).Methods("GET", "OPTIONS")
+	api.HandleFunc("/catalog/{slug}", catalogHandler.GetCatalogBySlug).Methods("GET", "OPTIONS")
+	api.HandleFunc("/catalog/items/{id}/products", catalogHandler.GetItemProducts).Methods("GET", "OPTIONS")
 
 	// ============================================================================
 	// PROTECTED ROUTES - ALL /sync/* endpoints require authentication
@@ -546,6 +553,37 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	ordersProtected.HandleFunc("/{id}", orderHandler.DeleteOrder).Methods("DELETE", "OPTIONS")
 	ordersProtected.HandleFunc("/{id}/comments", orderHandler.GetOrderComments).Methods("GET", "OPTIONS")
 	ordersProtected.HandleFunc("/{id}/comments", orderHandler.CreateOrderComment).Methods("POST", "OPTIONS")
+
+	// ============================================================================
+	// PROTECTED ROUTES - Catalog Builder (Admin Only)
+	// ============================================================================
+	catalogProtected := api.PathPrefix("/admin/catalog").Subrouter()
+	catalogProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+
+	// Sections
+	catalogProtected.HandleFunc("/sections", catalogHandler.ListSections).Methods("GET", "OPTIONS")
+	catalogProtected.HandleFunc("/sections", catalogHandler.CreateSection).Methods("POST", "OPTIONS")
+	catalogProtected.HandleFunc("/sections/{id}", catalogHandler.GetSection).Methods("GET", "OPTIONS")
+	catalogProtected.HandleFunc("/sections/{id}", catalogHandler.UpdateSection).Methods("PUT", "OPTIONS")
+	catalogProtected.HandleFunc("/sections/{id}", catalogHandler.DeleteSection).Methods("DELETE", "OPTIONS")
+	catalogProtected.HandleFunc("/sections/reorder", catalogHandler.ReorderSections).Methods("PATCH", "OPTIONS")
+	catalogProtected.HandleFunc("/sections/{id}/clone", catalogHandler.CloneSection).Methods("POST", "OPTIONS")
+	catalogProtected.HandleFunc("/sections/{id}/groups", catalogHandler.ListGroupsBySection).Methods("GET", "OPTIONS")
+
+	// Groups
+	catalogProtected.HandleFunc("/groups", catalogHandler.CreateGroup).Methods("POST", "OPTIONS")
+	catalogProtected.HandleFunc("/groups/{id}", catalogHandler.GetGroup).Methods("GET", "OPTIONS")
+	catalogProtected.HandleFunc("/groups/{id}", catalogHandler.UpdateGroup).Methods("PUT", "OPTIONS")
+	catalogProtected.HandleFunc("/groups/{id}", catalogHandler.DeleteGroup).Methods("DELETE", "OPTIONS")
+	catalogProtected.HandleFunc("/groups/reorder", catalogHandler.ReorderGroups).Methods("PATCH", "OPTIONS")
+	catalogProtected.HandleFunc("/groups/{id}/items", catalogHandler.ListItemsByGroup).Methods("GET", "OPTIONS")
+
+	// Items
+	catalogProtected.HandleFunc("/items", catalogHandler.CreateItem).Methods("POST", "OPTIONS")
+	catalogProtected.HandleFunc("/items/{id}", catalogHandler.GetItem).Methods("GET", "OPTIONS")
+	catalogProtected.HandleFunc("/items/{id}", catalogHandler.UpdateItem).Methods("PUT", "OPTIONS")
+	catalogProtected.HandleFunc("/items/{id}", catalogHandler.DeleteItem).Methods("DELETE", "OPTIONS")
+	catalogProtected.HandleFunc("/items/reorder", catalogHandler.ReorderItems).Methods("PATCH", "OPTIONS")
 
 	// Smart Search endpoints (Meilisearch)
 	if searchHandler != nil {

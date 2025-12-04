@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { CurrencyProvider } from "@/contexts/currency-context";
@@ -40,16 +41,18 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <LanguageProvider>
-            <CurrencyProvider>
-              <AuthProvider>
-                <TooltipProvider>
-                  {children}
-                </TooltipProvider>
-                <Toaster richColors position="top-right" />
-              </AuthProvider>
-            </CurrencyProvider>
-          </LanguageProvider>
+          <QueryProvider>
+            <LanguageProvider>
+              <CurrencyProvider>
+                <AuthProvider>
+                  <TooltipProvider>
+                    {children}
+                  </TooltipProvider>
+                  <Toaster richColors position="top-right" />
+                </AuthProvider>
+              </CurrencyProvider>
+            </LanguageProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>
