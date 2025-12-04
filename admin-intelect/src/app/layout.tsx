@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Admin Intelect - Ultra B2B Manager",
+  title: "Admin Altnet - Ultra B2B Manager",
   description: "CMS Dashboard for Ultra B2B product data management",
 };
 

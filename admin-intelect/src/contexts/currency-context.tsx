@@ -18,7 +18,7 @@ interface CurrencyContextType {
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
-const STORAGE_KEY = "admin-intelect-currency";
+const STORAGE_KEY = "admin-altnet-currency";
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [currency, setCurrencyState] = useState<CurrencyCode>("MDL");

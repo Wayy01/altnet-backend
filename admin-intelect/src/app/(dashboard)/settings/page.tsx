@@ -102,7 +102,7 @@ export default function SettingsPage() {
           <CardContent className="space-y-2">
             <div>
               <label className="text-sm font-medium">{t("about.application")}</label>
-              <p className="text-sm text-muted-foreground">Admin Intelect</p>
+              <p className="text-sm text-muted-foreground">Admin Altnet</p>
             </div>
             <div>
               <label className="text-sm font-medium">{t("about.purpose")}</label>
