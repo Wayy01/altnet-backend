@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"ultra-api-testing/internal/auth"
 	"ultra-api-testing/internal/config"
 	"ultra-api-testing/internal/database"
 	"ultra-api-testing/internal/handlers"
@@ -68,6 +69,7 @@ func main() {
 	performanceRepo := repository.NewPerformanceRepository(db.Pool)
 	filterRepo := repository.NewFilterRepository(db.Pool)
 	promotionRepo := repository.NewPromotionRepository(db.Pool)
+	adminUserRepo := repository.NewAdminUserRepository(db.Pool)
 
 	// Create variant repository early so it can be passed to main handler
 	variantRepo := variants.NewRepository(db.Pool)
@@ -80,6 +82,7 @@ func main() {
 	performanceHandler := handlers.NewPerformanceHandler(performanceRepo)
 	filterHandler := handlers.NewFilterHandler(filterRepo)
 	promotionHandler := handlers.NewPromotionHandler(promotionRepo, repo)
+	authHandler := handlers.NewAuthHandler(adminUserRepo, cfg.JWT.Secret, cfg.JWT.Expiration)
 
 	// Initialize Ollama client for AI-powered variant grouping
 	ollamaClient := ollama.NewClient(ollama.Config{
@@ -165,7 +168,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, cfg)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -225,7 +228,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -235,218 +238,282 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	// API v1 routes
 	api := router.PathPrefix("/api/v1").Subrouter()
 
-	// Product Sources (specific routes before parameterized routes)
+	// ============================================================================
+	// PUBLIC ROUTES - No Authentication Required
+	// ============================================================================
+
+	// Auth endpoints (public for login)
+	api.HandleFunc("/auth/login", authHandler.Login).Methods("POST", "OPTIONS")
+	api.HandleFunc("/auth/logout", authHandler.Logout).Methods("POST", "OPTIONS")
+
+	// Create protected subrouter for /auth/me endpoint
+	authProtected := api.PathPrefix("/auth").Subrouter()
+	authProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	authProtected.HandleFunc("/me", authHandler.GetCurrentUser).Methods("GET", "OPTIONS")
+
+	// Public GET routes - Product Sources
 	api.HandleFunc("/sources", sourceHandler.ListSources).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sources", sourceHandler.CreateSource).Methods("POST", "OPTIONS")
 	api.HandleFunc("/sources/default", sourceHandler.GetDefaultSource).Methods("GET", "OPTIONS")
 	api.HandleFunc("/sources/{id}", sourceHandler.GetSource).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sources/{id}", sourceHandler.DeleteSource).Methods("DELETE", "OPTIONS")
 
-	// Brands (specific routes before parameterized routes)
+	// Protected routes - Product Sources (require auth)
+	sourcesProtected := api.PathPrefix("/sources").Subrouter()
+	sourcesProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	sourcesProtected.HandleFunc("", sourceHandler.CreateSource).Methods("POST", "OPTIONS")
+	sourcesProtected.HandleFunc("/{id}", sourceHandler.DeleteSource).Methods("DELETE", "OPTIONS")
+
+	// Public GET routes - Brands
 	api.HandleFunc("/brands", handler.ListBrands).Methods("GET", "OPTIONS")
-	api.HandleFunc("/brands", handler.CreateBrand).Methods("POST", "OPTIONS")
 	api.HandleFunc("/brands/all", handler.GetAllBrands).Methods("GET", "OPTIONS")
-	api.HandleFunc("/brands/bulk", handler.BulkUpdateBrands).Methods("PATCH", "OPTIONS")
 	api.HandleFunc("/brands/{id}/stats", handler.GetBrandWithStats).Methods("GET", "OPTIONS")
-	api.HandleFunc("/brands/{id}/products/bulk", handler.BulkUpdateBrandProducts).Methods("PATCH", "OPTIONS")
 	api.HandleFunc("/brands/{id}/products", handler.GetBrandProducts).Methods("GET", "OPTIONS")
 	api.HandleFunc("/brands/{id}", handler.GetBrand).Methods("GET", "OPTIONS")
-	api.HandleFunc("/brands/{id}", handler.UpdateBrand).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/brands/{id}", handler.DeleteBrand).Methods("DELETE", "OPTIONS")
 
-	// Categories (specific routes before parameterized routes)
+	// Protected routes - Brands (require auth)
+	brandsProtected := api.PathPrefix("/brands").Subrouter()
+	brandsProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	brandsProtected.HandleFunc("", handler.CreateBrand).Methods("POST", "OPTIONS")
+	brandsProtected.HandleFunc("/bulk", handler.BulkUpdateBrands).Methods("PATCH", "OPTIONS")
+	brandsProtected.HandleFunc("/{id}/products/bulk", handler.BulkUpdateBrandProducts).Methods("PATCH", "OPTIONS")
+	brandsProtected.HandleFunc("/{id}", handler.UpdateBrand).Methods("PUT", "OPTIONS")
+	brandsProtected.HandleFunc("/{id}", handler.DeleteBrand).Methods("DELETE", "OPTIONS")
+
+	// Public GET routes - Categories
 	api.HandleFunc("/categories", handler.ListCategories).Methods("GET", "OPTIONS")
-	api.HandleFunc("/categories", handler.CreateCategory).Methods("POST", "OPTIONS")
 	api.HandleFunc("/categories/all", handler.GetAllCategories).Methods("GET", "OPTIONS")
-	api.HandleFunc("/categories/bulk", handler.BulkUpdateCategories).Methods("PATCH", "OPTIONS")
 	api.HandleFunc("/categories/{id}/stats", handler.GetCategoryWithStats).Methods("GET", "OPTIONS")
-	api.HandleFunc("/categories/{id}/products/bulk", handler.BulkUpdateCategoryProducts).Methods("PATCH", "OPTIONS")
 	api.HandleFunc("/categories/{id}/products", handler.GetCategoryProducts).Methods("GET", "OPTIONS")
 	api.HandleFunc("/categories/{id}/subcategories", handler.GetCategorySubcategories).Methods("GET", "OPTIONS")
 	api.HandleFunc("/categories/{id}", handler.GetCategory).Methods("GET", "OPTIONS")
-	api.HandleFunc("/categories/{id}", handler.UpdateCategory).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/categories/{id}", handler.DeleteCategory).Methods("DELETE", "OPTIONS")
 
-	// Products
+	// Protected routes - Categories (require auth)
+	categoriesProtected := api.PathPrefix("/categories").Subrouter()
+	categoriesProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	categoriesProtected.HandleFunc("", handler.CreateCategory).Methods("POST", "OPTIONS")
+	categoriesProtected.HandleFunc("/bulk", handler.BulkUpdateCategories).Methods("PATCH", "OPTIONS")
+	categoriesProtected.HandleFunc("/{id}/products/bulk", handler.BulkUpdateCategoryProducts).Methods("PATCH", "OPTIONS")
+	categoriesProtected.HandleFunc("/{id}", handler.UpdateCategory).Methods("PUT", "OPTIONS")
+	categoriesProtected.HandleFunc("/{id}", handler.DeleteCategory).Methods("DELETE", "OPTIONS")
+
+	// Public GET routes - Products
 	api.HandleFunc("/products", handler.ListProducts).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}", handler.GetProduct).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/properties", handler.GetProductProperties).Methods("GET", "OPTIONS")
 	api.HandleFunc("/products/{id}/variants", variantHandler.GetProductVariants).Methods("GET", "OPTIONS")
 
-	// Properties (specific routes before parameterized routes)
-	api.HandleFunc("/properties/bulk", handler.BulkUpdateProperties).Methods("PATCH", "OPTIONS")
-	api.HandleFunc("/properties/bulk", handler.BulkDeleteProperties).Methods("DELETE", "OPTIONS")
+	// Public GET routes - Properties
 	api.HandleFunc("/properties/stats", handler.GetPropertyStats).Methods("GET", "OPTIONS")
 	api.HandleFunc("/properties/groups", handler.GetPropertyGroups).Methods("GET", "OPTIONS")
 	api.HandleFunc("/properties", handler.ListProperties).Methods("GET", "OPTIONS")
-	api.HandleFunc("/properties", handler.CreateProperty).Methods("POST", "OPTIONS")
 	api.HandleFunc("/properties/{id}", handler.GetProperty).Methods("GET", "OPTIONS")
-	api.HandleFunc("/properties/{id}", handler.UpdateProperty).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/properties/{id}", handler.DeleteProperty).Methods("DELETE", "OPTIONS")
 
-	// Property Hierarchy (Level 1: Groups)
+	// Protected routes - Properties (require auth)
+	propertiesProtected := api.PathPrefix("/properties").Subrouter()
+	propertiesProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	propertiesProtected.HandleFunc("/bulk", handler.BulkUpdateProperties).Methods("PATCH", "OPTIONS")
+	propertiesProtected.HandleFunc("/bulk", handler.BulkDeleteProperties).Methods("DELETE", "OPTIONS")
+	propertiesProtected.HandleFunc("", handler.CreateProperty).Methods("POST", "OPTIONS")
+	propertiesProtected.HandleFunc("/{id}", handler.UpdateProperty).Methods("PUT", "OPTIONS")
+	propertiesProtected.HandleFunc("/{id}", handler.DeleteProperty).Methods("DELETE", "OPTIONS")
+
+	// Public GET routes - Property Hierarchy
 	api.HandleFunc("/properties/hierarchy/groups", handler.ListPropertyGroups).Methods("GET", "OPTIONS")
 	api.HandleFunc("/properties/hierarchy/groups/{group_name}", handler.GetPropertyGroup).Methods("GET", "OPTIONS")
-	api.HandleFunc("/properties/hierarchy/groups/{group_name}", handler.DeletePropertyGroup).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/properties/hierarchy/groups/{group_name}/impact", handler.GetGroupDeletionImpact).Methods("GET", "OPTIONS")
-
-	// Property Hierarchy (Level 2: Property Names)
 	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties", handler.ListPropertyNames).Methods("GET", "OPTIONS")
 	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}", handler.GetPropertyName).Methods("GET", "OPTIONS")
-	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}", handler.DeletePropertyName).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/impact", handler.GetPropertyNameDeletionImpact).Methods("GET", "OPTIONS")
-
-	// Property Hierarchy (Level 3: Values)
 	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/values", handler.ListPropertyValues).Methods("GET", "OPTIONS")
-	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/values/bulk", handler.BulkUpdatePropertyValues).Methods("PATCH", "OPTIONS")
-	api.HandleFunc("/properties/hierarchy/groups/{group_name}/properties/{property_name}/values/bulk", handler.BulkDeletePropertyValues).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/properties/hierarchy/values/{value_id}", handler.UpdatePropertyValue).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/properties/hierarchy/values/{value_id}", handler.DeletePropertyValue).Methods("DELETE", "OPTIONS")
 
-	// Search
+	// Protected routes - Property Hierarchy (require auth)
+	propsHierarchyProtected := api.PathPrefix("/properties/hierarchy").Subrouter()
+	propsHierarchyProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	propsHierarchyProtected.HandleFunc("/groups/{group_name}", handler.DeletePropertyGroup).Methods("DELETE", "OPTIONS")
+	propsHierarchyProtected.HandleFunc("/groups/{group_name}/properties/{property_name}", handler.DeletePropertyName).Methods("DELETE", "OPTIONS")
+	propsHierarchyProtected.HandleFunc("/groups/{group_name}/properties/{property_name}/values/bulk", handler.BulkUpdatePropertyValues).Methods("PATCH", "OPTIONS")
+	propsHierarchyProtected.HandleFunc("/groups/{group_name}/properties/{property_name}/values/bulk", handler.BulkDeletePropertyValues).Methods("DELETE", "OPTIONS")
+	propsHierarchyProtected.HandleFunc("/values/{value_id}", handler.UpdatePropertyValue).Methods("PUT", "OPTIONS")
+	propsHierarchyProtected.HandleFunc("/values/{value_id}", handler.DeletePropertyValue).Methods("DELETE", "OPTIONS")
+
+	// Public GET routes - Search
 	api.HandleFunc("/search", handler.SearchProducts).Methods("GET", "OPTIONS")
 
+	// ============================================================================
+	// PROTECTED ROUTES - ALL /sync/* endpoints require authentication
+	// ============================================================================
+	syncProtected := api.PathPrefix("/sync").Subrouter()
+	syncProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+
 	// Sync logs and progress
-	api.HandleFunc("/sync/logs", handler.ListSyncLogs).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/logs/{id}", handler.GetSyncLog).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/status", handler.GetLatestSyncStatus).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/progress", handler.GetSyncProgress).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/logs", handler.ListSyncLogs).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/logs/{id}", handler.GetSyncLog).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/status", handler.GetLatestSyncStatus).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/progress", handler.GetSyncProgress).Methods("GET", "OPTIONS")
 
 	// Real-time sync monitoring (SSE streams)
-	api.HandleFunc("/sync/stream/progress", realtimeSyncHandler.StreamSyncProgress).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/stream/logs", realtimeSyncHandler.StreamSyncLogs).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/stream/progress", realtimeSyncHandler.StreamSyncProgress).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/stream/logs", realtimeSyncHandler.StreamSyncLogs).Methods("GET", "OPTIONS")
 
 	// Real-time sync data endpoints
-	api.HandleFunc("/sync/realtime/progress", realtimeSyncHandler.GetRealtimeProgress).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/realtime/progress/{sync_log_id}", realtimeSyncHandler.GetRealtimeProgress).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/realtime/logs", realtimeSyncHandler.GetLogEntries).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/realtime/logs/export", realtimeSyncHandler.ExportLogEntries).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/realtime/snapshots", realtimeSyncHandler.GetProgressSnapshots).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/realtime/api-requests", realtimeSyncHandler.GetAPIRequests).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/realtime/progress", realtimeSyncHandler.GetRealtimeProgress).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/realtime/progress/{sync_log_id}", realtimeSyncHandler.GetRealtimeProgress).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/realtime/logs", realtimeSyncHandler.GetLogEntries).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/realtime/logs/export", realtimeSyncHandler.ExportLogEntries).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/realtime/snapshots", realtimeSyncHandler.GetProgressSnapshots).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/realtime/api-requests", realtimeSyncHandler.GetAPIRequests).Methods("GET", "OPTIONS")
 
-	// Selective sync configuration management (specific routes before parameterized)
-	api.HandleFunc("/sync/configs", handler.CreateSyncConfig).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/configs", handler.ListSyncConfigs).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/configs/{id}", handler.GetSyncConfig).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/configs/{id}", handler.UpdateSyncConfig).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/sync/configs/{id}", handler.DeleteSyncConfig).Methods("DELETE", "OPTIONS")
+	// Selective sync configuration management
+	syncProtected.HandleFunc("/configs", handler.CreateSyncConfig).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/configs", handler.ListSyncConfigs).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/configs/{id}", handler.GetSyncConfig).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/configs/{id}", handler.UpdateSyncConfig).Methods("PUT", "OPTIONS")
+	syncProtected.HandleFunc("/configs/{id}", handler.DeleteSyncConfig).Methods("DELETE", "OPTIONS")
 
 	// Selective sync execution and validation
-	api.HandleFunc("/sync/selective", handler.ExecuteSelectiveSync).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/validate", handler.ValidateSyncConfig).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/schemas", handler.GetFieldSchemas).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/selective", handler.ExecuteSelectiveSync).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/validate", handler.ValidateSyncConfig).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/schemas", handler.GetFieldSchemas).Methods("GET", "OPTIONS")
 
-	// Sync change tracking (specific routes before parameterized)
-	api.HandleFunc("/sync/{id}/changes", handler.GetSyncChanges).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/{id}/summary", handler.GetChangeSummary).Methods("GET", "OPTIONS")
+	// Sync change tracking
+	syncProtected.HandleFunc("/{id}/changes", handler.GetSyncChanges).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/{id}/summary", handler.GetChangeSummary).Methods("GET", "OPTIONS")
 
 	// Sync control endpoints (cancel and status management)
-	api.HandleFunc("/sync/{id}/cancel", syncControlHandler.CancelRunningSync).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/{id}/status", syncControlHandler.UpdateSyncStatus).Methods("PATCH", "OPTIONS")
+	syncProtected.HandleFunc("/{id}/cancel", syncControlHandler.CancelRunningSync).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/{id}/status", syncControlHandler.UpdateSyncStatus).Methods("PATCH", "OPTIONS")
 
-	// Sync schedules (specific routes before parameterized routes)
-	api.HandleFunc("/sync/schedules", scheduleHandler.ListSchedules).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/schedules", scheduleHandler.CreateSchedule).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/schedules/{id}", scheduleHandler.GetSchedule).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/schedules/{id}", scheduleHandler.UpdateSchedule).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/sync/schedules/{id}", scheduleHandler.DeleteSchedule).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/sync/schedules/{id}/toggle", scheduleHandler.ToggleSchedule).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/schedules/{id}/runs", scheduleHandler.ListScheduleRuns).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/schedules/{id}/test", scheduleHandler.TestSchedule).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/scheduler/status", scheduleHandler.GetSchedulerStatus).Methods("GET", "OPTIONS")
+	// Sync schedules
+	syncProtected.HandleFunc("/schedules", scheduleHandler.ListSchedules).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/schedules", scheduleHandler.CreateSchedule).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/schedules/{id}", scheduleHandler.GetSchedule).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/schedules/{id}", scheduleHandler.UpdateSchedule).Methods("PUT", "OPTIONS")
+	syncProtected.HandleFunc("/schedules/{id}", scheduleHandler.DeleteSchedule).Methods("DELETE", "OPTIONS")
+	syncProtected.HandleFunc("/schedules/{id}/toggle", scheduleHandler.ToggleSchedule).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/schedules/{id}/runs", scheduleHandler.ListScheduleRuns).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/schedules/{id}/test", scheduleHandler.TestSchedule).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/scheduler/status", scheduleHandler.GetSchedulerStatus).Methods("GET", "OPTIONS")
 
-	// Sync entity filters (specific routes before parameterized routes)
-	api.HandleFunc("/sync/filters", filterHandler.ListFilters).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/filters", filterHandler.CreateFilter).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/filters/entity-types", filterHandler.GetEntityTypes).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/filters/active", filterHandler.GetActiveFilters).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/filters/by-entity/{entity_type}", filterHandler.GetFiltersByEntityType).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/filters/{id}", filterHandler.GetFilter).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/filters/{id}", filterHandler.UpdateFilter).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/sync/filters/{id}", filterHandler.DeleteFilter).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/sync/filters/{id}/toggle", filterHandler.ToggleFilter).Methods("POST", "OPTIONS")
-	api.HandleFunc("/sync/filters/{id}/test", filterHandler.TestFilter).Methods("POST", "OPTIONS")
+	// Sync entity filters
+	syncProtected.HandleFunc("/filters", filterHandler.ListFilters).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/filters", filterHandler.CreateFilter).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/filters/entity-types", filterHandler.GetEntityTypes).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/filters/active", filterHandler.GetActiveFilters).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/filters/by-entity/{entity_type}", filterHandler.GetFiltersByEntityType).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/filters/{id}", filterHandler.GetFilter).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/filters/{id}", filterHandler.UpdateFilter).Methods("PUT", "OPTIONS")
+	syncProtected.HandleFunc("/filters/{id}", filterHandler.DeleteFilter).Methods("DELETE", "OPTIONS")
+	syncProtected.HandleFunc("/filters/{id}/toggle", filterHandler.ToggleFilter).Methods("POST", "OPTIONS")
+	syncProtected.HandleFunc("/filters/{id}/test", filterHandler.TestFilter).Methods("POST", "OPTIONS")
 
 	// Sync analytics (performance metrics)
-	api.HandleFunc("/sync/analytics", performanceHandler.GetAnalyticsSummary).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/analytics/metrics", performanceHandler.GetMetrics).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/analytics/metrics/{sync_log_id}", performanceHandler.GetMetricsBySyncLog).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/analytics/trends", performanceHandler.GetTrends).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/analytics/bottlenecks", performanceHandler.GetBottlenecks).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/analytics/by-step", performanceHandler.GetStatsByStep).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/analytics/throughput", performanceHandler.GetThroughputStats).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/analytics/aggregations", performanceHandler.GetAggregations).Methods("GET", "OPTIONS")
-	api.HandleFunc("/sync/analytics/export", performanceHandler.ExportMetrics).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics", performanceHandler.GetAnalyticsSummary).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics/metrics", performanceHandler.GetMetrics).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics/metrics/{sync_log_id}", performanceHandler.GetMetricsBySyncLog).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics/trends", performanceHandler.GetTrends).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics/bottlenecks", performanceHandler.GetBottlenecks).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics/by-step", performanceHandler.GetStatsByStep).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics/throughput", performanceHandler.GetThroughputStats).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics/aggregations", performanceHandler.GetAggregations).Methods("GET", "OPTIONS")
+	syncProtected.HandleFunc("/analytics/export", performanceHandler.ExportMetrics).Methods("GET", "OPTIONS")
 
-	// CRUD operations - Products (bulk routes and /full routes must come before {id} routes)
-	api.HandleFunc("/products", handler.CreateProduct).Methods("POST", "OPTIONS")
-	api.HandleFunc("/products/bulk", handler.BulkUpdateProducts).Methods("PATCH", "OPTIONS")
-	api.HandleFunc("/products/bulk", handler.BulkDeleteProducts).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/products/{id}/full", handler.UpdateProductFull).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/products/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/products/{id}", handler.DeleteProduct).Methods("DELETE", "OPTIONS")
+	// ============================================================================
+	// PROTECTED ROUTES - Product CRUD operations (require auth)
+	// ============================================================================
+	productsProtected := api.PathPrefix("/products").Subrouter()
+	productsProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	productsProtected.HandleFunc("", handler.CreateProduct).Methods("POST", "OPTIONS")
+	productsProtected.HandleFunc("/bulk", handler.BulkUpdateProducts).Methods("PATCH", "OPTIONS")
+	productsProtected.HandleFunc("/bulk", handler.BulkDeleteProducts).Methods("DELETE", "OPTIONS")
+	productsProtected.HandleFunc("/{id}/full", handler.UpdateProductFull).Methods("PUT", "OPTIONS")
+	productsProtected.HandleFunc("/{id}", handler.UpdateProduct).Methods("PUT", "OPTIONS")
+	productsProtected.HandleFunc("/{id}", handler.DeleteProduct).Methods("DELETE", "OPTIONS")
 
-	// File upload endpoints
-	api.HandleFunc("/upload/image", handler.UploadImage).Methods("POST", "OPTIONS")
-	api.HandleFunc("/upload/video", handler.UploadVideo).Methods("POST", "OPTIONS")
-	api.HandleFunc("/upload/images", handler.UploadMultipleImages).Methods("POST", "OPTIONS")
-	api.HandleFunc("/upload/image/{uuid}", handler.DeleteUploadedImage).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/upload/video/{uuid}", handler.DeleteUploadedVideo).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/upload/info/{type}/{uuid}", handler.GetUploadedFile).Methods("GET", "OPTIONS")
+	// ============================================================================
+	// PROTECTED ROUTES - ALL /upload/* endpoints require authentication
+	// ============================================================================
+	uploadProtected := api.PathPrefix("/upload").Subrouter()
+	uploadProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	uploadProtected.HandleFunc("/image", handler.UploadImage).Methods("POST", "OPTIONS")
+	uploadProtected.HandleFunc("/video", handler.UploadVideo).Methods("POST", "OPTIONS")
+	uploadProtected.HandleFunc("/images", handler.UploadMultipleImages).Methods("POST", "OPTIONS")
+	uploadProtected.HandleFunc("/image/{uuid}", handler.DeleteUploadedImage).Methods("DELETE", "OPTIONS")
+	uploadProtected.HandleFunc("/video/{uuid}", handler.DeleteUploadedVideo).Methods("DELETE", "OPTIONS")
+	uploadProtected.HandleFunc("/info/{type}/{uuid}", handler.GetUploadedFile).Methods("GET", "OPTIONS")
 
-	// Export endpoints
+	// Public routes - Export endpoints (no auth required for data exports)
 	api.HandleFunc("/export/products", handler.ExportProducts).Methods("GET", "OPTIONS")
 	api.HandleFunc("/export/brands", handler.ExportBrands).Methods("GET", "OPTIONS")
 	api.HandleFunc("/export/categories", handler.ExportCategories).Methods("GET", "OPTIONS")
 
-	// Dashboard endpoints
-	api.HandleFunc("/dashboard/stats", handler.GetDashboardStats).Methods("GET", "OPTIONS")
-	api.HandleFunc("/dashboard/stock-summary", handler.GetStockSummary).Methods("GET", "OPTIONS")
-	api.HandleFunc("/dashboard/price-summary", handler.GetPriceSummary).Methods("GET", "OPTIONS")
+	// ============================================================================
+	// PROTECTED ROUTES - ALL /dashboard/* endpoints require authentication
+	// ============================================================================
+	dashboardProtected := api.PathPrefix("/dashboard").Subrouter()
+	dashboardProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	dashboardProtected.HandleFunc("/stats", handler.GetDashboardStats).Methods("GET", "OPTIONS")
+	dashboardProtected.HandleFunc("/stock-summary", handler.GetStockSummary).Methods("GET", "OPTIONS")
+	dashboardProtected.HandleFunc("/price-summary", handler.GetPriceSummary).Methods("GET", "OPTIONS")
 
-	// Config endpoint
+	// Public route - Config endpoint
 	api.HandleFunc("/config", handler.GetConfig).Methods("GET", "OPTIONS")
 
-	// Translation endpoints
-	api.HandleFunc("/translate/start", translationHandler.StartTranslation).Methods("POST", "OPTIONS")
-	api.HandleFunc("/translate/jobs", translationHandler.ListTranslationJobs).Methods("GET", "OPTIONS")
-	api.HandleFunc("/translate/jobs/{id}", translationHandler.GetTranslationJob).Methods("GET", "OPTIONS")
-	api.HandleFunc("/translate/jobs/{id}/cancel", translationHandler.CancelTranslationJob).Methods("POST", "OPTIONS")
-	api.HandleFunc("/translate/jobs/{id}/logs", translationHandler.GetTranslationLogs).Methods("GET", "OPTIONS")
-	api.HandleFunc("/translate/stats", translationHandler.GetTranslationStats).Methods("GET", "OPTIONS")
-	api.HandleFunc("/translate/stream/{id}", translationHandler.StreamTranslationProgress).Methods("GET", "OPTIONS")
+	// ============================================================================
+	// PROTECTED ROUTES - ALL /translate/* endpoints require authentication
+	// ============================================================================
+	translateProtected := api.PathPrefix("/translate").Subrouter()
+	translateProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	translateProtected.HandleFunc("/start", translationHandler.StartTranslation).Methods("POST", "OPTIONS")
+	translateProtected.HandleFunc("/jobs", translationHandler.ListTranslationJobs).Methods("GET", "OPTIONS")
+	translateProtected.HandleFunc("/jobs/{id}", translationHandler.GetTranslationJob).Methods("GET", "OPTIONS")
+	translateProtected.HandleFunc("/jobs/{id}/cancel", translationHandler.CancelTranslationJob).Methods("POST", "OPTIONS")
+	translateProtected.HandleFunc("/jobs/{id}/logs", translationHandler.GetTranslationLogs).Methods("GET", "OPTIONS")
+	translateProtected.HandleFunc("/stats", translationHandler.GetTranslationStats).Methods("GET", "OPTIONS")
+	translateProtected.HandleFunc("/stream/{id}", translationHandler.StreamTranslationProgress).Methods("GET", "OPTIONS")
 
-	// Variant generation endpoints
-	api.HandleFunc("/variants/generate", variantHandler.TriggerGeneration).Methods("POST", "OPTIONS")
+	// Public GET routes - Variants
 	api.HandleFunc("/variants/status", variantHandler.GetGenerationStatus).Methods("GET", "OPTIONS")
 	api.HandleFunc("/variants/stats", variantHandler.GetStats).Methods("GET", "OPTIONS")
 	api.HandleFunc("/variants/jobs", variantHandler.ListJobs).Methods("GET", "OPTIONS")
 	api.HandleFunc("/variants/jobs/{id}", variantHandler.GetJob).Methods("GET", "OPTIONS")
-	api.HandleFunc("/variants/jobs/{id}/cancel", variantHandler.CancelJob).Methods("POST", "OPTIONS")
 	api.HandleFunc("/variants/groups", variantHandler.ListGroups).Methods("GET", "OPTIONS")
 	api.HandleFunc("/variants/groups/{id}", variantHandler.GetGroup).Methods("GET", "OPTIONS")
-	api.HandleFunc("/variants/groups/{id}", variantHandler.DeleteGroup).Methods("DELETE", "OPTIONS")
 	api.HandleFunc("/variants/stream/{id}", variantHandler.StreamProgress).Methods("GET", "OPTIONS")
 
-	// Promotion endpoints
+	// Protected routes - Variants (require auth)
+	variantsProtected := api.PathPrefix("/variants").Subrouter()
+	variantsProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	variantsProtected.HandleFunc("/generate", variantHandler.TriggerGeneration).Methods("POST", "OPTIONS")
+	variantsProtected.HandleFunc("/jobs/{id}/cancel", variantHandler.CancelJob).Methods("POST", "OPTIONS")
+	variantsProtected.HandleFunc("/groups/{id}", variantHandler.DeleteGroup).Methods("DELETE", "OPTIONS")
+
+	// Public GET routes - Promotions
 	api.HandleFunc("/promotions", promotionHandler.ListPromotions).Methods("GET", "OPTIONS")
-	api.HandleFunc("/promotions", promotionHandler.CreatePromotion).Methods("POST", "OPTIONS")
 	api.HandleFunc("/promotions/{id}", promotionHandler.GetPromotion).Methods("GET", "OPTIONS")
-	api.HandleFunc("/promotions/{id}", promotionHandler.UpdatePromotion).Methods("PUT", "OPTIONS")
-	api.HandleFunc("/promotions/{id}", promotionHandler.DeletePromotion).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/promotions/{id}/toggle", promotionHandler.TogglePromotion).Methods("POST", "OPTIONS")
 	api.HandleFunc("/promotions/{id}/products", promotionHandler.GetPromotionProducts).Methods("GET", "OPTIONS")
-	api.HandleFunc("/promotions/{id}/products", promotionHandler.AddProductsToPromotion).Methods("POST", "OPTIONS")
-	api.HandleFunc("/promotions/{id}/products", promotionHandler.RemoveProductsFromPromotion).Methods("DELETE", "OPTIONS")
-	api.HandleFunc("/promotions/{id}/products/bulk", promotionHandler.BulkAddProductsByFilter).Methods("POST", "OPTIONS")
+
+	// Protected routes - Promotions (require auth)
+	promotionsProtected := api.PathPrefix("/promotions").Subrouter()
+	promotionsProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	promotionsProtected.HandleFunc("", promotionHandler.CreatePromotion).Methods("POST", "OPTIONS")
+	promotionsProtected.HandleFunc("/{id}", promotionHandler.UpdatePromotion).Methods("PUT", "OPTIONS")
+	promotionsProtected.HandleFunc("/{id}", promotionHandler.DeletePromotion).Methods("DELETE", "OPTIONS")
+	promotionsProtected.HandleFunc("/{id}/toggle", promotionHandler.TogglePromotion).Methods("POST", "OPTIONS")
+	promotionsProtected.HandleFunc("/{id}/products", promotionHandler.AddProductsToPromotion).Methods("POST", "OPTIONS")
+	promotionsProtected.HandleFunc("/{id}/products", promotionHandler.RemoveProductsFromPromotion).Methods("DELETE", "OPTIONS")
+	promotionsProtected.HandleFunc("/{id}/products/bulk", promotionHandler.BulkAddProductsByFilter).Methods("POST", "OPTIONS")
 
 	// Smart Search endpoints (Meilisearch)
 	if searchHandler != nil {
+		// Public GET routes - Smart Search
 		api.HandleFunc("/smart-search", searchHandler.SmartSearch).Methods("GET", "OPTIONS")
 		api.HandleFunc("/smart-search/autocomplete", searchHandler.Autocomplete).Methods("GET", "OPTIONS")
 		api.HandleFunc("/smart-search/compare", searchHandler.CompareSearch).Methods("GET", "OPTIONS")
 		api.HandleFunc("/smart-search/status", searchHandler.GetIndexStatus).Methods("GET", "OPTIONS")
-		api.HandleFunc("/smart-search/reindex", searchHandler.TriggerReindex).Methods("POST", "OPTIONS")
+
+		// Protected routes - Smart Search reindex (require auth)
+		smartSearchProtected := api.PathPrefix("/smart-search").Subrouter()
+		smartSearchProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+		smartSearchProtected.HandleFunc("/reindex", searchHandler.TriggerReindex).Methods("POST", "OPTIONS")
 	}
 
 	// Health check

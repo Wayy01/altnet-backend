@@ -132,8 +132,14 @@ import {
   SearchComparisonResponse,
   SearchIndexStatus,
 } from "@/types/search";
+import {
+  AdminUser,
+  LoginRequest,
+  LoginResponse,
+} from "@/types/auth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const TOKEN_KEY = "auth_token";
 
 class ApiClient {
   private baseUrl: string;
@@ -142,15 +148,52 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  private getToken(): string | null {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_KEY);
+  }
+
+  private setToken(token: string): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(TOKEN_KEY, token);
+    // Also set as cookie for middleware
+    document.cookie = `${TOKEN_KEY}=${token}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
+  }
+
+  private removeToken(): void {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(TOKEN_KEY);
+    // Remove cookie
+    document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT`;
+  }
+
   private async fetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const token = this.getToken();
+
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    };
+
+    // Add Authorization header if token exists
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
+      headers,
     });
+
+    // Handle 401 Unauthorized - clear auth and redirect to login
+    if (response.status === 401) {
+      this.removeToken();
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      throw new Error("Unauthorized - please login again");
+    }
 
     if (!response.ok) {
       let errorBody = '';
@@ -164,6 +207,53 @@ class ApiClient {
     }
 
     return response.json();
+  }
+
+  // ============================================================================
+  // AUTHENTICATION METHODS
+  // ============================================================================
+
+  /**
+   * Login with username and password
+   */
+  async login(username: string, password: string): Promise<LoginResponse> {
+    const payload: LoginRequest = { username, password };
+    const response = await this.fetch<LoginResponse>(
+      "/api/v1/auth/login",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
+
+    // Store token
+    this.setToken(response.token);
+
+    return response;
+  }
+
+  /**
+   * Logout - clear token
+   */
+  logout(): void {
+    this.removeToken();
+  }
+
+  /**
+   * Get current authenticated user
+   */
+  async getCurrentUser(): Promise<AdminUser> {
+    const response = await this.fetch<{ data: AdminUser }>(
+      "/api/v1/auth/me"
+    );
+    return response.data;
+  }
+
+  /**
+   * Check if user is authenticated (has valid token)
+   */
+  isAuthenticated(): boolean {
+    return this.getToken() !== null;
   }
 
   // Products

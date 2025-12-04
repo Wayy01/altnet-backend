@@ -478,3 +478,16 @@ const (
 	LangRussian  = "ru"
 	LangRomanian = "ro"
 )
+
+// ============================================================================
+// ADMIN USERS
+// ============================================================================
+
+// AdminUser represents an admin user in the system
+type AdminUser struct {
+	ID           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
+	PasswordHash string    `json:"-"` // Never expose password hash in JSON
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}

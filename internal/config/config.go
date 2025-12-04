@@ -17,6 +17,7 @@ type Config struct {
 	LibreTranslate LibreTranslateConfig
 	Ollama         OllamaConfig
 	Meilisearch    MeilisearchConfig
+	JWT            JWTConfig
 }
 
 // MeilisearchConfig holds configuration for Meilisearch smart search
@@ -24,6 +25,12 @@ type MeilisearchConfig struct {
 	URL       string
 	MasterKey string
 	IndexName string
+}
+
+// JWTConfig holds configuration for JWT authentication
+type JWTConfig struct {
+	Secret     string
+	Expiration time.Duration
 }
 
 // OllamaConfig holds configuration for Ollama AI integration
@@ -113,6 +120,10 @@ func Load() (*Config, error) {
 			MasterKey: getEnv("MEILISEARCH_MASTER_KEY", ""),
 			IndexName: getEnv("MEILISEARCH_INDEX_NAME", "products"),
 		},
+		JWT: JWTConfig{
+			Secret:     getEnv("JWT_SECRET", ""),
+			Expiration: getDuration("JWT_EXPIRATION", 24*time.Hour),
+		},
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -131,6 +142,9 @@ func (c *Config) Validate() error {
 	}
 	if c.Ultra.Password == "" {
 		return fmt.Errorf("ULTRA_API_PASSWORD is required")
+	}
+	if c.JWT.Secret == "" {
+		return fmt.Errorf("JWT_SECRET is required for authentication")
 	}
 	// DB_PASSWORD not required for local trust authentication
 	return nil
