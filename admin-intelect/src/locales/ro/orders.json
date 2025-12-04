@@ -1,0 +1,108 @@
+{
+  "page": {
+    "title": "Comenzi",
+    "description": "Gestionarea comenzilor clienților și urmărirea livrărilor"
+  },
+  "filters": {
+    "search": "Căutare după număr comandă, nume client, telefon...",
+    "status": "Status",
+    "allStatuses": "Toate Statusurile",
+    "dateFrom": "De la data",
+    "dateTo": "Până la data",
+    "clearFilters": "Șterge Filtrele",
+    "title": "Căutare și Filtrare Comenzi"
+  },
+  "table": {
+    "orderNumber": "Comandă №",
+    "customer": "Client",
+    "total": "Total",
+    "status": "Status",
+    "payment": "Plată",
+    "delivery": "Livrare",
+    "date": "Data",
+    "actions": "Acțiuni"
+  },
+  "status": {
+    "pending": "În Așteptare",
+    "confirmed": "Confirmată",
+    "processing": "În Procesare",
+    "shipped": "Expediată",
+    "delivered": "Livrată",
+    "cancelled": "Anulată"
+  },
+  "paymentMethod": {
+    "card": "Card",
+    "bank_transfer": "Transfer Bancar",
+    "cash": "Numerar"
+  },
+  "deliveryType": {
+    "pickup": "Ridicare",
+    "delivery": "Livrare"
+  },
+  "detail": {
+    "title": "Comandă",
+    "placedOn": "Plasată pe",
+    "orderItems": "Produse din comandă",
+    "product": "Produs",
+    "quantity": "Cantitate",
+    "unitPrice": "Preț Unitar",
+    "total": "Total",
+    "deliveryInfo": "Informații Livrare",
+    "pickupInfo": "Informații Ridicare",
+    "address": "Adresă",
+    "pickupLocation": "Locație Ridicare",
+    "orderNotes": "Notițe Comandă",
+    "customerInfo": "Informații Client",
+    "paymentInfo": "Informații Plată",
+    "orderStatus": "Status Comandă",
+    "currentStatus": "Status Curent",
+    "updateStatus": "Actualizează Status",
+    "updatingStatus": "Actualizare status...",
+    "created": "Creat",
+    "updated": "Actualizat",
+    "adminComments": "Comentarii Administrator",
+    "addComment": "Adaugă Comentariu",
+    "addingComment": "Se adaugă...",
+    "commentPlaceholder": "Adaugă un comentariu despre această comandă...",
+    "noComments": "Încă nu există comentarii",
+    "revertToPending": "Puteți reveni această comandă la în așteptare",
+    "sku": "Cod Produs"
+  },
+  "stats": {
+    "total": "Total",
+    "pending": "În Așteptare",
+    "revenue": "Venit",
+    "filtered": "(filtrate)",
+    "onPage": "(pe pagină)"
+  },
+  "empty": {
+    "title": "Nu s-au găsit comenzi",
+    "description": "Nu există comenzi care să corespundă filtrelor dumneavoastră"
+  },
+  "actions": {
+    "view": "Vezi",
+    "viewDetails": "Vezi Detalii",
+    "export": "Export CSV",
+    "delete": "Șterge"
+  },
+  "dialog": {
+    "deleteTitle": "Șterge Comanda",
+    "deleteDescription": "Sigur doriți să ștergeți comanda {{orderNumber}}? Această acțiune nu poate fi anulată.",
+    "confirmDelete": "Șterge"
+  },
+  "toast": {
+    "statusUpdated": "Statusul comenzii a fost actualizat cu succes",
+    "statusError": "Eșec la actualizarea statusului comenzii",
+    "commentAdded": "Comentariul a fost adăugat cu succes",
+    "commentError": "Eșec la adăugarea comentariului",
+    "deleted": "Comanda a fost ștearsă cu succes",
+    "deleteError": "Eșec la ștergerea comenzii"
+  },
+  "error": {
+    "title": "Ceva nu a mers bine",
+    "notFound": "Comanda nu a fost găsită",
+    "failedToLoad": "Eșec la încărcarea comenzilor. Asigurați-vă că API-ul Go backend este pornit.",
+    "failedToLoadDetail": "Eșec la încărcarea detaliilor comenzii",
+    "backToOrders": "Înapoi la Comenzi"
+  }
+}

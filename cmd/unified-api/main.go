@@ -70,6 +70,8 @@ func main() {
 	filterRepo := repository.NewFilterRepository(db.Pool)
 	promotionRepo := repository.NewPromotionRepository(db.Pool)
 	adminUserRepo := repository.NewAdminUserRepository(db.Pool)
+	storeRepo := repository.NewStoreRepository(db.Pool)
+	orderRepo := repository.NewOrderRepository(db.Pool)
 
 	// Create variant repository early so it can be passed to main handler
 	variantRepo := variants.NewRepository(db.Pool)
@@ -83,6 +85,9 @@ func main() {
 	filterHandler := handlers.NewFilterHandler(filterRepo)
 	promotionHandler := handlers.NewPromotionHandler(promotionRepo, repo)
 	authHandler := handlers.NewAuthHandler(adminUserRepo, cfg.JWT.Secret, cfg.JWT.Expiration)
+	storeHandler := handlers.NewStoreHandler(storeRepo)
+	orderHandler := handlers.NewOrderHandler(orderRepo)
+	publicOrderHandler := handlers.NewPublicOrderHandler(orderRepo, storeRepo)
 
 	// Initialize Ollama client for AI-powered variant grouping
 	ollamaClient := ollama.NewClient(ollama.Config{
@@ -168,7 +173,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, cfg)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, storeHandler, orderHandler, publicOrderHandler, cfg)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -228,7 +233,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, cfg *config.Config) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, storeHandler *handlers.StoreHandler, orderHandler *handlers.OrderHandler, publicOrderHandler *handlers.PublicOrderHandler, cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -501,6 +506,46 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	promotionsProtected.HandleFunc("/{id}/products", promotionHandler.AddProductsToPromotion).Methods("POST", "OPTIONS")
 	promotionsProtected.HandleFunc("/{id}/products", promotionHandler.RemoveProductsFromPromotion).Methods("DELETE", "OPTIONS")
 	promotionsProtected.HandleFunc("/{id}/products/bulk", promotionHandler.BulkAddProductsByFilter).Methods("POST", "OPTIONS")
+
+	// ============================================================================
+	// PUBLIC ROUTES - Order Management (No Authentication)
+	// ============================================================================
+	publicAPI := api.PathPrefix("/public").Subrouter()
+
+	// Public order endpoints
+	publicAPI.HandleFunc("/orders", publicOrderHandler.CreateOrder).Methods("POST", "OPTIONS")
+	publicAPI.HandleFunc("/orders/{order_number}", publicOrderHandler.TrackOrder).Methods("GET", "OPTIONS")
+
+	// Public store endpoints
+	publicAPI.HandleFunc("/stores", publicOrderHandler.ListActiveStores).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/stores/{id}", publicOrderHandler.GetStorePublic).Methods("GET", "OPTIONS")
+
+	// ============================================================================
+	// PROTECTED ROUTES - Store Management (Admin Only)
+	// ============================================================================
+	storesProtected := api.PathPrefix("/stores").Subrouter()
+	storesProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	storesProtected.HandleFunc("", storeHandler.ListStores).Methods("GET", "OPTIONS")
+	storesProtected.HandleFunc("", storeHandler.CreateStore).Methods("POST", "OPTIONS")
+	storesProtected.HandleFunc("/{id}", storeHandler.GetStore).Methods("GET", "OPTIONS")
+	storesProtected.HandleFunc("/{id}", storeHandler.UpdateStore).Methods("PUT", "OPTIONS")
+	storesProtected.HandleFunc("/{id}", storeHandler.DeleteStore).Methods("DELETE", "OPTIONS")
+	storesProtected.HandleFunc("/{id}/toggle", storeHandler.ToggleStore).Methods("PATCH", "OPTIONS")
+
+	// ============================================================================
+	// PROTECTED ROUTES - Order Management (Admin Only)
+	// ============================================================================
+	ordersProtected := api.PathPrefix("/orders").Subrouter()
+	ordersProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	ordersProtected.HandleFunc("", orderHandler.ListOrders).Methods("GET", "OPTIONS")
+	ordersProtected.HandleFunc("/stats", orderHandler.GetOrderStats).Methods("GET", "OPTIONS")
+	ordersProtected.HandleFunc("/export", orderHandler.ExportOrders).Methods("GET", "OPTIONS")
+	ordersProtected.HandleFunc("/{id}", orderHandler.GetOrder).Methods("GET", "OPTIONS")
+	ordersProtected.HandleFunc("/{id}", orderHandler.UpdateOrder).Methods("PUT", "OPTIONS")
+	ordersProtected.HandleFunc("/{id}/status", orderHandler.UpdateOrderStatus).Methods("PATCH", "OPTIONS")
+	ordersProtected.HandleFunc("/{id}", orderHandler.DeleteOrder).Methods("DELETE", "OPTIONS")
+	ordersProtected.HandleFunc("/{id}/comments", orderHandler.GetOrderComments).Methods("GET", "OPTIONS")
+	ordersProtected.HandleFunc("/{id}/comments", orderHandler.CreateOrderComment).Methods("POST", "OPTIONS")
 
 	// Smart Search endpoints (Meilisearch)
 	if searchHandler != nil {

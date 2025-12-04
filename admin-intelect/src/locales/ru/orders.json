@@ -1,0 +1,108 @@
+{
+  "page": {
+    "title": "Заказы",
+    "description": "Управление заказами клиентов и отслеживание выполнения"
+  },
+  "filters": {
+    "search": "Поиск по номеру заказа, имени, телефону...",
+    "status": "Статус",
+    "allStatuses": "Все статусы",
+    "dateFrom": "С даты",
+    "dateTo": "По дату",
+    "clearFilters": "Очистить фильтры",
+    "title": "Поиск и фильтр заказов"
+  },
+  "table": {
+    "orderNumber": "Заказ №",
+    "customer": "Клиент",
+    "total": "Итого",
+    "status": "Статус",
+    "payment": "Оплата",
+    "delivery": "Доставка",
+    "date": "Дата",
+    "actions": "Действия"
+  },
+  "status": {
+    "pending": "Ожидание",
+    "confirmed": "Подтвержден",
+    "processing": "В обработке",
+    "shipped": "Отправлен",
+    "delivered": "Доставлен",
+    "cancelled": "Отменен"
+  },
+  "paymentMethod": {
+    "card": "Карта",
+    "bank_transfer": "Банковский перевод",
+    "cash": "Наличные"
+  },
+  "deliveryType": {
+    "pickup": "Самовывоз",
+    "delivery": "Доставка"
+  },
+  "detail": {
+    "title": "Заказ",
+    "placedOn": "Размещен",
+    "orderItems": "Товары заказа",
+    "product": "Товар",
+    "quantity": "Количество",
+    "unitPrice": "Цена за ед.",
+    "total": "Итого",
+    "deliveryInfo": "Информация о доставке",
+    "pickupInfo": "Информация о самовывозе",
+    "address": "Адрес",
+    "pickupLocation": "Место самовывоза",
+    "orderNotes": "Примечания к заказу",
+    "customerInfo": "Информация о клиенте",
+    "paymentInfo": "Информация об оплате",
+    "orderStatus": "Статус заказа",
+    "currentStatus": "Текущий статус",
+    "updateStatus": "Изменить статус",
+    "updatingStatus": "Обновление статуса...",
+    "created": "Создан",
+    "updated": "Обновлен",
+    "adminComments": "Комментарии администратора",
+    "addComment": "Добавить комментарий",
+    "addingComment": "Добавление...",
+    "commentPlaceholder": "Добавить комментарий к заказу...",
+    "noComments": "Пока нет комментариев",
+    "revertToPending": "Вы можете вернуть этот заказ в статус ожидания",
+    "sku": "Артикул"
+  },
+  "stats": {
+    "total": "Всего",
+    "pending": "Ожидают",
+    "revenue": "Выручка",
+    "filtered": "(отфильтровано)",
+    "onPage": "(на странице)"
+  },
+  "empty": {
+    "title": "Заказы не найдены",
+    "description": "Нет заказов, соответствующих вашим фильтрам"
+  },
+  "actions": {
+    "view": "Просмотр",
+    "viewDetails": "Посмотреть детали",
+    "export": "Экспорт CSV",
+    "delete": "Удалить"
+  },
+  "dialog": {
+    "deleteTitle": "Удалить заказ",
+    "deleteDescription": "Вы уверены, что хотите удалить заказ {{orderNumber}}? Это действие нельзя отменить.",
+    "confirmDelete": "Удалить"
+  },
+  "toast": {
+    "statusUpdated": "Статус заказа успешно обновлен",
+    "statusError": "Не удалось обновить статус заказа",
+    "commentAdded": "Комментарий успешно добавлен",
+    "commentError": "Не удалось добавить комментарий",
+    "deleted": "Заказ успешно удален",
+    "deleteError": "Не удалось удалить заказ"
+  },
+  "error": {
+    "title": "Что-то пошло не так",
+    "notFound": "Заказ не найден",
+    "failedToLoad": "Не удалось загрузить заказы. Убедитесь, что Go бэкенд API запущен.",
+    "failedToLoadDetail": "Не удалось загрузить детали заказа",
+    "backToOrders": "Вернуться к заказам"
+  }
+}

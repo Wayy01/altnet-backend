@@ -137,6 +137,21 @@ import {
   LoginRequest,
   LoginResponse,
 } from "@/types/auth";
+import {
+  Store,
+  StoreInput,
+  StoresListResponse,
+} from "@/types/stores";
+import {
+  Order,
+  OrderWithItems,
+  OrderStatus,
+  OrderFilters,
+  OrdersListResponse,
+  OrderStats,
+  UpdateOrderInput,
+  OrderComment,
+} from "@/types/orders";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const TOKEN_KEY = "auth_token";
@@ -2085,6 +2100,239 @@ class ApiClient {
    */
   getVariantStreamUrl(jobId: string): string {
     return `${this.baseUrl}/api/v1/variants/stream/${jobId}`;
+  }
+
+  // ============================================================================
+  // STORES METHODS
+  // ============================================================================
+
+  /**
+   * List all stores with pagination
+   */
+  async getStores(
+    activeOnly = false,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: Store[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+    if (activeOnly) {
+      params.append("active_only", "true");
+    }
+
+    const response = await this.fetch<StoresListResponse>(
+      `/api/v1/stores?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single store by ID
+   */
+  async getStore(id: string): Promise<Store> {
+    const response = await this.fetch<{ data: Store }>(
+      `/api/v1/stores/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Create a new store
+   */
+  async createStore(input: StoreInput): Promise<Store> {
+    const response = await this.fetch<{ data: Store }>(
+      `/api/v1/stores`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing store
+   */
+  async updateStore(id: string, input: StoreInput): Promise<Store> {
+    const response = await this.fetch<{ data: Store }>(
+      `/api/v1/stores/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a store
+   */
+  async deleteStore(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/stores/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Toggle store active status
+   */
+  async toggleStore(id: string): Promise<Store> {
+    const response = await this.fetch<{ data: Store }>(
+      `/api/v1/stores/${id}/toggle`,
+      {
+        method: "PATCH",
+      }
+    );
+    return response.data;
+  }
+
+  // ============================================================================
+  // ORDERS METHODS
+  // ============================================================================
+
+  /**
+   * List all orders with filters and pagination
+   */
+  async getOrders(
+    filters?: OrderFilters,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: Order[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.payment_method) params.append("payment_method", filters.payment_method);
+    if (filters?.delivery_type) params.append("delivery_type", filters.delivery_type);
+    if (filters?.store_id) params.append("store_id", filters.store_id);
+    if (filters?.date_from) params.append("date_from", filters.date_from);
+    if (filters?.date_to) params.append("date_to", filters.date_to);
+
+    const response = await this.fetch<OrdersListResponse>(
+      `/api/v1/orders?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single order by ID with items
+   */
+  async getOrder(id: string): Promise<OrderWithItems> {
+    const response = await this.fetch<{ data: OrderWithItems }>(
+      `/api/v1/orders/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing order
+   */
+  async updateOrder(id: string, input: UpdateOrderInput): Promise<Order> {
+    const response = await this.fetch<{ data: Order }>(
+      `/api/v1/orders/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update order status only
+   */
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
+    const response = await this.fetch<{ data: Order }>(
+      `/api/v1/orders/${id}/status`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete an order
+   */
+  async deleteOrder(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/orders/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Get order statistics
+   */
+  async getOrderStats(): Promise<OrderStats> {
+    const response = await this.fetch<{ data: OrderStats }>(
+      `/api/v1/orders/stats`
+    );
+    return response.data;
+  }
+
+  /**
+   * Export orders to CSV
+   */
+  async exportOrders(filters?: OrderFilters): Promise<Blob> {
+    const params = new URLSearchParams();
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.payment_method) params.append("payment_method", filters.payment_method);
+    if (filters?.delivery_type) params.append("delivery_type", filters.delivery_type);
+    if (filters?.store_id) params.append("store_id", filters.store_id);
+    if (filters?.date_from) params.append("date_from", filters.date_from);
+    if (filters?.date_to) params.append("date_to", filters.date_to);
+
+    const url = `${this.baseUrl}/api/v1/orders/export?${params.toString()}`;
+    const token = this.getToken();
+
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { "Authorization": `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.statusText}`);
+    }
+
+    return response.blob();
+  }
+
+  /**
+   * Get order comments
+   */
+  async getOrderComments(orderId: string): Promise<OrderComment[]> {
+    const response = await this.fetch<{ data: OrderComment[] }>(
+      `/api/v1/orders/${orderId}/comments`
+    );
+    return response.data || [];
+  }
+
+  /**
+   * Create order comment
+   */
+  async createOrderComment(orderId: string, content: string): Promise<OrderComment> {
+    const response = await this.fetch<{ data: OrderComment }>(
+      `/api/v1/orders/${orderId}/comments`,
+      {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }
+    );
+    return response.data;
   }
 
   // ============================================================================

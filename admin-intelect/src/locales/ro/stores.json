@@ -1,0 +1,82 @@
+{
+  "page": {
+    "title": "Magazine",
+    "description": "Gestionarea locațiilor de ridicare pentru comenzile clienților",
+    "createTitle": "Magazin Nou",
+    "createDescription": "Adăugați o nouă locație de ridicare pentru comenzile clienților",
+    "editTitle": "Editare Magazin",
+    "editDescription": "Actualizați informațiile despre magazin"
+  },
+  "table": {
+    "name": "Nume",
+    "address": "Adresă",
+    "status": "Status",
+    "actions": "Acțiuni"
+  },
+  "status": {
+    "active": "Activ",
+    "inactive": "Inactiv"
+  },
+  "form": {
+    "basicInfo": "Informații de Bază",
+    "name": "Nume Magazin",
+    "namePlaceholder": "Magazin Centru",
+    "nameRequired": "Numele magazinului este obligatoriu",
+    "address": "Adresă",
+    "addressPlaceholder": "Str. Principală 123, Chișinău, Moldova",
+    "addressRequired": "Adresa este obligatorie",
+    "googleMapsUrl": "URL Google Maps",
+    "googleMapsPlaceholder": "https://maps.google.com/...",
+    "isActive": "Activ (disponibil pentru ridicare de către clienți)",
+    "media": "Media",
+    "images": "Imagini Magazin",
+    "videos": "Video Magazin",
+    "clickToUploadImages": "Click pentru încărcare imagini",
+    "clickToUploadVideo": "Click pentru încărcare video",
+    "uploading": "Se încarcă...",
+    "required": "*"
+  },
+  "stats": {
+    "totalStores": "Total Magazine",
+    "active": "Active"
+  },
+  "actions": {
+    "create": "Creează Magazin",
+    "creating": "Se creează...",
+    "save": "Salvează Modificările",
+    "saving": "Se salvează...",
+    "edit": "Editează",
+    "delete": "Șterge",
+    "cancel": "Anulează",
+    "activate": "Activează",
+    "deactivate": "Dezactivează",
+    "newStore": "Magazin Nou"
+  },
+  "empty": {
+    "title": "Încă nu există magazine",
+    "description": "Adăugați prima locație de ridicare pentru a începe"
+  },
+  "dialog": {
+    "deleteTitle": "Șterge Magazin",
+    "deleteDescription": "Sigur doriți să ștergeți {{storeName}}? Această acțiune nu poate fi anulată.",
+    "confirmDelete": "Șterge"
+  },
+  "toast": {
+    "created": "Magazinul a fost creat cu succes",
+    "updated": "Magazinul a fost actualizat cu succes",
+    "deleted": "Magazinul a fost șters cu succes",
+    "activated": "Magazin activat",
+    "deactivated": "Magazin dezactivat",
+    "error": "A apărut o eroare",
+    "toggleError": "Eșec la schimbarea statusului magazinului",
+    "imagesUploaded": "{{count}} imagine(i) încărcate cu succes",
+    "imageUploadError": "Eșec la încărcarea imaginilor",
+    "videoUploaded": "Video încărcat cu succes",
+    "videoUploadError": "Eșec la încărcarea video-ului",
+    "loadError": "Eșec la încărcarea magazinului"
+  },
+  "error": {
+    "title": "Ceva nu a mers bine",
+    "failedToLoad": "Eșec la încărcarea magazinelor. Asigurați-vă că API-ul Go backend este pornit."
+  }
+}

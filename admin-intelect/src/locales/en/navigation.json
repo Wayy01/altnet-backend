@@ -9,6 +9,8 @@
     "brands": "Brands",
     "categories": "Categories",
     "searchTest": "Search Test",
+    "orders": "Orders",
+    "stores": "Stores",
     "settings": "Settings"
   },
   "sections": {
@@ -49,6 +51,8 @@
     "brands": "Brand management",
     "categories": "Category hierarchy",
     "searchTest": "Test smart search quality",
+    "orders": "Manage customer orders",
+    "stores": "Manage pickup locations",
     "syncOverview": "Sync status & logs",
     "selectiveSync": "Custom sync operations",
     "configurations": "Sync templates",

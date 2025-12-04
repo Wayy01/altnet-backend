@@ -1036,3 +1036,10 @@ export interface TranslationLogsResponse {
 export interface TranslationStatsResponse {
   data: TranslationStats;
 }
+
+// ============================================================================
+// RE-EXPORTS FROM SEPARATE TYPE FILES
+// ============================================================================
+
+export * from './stores';
+export * from './orders';

@@ -9,6 +9,8 @@
     "brands": "Marci",
     "categories": "Categorii",
     "searchTest": "Test căutare",
+    "orders": "Comenzi",
+    "stores": "Magazine",
     "settings": "Setari"
   },
   "sections": {
@@ -49,6 +51,8 @@
     "brands": "Gestionare marci",
     "categories": "Ierarhie categorii",
     "searchTest": "Testează calitatea căutării inteligente",
+    "orders": "Gestioneaza comenzile clientilor",
+    "stores": "Gestioneaza punctele de ridicare",
     "syncOverview": "Stare sincronizare si jurnale",
     "selectiveSync": "Operatiuni de sincronizare personalizate",
     "configurations": "Sabloane de sincronizare",

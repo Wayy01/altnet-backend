@@ -25,6 +25,8 @@ import {
   Layers,
   Tag,
   Search,
+  ShoppingCart,
+  Store,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -163,6 +165,18 @@ export function AppSidebar() {
       url: "/search-test",
       icon: Search,
       descriptionKey: "descriptions.searchTest",
+    },
+    {
+      titleKey: "menu.orders",
+      url: "/orders",
+      icon: ShoppingCart,
+      descriptionKey: "descriptions.orders",
+    },
+    {
+      titleKey: "menu.stores",
+      url: "/stores",
+      icon: Store,
+      descriptionKey: "descriptions.stores",
     },
   ];
 

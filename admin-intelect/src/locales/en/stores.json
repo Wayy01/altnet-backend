@@ -1,0 +1,82 @@
+{
+  "page": {
+    "title": "Stores",
+    "description": "Manage pickup locations for customer orders",
+    "createTitle": "New Store",
+    "createDescription": "Add a new pickup location for customer orders",
+    "editTitle": "Edit Store",
+    "editDescription": "Update store information"
+  },
+  "table": {
+    "name": "Name",
+    "address": "Address",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "form": {
+    "basicInfo": "Basic Information",
+    "name": "Store Name",
+    "namePlaceholder": "Downtown Store",
+    "nameRequired": "Store name is required",
+    "address": "Address",
+    "addressPlaceholder": "123 Main Street, Chisinau, Moldova",
+    "addressRequired": "Address is required",
+    "googleMapsUrl": "Google Maps URL",
+    "googleMapsPlaceholder": "https://maps.google.com/...",
+    "isActive": "Active (available for customer pickup)",
+    "media": "Media",
+    "images": "Store Images",
+    "videos": "Store Videos",
+    "clickToUploadImages": "Click to upload images",
+    "clickToUploadVideo": "Click to upload video",
+    "uploading": "Uploading...",
+    "required": "*"
+  },
+  "stats": {
+    "totalStores": "Total Stores",
+    "active": "Active"
+  },
+  "actions": {
+    "create": "Create Store",
+    "creating": "Creating...",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "newStore": "New Store"
+  },
+  "empty": {
+    "title": "No stores yet",
+    "description": "Add your first pickup location to get started"
+  },
+  "dialog": {
+    "deleteTitle": "Delete Store",
+    "deleteDescription": "Are you sure you want to delete {{storeName}}? This action cannot be undone.",
+    "confirmDelete": "Delete"
+  },
+  "toast": {
+    "created": "Store created successfully",
+    "updated": "Store updated successfully",
+    "deleted": "Store deleted successfully",
+    "activated": "Store activated",
+    "deactivated": "Store deactivated",
+    "error": "An error occurred",
+    "toggleError": "Failed to toggle store status",
+    "imagesUploaded": "{{count}} image(s) uploaded successfully",
+    "imageUploadError": "Failed to upload images",
+    "videoUploaded": "Video uploaded successfully",
+    "videoUploadError": "Failed to upload video",
+    "loadError": "Failed to load store"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "failedToLoad": "Failed to load stores. Make sure the Go backend API is running."
+  }
+}

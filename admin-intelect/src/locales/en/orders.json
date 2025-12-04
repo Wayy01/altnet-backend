@@ -1,0 +1,108 @@
+{
+  "page": {
+    "title": "Orders",
+    "description": "Manage customer orders and track fulfillment"
+  },
+  "filters": {
+    "search": "Search by order number, customer name, phone...",
+    "status": "Status",
+    "allStatuses": "All Statuses",
+    "dateFrom": "From date",
+    "dateTo": "To date",
+    "clearFilters": "Clear Filters",
+    "title": "Search & Filter Orders"
+  },
+  "table": {
+    "orderNumber": "Order #",
+    "customer": "Customer",
+    "total": "Total",
+    "status": "Status",
+    "payment": "Payment",
+    "delivery": "Delivery",
+    "date": "Date",
+    "actions": "Actions"
+  },
+  "status": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "processing": "Processing",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "paymentMethod": {
+    "card": "Card",
+    "bank_transfer": "Bank Transfer",
+    "cash": "Cash"
+  },
+  "deliveryType": {
+    "pickup": "Pickup",
+    "delivery": "Delivery"
+  },
+  "detail": {
+    "title": "Order",
+    "placedOn": "Placed on",
+    "orderItems": "Order Items",
+    "product": "Product",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price",
+    "total": "Total",
+    "deliveryInfo": "Delivery Information",
+    "pickupInfo": "Pickup Information",
+    "address": "Address",
+    "pickupLocation": "Pickup Location",
+    "orderNotes": "Order Notes",
+    "customerInfo": "Customer Information",
+    "paymentInfo": "Payment Information",
+    "orderStatus": "Order Status",
+    "currentStatus": "Current Status",
+    "updateStatus": "Update Status",
+    "updatingStatus": "Updating status...",
+    "created": "Created",
+    "updated": "Updated",
+    "adminComments": "Admin Comments",
+    "addComment": "Add Comment",
+    "addingComment": "Adding...",
+    "commentPlaceholder": "Add a comment about this order...",
+    "noComments": "No comments yet",
+    "revertToPending": "You can revert this order back to pending",
+    "sku": "SKU"
+  },
+  "stats": {
+    "total": "Total",
+    "pending": "Pending",
+    "revenue": "Revenue",
+    "filtered": "(filtered)",
+    "onPage": "(on page)"
+  },
+  "empty": {
+    "title": "No orders found",
+    "description": "No orders match your current filters"
+  },
+  "actions": {
+    "view": "View",
+    "viewDetails": "View Details",
+    "export": "Export CSV",
+    "delete": "Delete"
+  },
+  "dialog": {
+    "deleteTitle": "Delete Order",
+    "deleteDescription": "Are you sure you want to delete order {{orderNumber}}? This action cannot be undone.",
+    "confirmDelete": "Delete"
+  },
+  "toast": {
+    "statusUpdated": "Order status updated successfully",
+    "statusError": "Failed to update order status",
+    "commentAdded": "Comment added successfully",
+    "commentError": "Failed to add comment",
+    "deleted": "Order deleted successfully",
+    "deleteError": "Failed to delete order"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "notFound": "Order not found",
+    "failedToLoad": "Failed to load orders. Make sure the Go backend API is running.",
+    "failedToLoadDetail": "Failed to load order details",
+    "backToOrders": "Back to Orders"
+  }
+}
