@@ -2,6 +2,48 @@
 
 Go 1.23 Ultra B2B product data management system. Syncs product catalog from Ultra SOAP API to PostgreSQL, exposes REST API, with Next.js admin dashboard.
 
+---
+
+## IMPORTANT: Multi-Company Git Workflow
+
+This codebase serves **TWO companies** with different feature requirements. Always check which branch you're on before making changes!
+
+### Remotes & Branches
+
+| Branch | Remote | Company | GitHub Repo |
+|--------|--------|---------|-------------|
+| `main` | `origin` | **Intelect** | Wayy01/main-backend |
+| `altnet` | `altnet` | **Altnet** | Wayy01/altnet-backend |
+
+### Quick Commands
+
+```bash
+# Check current branch
+git branch
+
+# Work on Intelect
+git checkout main
+# ... make changes ...
+git push origin main
+
+# Work on Altnet
+git checkout altnet
+# ... make changes ...
+git push altnet altnet:main
+
+# Copy a feature from one company to another (cherry-pick)
+git checkout main
+git cherry-pick <commit-hash-from-altnet>
+```
+
+### Rules
+1. **Always verify branch** before starting work: `git branch`
+2. **Company-specific features** stay on their respective branches
+3. **Shared features** can be cherry-picked between branches
+4. **Never force push** without checking branch first
+
+---
+
 ## Commands
 ```bash
 go run cmd/sync/main.go         # Full sync from Ultra API

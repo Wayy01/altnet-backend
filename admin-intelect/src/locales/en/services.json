@@ -1,0 +1,162 @@
+{
+  "page": {
+    "title": "Services",
+    "description": "Manage service packages, types, and customer orders"
+  },
+  "packages": {
+    "title": "Service Packages",
+    "description": "Manage internet service plans and pricing",
+    "create": "Create Package",
+    "edit": "Edit Package",
+    "delete": "Delete Package",
+    "name": "Package Name",
+    "price": "Price",
+    "speed": "Network Speed",
+    "type": "Package Type",
+    "benefits": "Benefits",
+    "specialBenefits": "Special Benefits",
+    "addBenefit": "Add Benefit",
+    "popular": "Popular Package",
+    "active": "Active",
+    "sortOrder": "Sort Order",
+    "confirmDelete": "Are you sure you want to delete this package?",
+    "noPackages": "No packages found",
+    "speedPlaceholder": "e.g. 100 Mbps, 1 Gbps",
+    "benefitsPlaceholder": "Enter a benefit",
+    "description": "Package Description"
+  },
+  "types": {
+    "title": "Package Types",
+    "description": "Manage service package categories",
+    "create": "Create Type",
+    "edit": "Edit Type",
+    "delete": "Delete Type",
+    "name": "Type Name",
+    "slug": "Slug",
+    "icon": "Icon",
+    "active": "Active",
+    "sortOrder": "Sort Order",
+    "confirmDelete": "Are you sure you want to delete this type?",
+    "hasPackages": "This type has packages. Delete or reassign them first.",
+    "noTypes": "No types found",
+    "packagesCount": "Packages",
+    "iconPlaceholder": "wifi, home, business"
+  },
+  "orders": {
+    "title": "Service Orders",
+    "description": "Manage customer service requests and orders",
+    "customer": "Customer",
+    "phone": "Phone",
+    "email": "Email",
+    "company": "Company",
+    "message": "Message",
+    "package": "Package",
+    "status": "Status",
+    "notes": "Admin Notes",
+    "date": "Date",
+    "updateStatus": "Update Status",
+    "addNote": "Add Note",
+    "noOrders": "No orders found",
+    "detail": {
+      "title": "Order Details",
+      "customerInfo": "Customer Information",
+      "packageInfo": "Package Information",
+      "orderInfo": "Order Information",
+      "adminSection": "Admin Section",
+      "updateNotes": "Update Notes",
+      "save": "Save Changes",
+      "saving": "Saving..."
+    },
+    "statuses": {
+      "pending": "Pending",
+      "contacted": "Contacted",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "completed": "Completed"
+    },
+    "stats": {
+      "total": "Total Orders",
+      "pending": "Pending",
+      "today": "Today"
+    }
+  },
+  "table": {
+    "name": "Name",
+    "price": "Price",
+    "speed": "Speed",
+    "type": "Type",
+    "status": "Status",
+    "actions": "Actions",
+    "customer": "Customer",
+    "phone": "Phone",
+    "package": "Package",
+    "date": "Date",
+    "slug": "Slug",
+    "packages": "Packages"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "form": {
+    "basicInfo": "Basic Information",
+    "multiLang": "Multi-language",
+    "benefits": "Benefits",
+    "pricing": "Pricing",
+    "media": "Media",
+    "required": "*",
+    "romanian": "Romanian",
+    "russian": "Russian",
+    "english": "English",
+    "namePlaceholder": "Enter package name",
+    "descriptionPlaceholder": "Enter package description",
+    "selectType": "Select type",
+    "noType": "No type",
+    "currency": "Currency"
+  },
+  "validation": {
+    "nameRequired": "Package name is required",
+    "typeNameRequired": "Type name is required"
+  },
+  "actions": {
+    "create": "Create",
+    "creating": "Creating...",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "viewDetails": "View Details"
+  },
+  "filters": {
+    "title": "Filters",
+    "search": "Search by name, phone, email...",
+    "allTypes": "All Types",
+    "allStatuses": "All Statuses",
+    "clearFilters": "Clear Filters",
+    "filtered": "filtered"
+  },
+  "empty": {
+    "title": "No items yet",
+    "description": "Create your first item to get started"
+  },
+  "dialog": {
+    "deleteTitle": "Delete Item",
+    "deleteDescription": "Are you sure you want to delete this item? This action cannot be undone.",
+    "confirmDelete": "Delete"
+  },
+  "toast": {
+    "created": "Item created successfully",
+    "updated": "Item updated successfully",
+    "deleted": "Item deleted successfully",
+    "error": "An error occurred",
+    "statusUpdated": "Status updated successfully",
+    "statusError": "Failed to update status"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "failedToLoad": "Failed to load data. Make sure the Go backend API is running.",
+    "notFound": "Item not found",
+    "backToList": "Back to List"
+  }
+}

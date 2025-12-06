@@ -422,6 +422,8 @@ export interface CreateBrandPayload {
   code?: string | null;
   logo_url?: string | null;
   is_active?: boolean;
+  name_ru?: string | null;
+  name_ro?: string | null;
 }
 
 export interface UpdateBrandPayload {
@@ -439,6 +441,8 @@ export interface CreateCategoryPayload {
   sort_order?: number;
   image_url?: string | null;
   is_active?: boolean;
+  name_ru?: string | null;
+  name_ro?: string | null;
 }
 
 export interface UpdateCategoryPayload {
@@ -1043,3 +1047,4 @@ export interface TranslationStatsResponse {
 
 export * from './stores';
 export * from './orders';
+export * from './services';

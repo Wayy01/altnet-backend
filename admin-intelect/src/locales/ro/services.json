@@ -1,0 +1,162 @@
+{
+  "page": {
+    "title": "Servicii",
+    "description": "Gestionați pachete de servicii, tipuri și comenzi clienți"
+  },
+  "packages": {
+    "title": "Pachete de Servicii",
+    "description": "Gestionați planuri internet și prețuri",
+    "create": "Creează Pachet",
+    "edit": "Editează Pachet",
+    "delete": "Șterge Pachet",
+    "name": "Nume Pachet",
+    "price": "Preț",
+    "speed": "Viteza Rețelei",
+    "type": "Tip Pachet",
+    "benefits": "Beneficii",
+    "specialBenefits": "Beneficii Speciale",
+    "addBenefit": "Adaugă Beneficiu",
+    "popular": "Pachet Popular",
+    "active": "Activ",
+    "sortOrder": "Ordine Sortare",
+    "confirmDelete": "Sigur doriți să ștergeți acest pachet?",
+    "noPackages": "Nu s-au găsit pachete",
+    "speedPlaceholder": "de ex. 100 Mbps, 1 Gbps",
+    "benefitsPlaceholder": "Introduceți un beneficiu",
+    "description": "Descriere Pachet"
+  },
+  "types": {
+    "title": "Tipuri de Pachete",
+    "description": "Gestionați categorii de pachete de servicii",
+    "create": "Creează Tip",
+    "edit": "Editează Tip",
+    "delete": "Șterge Tip",
+    "name": "Nume Tip",
+    "slug": "Slug",
+    "icon": "Iconă",
+    "active": "Activ",
+    "sortOrder": "Ordine Sortare",
+    "confirmDelete": "Sigur doriți să ștergeți acest tip?",
+    "hasPackages": "Acest tip are pachete. Ștergeți-le sau reasignați-le mai întâi.",
+    "noTypes": "Nu s-au găsit tipuri",
+    "packagesCount": "Pachete",
+    "iconPlaceholder": "wifi, home, business"
+  },
+  "orders": {
+    "title": "Comenzi Servicii",
+    "description": "Gestionați solicitări și comenzi clienți pentru servicii",
+    "customer": "Client",
+    "phone": "Telefon",
+    "email": "Email",
+    "company": "Companie",
+    "message": "Mesaj",
+    "package": "Pachet",
+    "status": "Status",
+    "notes": "Notițe Admin",
+    "date": "Dată",
+    "updateStatus": "Actualizează Status",
+    "addNote": "Adaugă Notiță",
+    "noOrders": "Nu s-au găsit comenzi",
+    "detail": {
+      "title": "Detalii Comandă",
+      "customerInfo": "Informații Client",
+      "packageInfo": "Informații Pachet",
+      "orderInfo": "Informații Comandă",
+      "adminSection": "Secțiune Admin",
+      "updateNotes": "Actualizează Notițe",
+      "save": "Salvează Modificări",
+      "saving": "Se salvează..."
+    },
+    "statuses": {
+      "pending": "În așteptare",
+      "contacted": "Contactat",
+      "approved": "Aprobat",
+      "rejected": "Respins",
+      "completed": "Finalizat"
+    },
+    "stats": {
+      "total": "Total Comenzi",
+      "pending": "În așteptare",
+      "today": "Astăzi"
+    }
+  },
+  "table": {
+    "name": "Nume",
+    "price": "Preț",
+    "speed": "Viteză",
+    "type": "Tip",
+    "status": "Status",
+    "actions": "Acțiuni",
+    "customer": "Client",
+    "phone": "Telefon",
+    "package": "Pachet",
+    "date": "Dată",
+    "slug": "Slug",
+    "packages": "Pachete"
+  },
+  "status": {
+    "active": "Activ",
+    "inactive": "Inactiv"
+  },
+  "form": {
+    "basicInfo": "Informații de Bază",
+    "multiLang": "Multi-limbă",
+    "benefits": "Beneficii",
+    "pricing": "Prețuri",
+    "media": "Media",
+    "required": "*",
+    "romanian": "Română",
+    "russian": "Rusă",
+    "english": "Engleză",
+    "namePlaceholder": "Introduceți numele pachetului",
+    "descriptionPlaceholder": "Introduceți descrierea pachetului",
+    "selectType": "Selectați tipul",
+    "noType": "Fără tip",
+    "currency": "Monedă"
+  },
+  "validation": {
+    "nameRequired": "Numele pachetului este obligatoriu",
+    "typeNameRequired": "Numele tipului este obligatoriu"
+  },
+  "actions": {
+    "create": "Creează",
+    "creating": "Se creează...",
+    "save": "Salvează Modificări",
+    "saving": "Se salvează...",
+    "edit": "Editează",
+    "delete": "Șterge",
+    "cancel": "Anulează",
+    "viewDetails": "Vezi Detalii"
+  },
+  "filters": {
+    "title": "Filtre",
+    "search": "Căutare după nume, telefon, email...",
+    "allTypes": "Toate Tipurile",
+    "allStatuses": "Toate Statusurile",
+    "clearFilters": "Șterge Filtre",
+    "filtered": "filtrat"
+  },
+  "empty": {
+    "title": "Nu există încă elemente",
+    "description": "Creați primul element pentru a începe"
+  },
+  "dialog": {
+    "deleteTitle": "Șterge Element",
+    "deleteDescription": "Sigur doriți să ștergeți acest element? Această acțiune nu poate fi anulată.",
+    "confirmDelete": "Șterge"
+  },
+  "toast": {
+    "created": "Element creat cu succes",
+    "updated": "Element actualizat cu succes",
+    "deleted": "Element șters cu succes",
+    "error": "A apărut o eroare",
+    "statusUpdated": "Status actualizat cu succes",
+    "statusError": "Eroare la actualizarea statusului"
+  },
+  "error": {
+    "title": "Ceva nu a mers bine",
+    "failedToLoad": "Eroare la încărcarea datelor. Asigurați-vă că API-ul backend Go rulează.",
+    "notFound": "Element negăsit",
+    "backToList": "Înapoi la Listă"
+  }
+}

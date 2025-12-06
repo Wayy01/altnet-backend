@@ -12,13 +12,15 @@
     "searchTest": "Test căutare",
     "orders": "Comenzi",
     "stores": "Magazine",
+    "services": "Servicii",
     "settings": "Setari"
   },
   "sections": {
     "navigation": "Navigare",
     "syncOperations": "Operatiuni de sincronizare",
     "createNew": "Nou",
-    "translations": "Traduceri"
+    "translations": "Traduceri",
+    "services": "Servicii"
   },
   "sync": {
     "overview": "Prezentare generala",
@@ -42,6 +44,12 @@
     "translate": "Traducere",
     "jobs": "Sarcini"
   },
+  "services": {
+    "services": "Servicii",
+    "packages": "Pachete servicii",
+    "types": "Tipuri pachete",
+    "orders": "Comenzi servicii"
+  },
   "descriptions": {
     "dashboard": "Prezentare generala si statistici",
     "products": "Gestioneaza catalogul de produse",
@@ -55,6 +63,7 @@
     "searchTest": "Testează calitatea căutării inteligente",
     "orders": "Gestioneaza comenzile clientilor",
     "stores": "Gestioneaza punctele de ridicare",
+    "services": "Gestioneaza pachetele de servicii",
     "syncOverview": "Stare sincronizare si jurnale",
     "selectiveSync": "Operatiuni de sincronizare personalizate",
     "configurations": "Sabloane de sincronizare",

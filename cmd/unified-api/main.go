@@ -73,6 +73,9 @@ func main() {
 	storeRepo := repository.NewStoreRepository(db.Pool)
 	orderRepo := repository.NewOrderRepository(db.Pool)
 	catalogRepo := repository.NewCatalogRepository(db.Pool)
+	servicePackageTypeRepo := repository.NewServicePackageTypeRepository(db.Pool)
+	servicePackageRepo := repository.NewServicePackageRepository(db.Pool)
+	serviceOrderRepo := repository.NewServiceOrderRepository(db.Pool)
 
 	// Create variant repository early so it can be passed to main handler
 	variantRepo := variants.NewRepository(db.Pool)
@@ -90,6 +93,9 @@ func main() {
 	orderHandler := handlers.NewOrderHandler(orderRepo)
 	publicOrderHandler := handlers.NewPublicOrderHandler(orderRepo, storeRepo)
 	catalogHandler := handlers.NewCatalogHandler(catalogRepo)
+	servicePackageTypeHandler := handlers.NewServicePackageTypeHandler(servicePackageTypeRepo)
+	servicePackageHandler := handlers.NewServicePackageHandler(servicePackageRepo)
+	serviceOrderHandler := handlers.NewServiceOrderHandler(serviceOrderRepo)
 
 	// Initialize Ollama client for AI-powered variant grouping
 	ollamaClient := ollama.NewClient(ollama.Config{
@@ -175,7 +181,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, storeHandler, orderHandler, publicOrderHandler, catalogHandler, cfg)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, storeHandler, orderHandler, publicOrderHandler, catalogHandler, servicePackageTypeHandler, servicePackageHandler, serviceOrderHandler, cfg)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -235,7 +241,7 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, storeHandler *handlers.StoreHandler, orderHandler *handlers.OrderHandler, publicOrderHandler *handlers.PublicOrderHandler, catalogHandler *handlers.CatalogHandler, cfg *config.Config) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, storeHandler *handlers.StoreHandler, orderHandler *handlers.OrderHandler, publicOrderHandler *handlers.PublicOrderHandler, catalogHandler *handlers.CatalogHandler, servicePackageTypeHandler *handlers.ServicePackageTypeHandler, servicePackageHandler *handlers.ServicePackageHandler, serviceOrderHandler *handlers.ServiceOrderHandler, cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
@@ -584,6 +590,48 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	catalogProtected.HandleFunc("/items/{id}", catalogHandler.UpdateItem).Methods("PUT", "OPTIONS")
 	catalogProtected.HandleFunc("/items/{id}", catalogHandler.DeleteItem).Methods("DELETE", "OPTIONS")
 	catalogProtected.HandleFunc("/items/reorder", catalogHandler.ReorderItems).Methods("PATCH", "OPTIONS")
+
+	// ============================================================================
+	// PUBLIC ROUTES - Service Packages (No Authentication for GET)
+	// ============================================================================
+
+	// Public GET routes - Service Package Types
+	api.HandleFunc("/service-types", servicePackageTypeHandler.ListTypes).Methods("GET", "OPTIONS")
+	api.HandleFunc("/service-types/{id}", servicePackageTypeHandler.GetType).Methods("GET", "OPTIONS")
+
+	// Protected routes - Service Package Types (require auth)
+	serviceTypesProtected := api.PathPrefix("/service-types").Subrouter()
+	serviceTypesProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	serviceTypesProtected.HandleFunc("", servicePackageTypeHandler.CreateType).Methods("POST", "OPTIONS")
+	serviceTypesProtected.HandleFunc("/{id}", servicePackageTypeHandler.UpdateType).Methods("PUT", "OPTIONS")
+	serviceTypesProtected.HandleFunc("/{id}", servicePackageTypeHandler.DeleteType).Methods("DELETE", "OPTIONS")
+
+	// Public GET routes - Service Packages
+	api.HandleFunc("/service-packages", servicePackageHandler.ListPackages).Methods("GET", "OPTIONS")
+	api.HandleFunc("/service-packages/{id}", servicePackageHandler.GetPackage).Methods("GET", "OPTIONS")
+
+	// Protected routes - Service Packages (require auth)
+	servicePackagesProtected := api.PathPrefix("/service-packages").Subrouter()
+	servicePackagesProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	servicePackagesProtected.HandleFunc("", servicePackageHandler.CreatePackage).Methods("POST", "OPTIONS")
+	servicePackagesProtected.HandleFunc("/{id}", servicePackageHandler.UpdatePackage).Methods("PUT", "OPTIONS")
+	servicePackagesProtected.HandleFunc("/{id}", servicePackageHandler.DeletePackage).Methods("DELETE", "OPTIONS")
+
+	// ============================================================================
+	// SERVICE ORDERS - Mixed Public/Protected
+	// ============================================================================
+
+	// PUBLIC route - Create service order (no auth required)
+	api.HandleFunc("/service-orders", serviceOrderHandler.CreateOrder).Methods("POST", "OPTIONS")
+
+	// Protected routes - Service Orders (admin only)
+	serviceOrdersProtected := api.PathPrefix("/service-orders").Subrouter()
+	serviceOrdersProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	serviceOrdersProtected.HandleFunc("", serviceOrderHandler.ListOrders).Methods("GET", "OPTIONS")
+	serviceOrdersProtected.HandleFunc("/stats", serviceOrderHandler.GetOrderStats).Methods("GET", "OPTIONS")
+	serviceOrdersProtected.HandleFunc("/{id}", serviceOrderHandler.GetOrder).Methods("GET", "OPTIONS")
+	serviceOrdersProtected.HandleFunc("/{id}", serviceOrderHandler.UpdateOrder).Methods("PUT", "OPTIONS")
+	serviceOrdersProtected.HandleFunc("/{id}", serviceOrderHandler.DeleteOrder).Methods("DELETE", "OPTIONS")
 
 	// Smart Search endpoints (Meilisearch)
 	if searchHandler != nil {

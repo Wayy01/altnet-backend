@@ -12,13 +12,15 @@
     "searchTest": "Тест поиска",
     "orders": "Заказы",
     "stores": "Магазины",
+    "services": "Услуги",
     "settings": "Настройки"
   },
   "sections": {
     "navigation": "Навигация",
     "syncOperations": "Операции синхронизации",
     "createNew": "Создать",
-    "translations": "Переводы"
+    "translations": "Переводы",
+    "services": "Услуги"
   },
   "sync": {
     "overview": "Обзор",
@@ -42,6 +44,12 @@
     "translate": "Перевод",
     "jobs": "Задачи"
   },
+  "services": {
+    "services": "Услуги",
+    "packages": "Пакеты услуг",
+    "types": "Типы пакетов",
+    "orders": "Заказы услуг"
+  },
   "descriptions": {
     "dashboard": "Обзор и статистика",
     "products": "Управление каталогом товаров",
@@ -55,6 +63,7 @@
     "searchTest": "Тестирование умного поиска",
     "orders": "Управление заказами клиентов",
     "stores": "Управление точками выдачи",
+    "services": "Управление пакетами услуг",
     "syncOverview": "Статус синхронизации и журналы",
     "selectiveSync": "Пользовательские операции синхронизации",
     "configurations": "Шаблоны синхронизации",

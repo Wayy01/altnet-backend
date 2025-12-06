@@ -152,6 +152,21 @@ import {
   UpdateOrderInput,
   OrderComment,
 } from "@/types/orders";
+import {
+  ServicePackageType,
+  ServicePackage,
+  ServiceOrder,
+  ServicePackageTypeInput,
+  ServicePackageInput,
+  UpdateServiceOrderInput,
+  ServicePackageFilters,
+  ServiceOrderFilters,
+  ServicePackageTypesResponse,
+  ServicePackagesResponse,
+  ServiceOrdersResponse,
+  ServiceOrderStats,
+  ServicePackageTypeFilters,
+} from "@/types/services";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 const TOKEN_KEY = "auth_token";
@@ -2336,6 +2351,83 @@ class ApiClient {
   }
 
   // ============================================================================
+  // SERVICE PACKAGES METHODS
+  // ============================================================================
+
+  /**
+   * Get service package types (alias for getServiceTypes)
+   */
+  async getServicePackageTypes(activeOnly = false): Promise<ServicePackageType[]> {
+    const params = new URLSearchParams();
+    if (activeOnly) params.append("active_only", "true");
+
+    const response = await this.fetch<ServicePackageTypesResponse>(
+      `/api/v1/service-types?${params.toString()}`
+    );
+    return response.data ?? [];
+  }
+
+  /**
+   * Get single service package type (alias for getServiceType)
+   */
+  async getServicePackageType(id: string): Promise<ServicePackageType> {
+    const response = await this.fetch<{ data: ServicePackageType }>(
+      `/api/v1/service-types/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Create service package type (alias for createServiceType)
+   */
+  async createServicePackageType(input: ServicePackageTypeInput): Promise<ServicePackageType> {
+    const response = await this.fetch<{ data: ServicePackageType }>(
+      `/api/v1/service-types`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update service package type (alias for updateServiceType)
+   */
+  async updateServicePackageType(id: string, input: ServicePackageTypeInput): Promise<ServicePackageType> {
+    const response = await this.fetch<{ data: ServicePackageType }>(
+      `/api/v1/service-types/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete service package type (alias for deleteServiceType)
+   */
+  async deleteServicePackageType(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/service-types/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Get service order statistics
+   */
+  async getServiceOrderStats(): Promise<ServiceOrderStats> {
+    const response = await this.fetch<{ data: ServiceOrderStats }>(
+      `/api/v1/service-orders/stats`
+    );
+    return response.data;
+  }
+
+  // ============================================================================
   // PROMOTIONS AND DISCOUNTS METHODS
   // ============================================================================
 
@@ -2573,6 +2665,223 @@ class ApiClient {
         method: "POST",
       }
     );
+  }
+
+  // ============================================================================
+  // SERVICE PACKAGES METHODS
+  // ============================================================================
+
+  /**
+   * List all service package types
+   */
+  async getServiceTypes(
+    filters?: ServicePackageTypeFilters,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: ServicePackageType[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.active_only) params.append("active_only", "true");
+
+    const response = await this.fetch<ServicePackageTypesResponse>(
+      `/api/v1/service-types?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single service package type by ID
+   */
+  async getServiceType(id: string): Promise<ServicePackageType> {
+    const response = await this.fetch<{ data: ServicePackageType }>(
+      `/api/v1/service-types/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Create a new service package type
+   */
+  async createServiceType(input: ServicePackageTypeInput): Promise<ServicePackageType> {
+    const response = await this.fetch<{ data: ServicePackageType }>(
+      `/api/v1/service-types`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing service package type
+   */
+  async updateServiceType(id: string, input: ServicePackageTypeInput): Promise<ServicePackageType> {
+    const response = await this.fetch<{ data: ServicePackageType }>(
+      `/api/v1/service-types/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a service package type
+   */
+  async deleteServiceType(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/service-types/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * List all service packages with optional filters
+   */
+  async getServicePackages(
+    filters?: ServicePackageFilters,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: ServicePackage[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    if (filters?.type_id) params.append("type_id", filters.type_id);
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.active_only) params.append("active_only", "true");
+
+    const response = await this.fetch<ServicePackagesResponse>(
+      `/api/v1/service-packages?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single service package by ID
+   */
+  async getServicePackage(id: string): Promise<ServicePackage> {
+    const response = await this.fetch<{ data: ServicePackage }>(
+      `/api/v1/service-packages/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Create a new service package
+   */
+  async createServicePackage(input: ServicePackageInput): Promise<ServicePackage> {
+    const response = await this.fetch<{ data: ServicePackage }>(
+      `/api/v1/service-packages`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Update an existing service package
+   */
+  async updateServicePackage(id: string, input: ServicePackageInput): Promise<ServicePackage> {
+    const response = await this.fetch<{ data: ServicePackage }>(
+      `/api/v1/service-packages/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a service package
+   */
+  async deleteServicePackage(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/service-packages/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * List all service orders with optional filters
+   */
+  async getServiceOrders(
+    filters?: ServiceOrderFilters,
+    limit = 50,
+    offset = 0
+  ): Promise<{ data: ServiceOrder[]; total: number }> {
+    const params = new URLSearchParams();
+    params.append("limit", limit.toString());
+    params.append("offset", offset.toString());
+
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.package_id) params.append("package_id", filters.package_id);
+    if (filters?.search) params.append("search", filters.search);
+    if (filters?.date_from) params.append("date_from", filters.date_from);
+    if (filters?.date_to) params.append("date_to", filters.date_to);
+
+    const response = await this.fetch<ServiceOrdersResponse>(
+      `/api/v1/service-orders?${params.toString()}`
+    );
+    return { data: response.data ?? [], total: response.meta?.total ?? 0 };
+  }
+
+  /**
+   * Get a single service order by ID
+   */
+  async getServiceOrder(id: string): Promise<ServiceOrder> {
+    const response = await this.fetch<{ data: ServiceOrder }>(
+      `/api/v1/service-orders/${id}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Update a service order (status, admin notes)
+   */
+  async updateServiceOrder(id: string, input: UpdateServiceOrderInput): Promise<ServiceOrder> {
+    const response = await this.fetch<{ data: ServiceOrder }>(
+      `/api/v1/service-orders/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+      }
+    );
+    return response.data;
+  }
+
+  /**
+   * Delete a service order
+   */
+  async deleteServiceOrder(id: string): Promise<void> {
+    await this.fetch<{ message: string }>(
+      `/api/v1/service-orders/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
+  }
+
+  /**
+   * Get service order statistics
+   */
+  async getServiceOrderStats(): Promise<ServiceOrderStats> {
+    const response = await this.fetch<{ data: ServiceOrderStats }>(
+      `/api/v1/service-orders/stats`
+    );
+    return response.data;
   }
 }
 

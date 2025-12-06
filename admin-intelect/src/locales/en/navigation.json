@@ -12,13 +12,15 @@
     "searchTest": "Search Test",
     "orders": "Orders",
     "stores": "Stores",
+    "services": "Services",
     "settings": "Settings"
   },
   "sections": {
     "navigation": "Navigation",
     "syncOperations": "Sync Operations",
     "createNew": "New",
-    "translations": "Translations"
+    "translations": "Translations",
+    "services": "Services"
   },
   "sync": {
     "overview": "Overview",
@@ -42,6 +44,12 @@
     "translate": "Translate",
     "jobs": "Jobs"
   },
+  "services": {
+    "services": "Services",
+    "packages": "Service Packages",
+    "types": "Package Types",
+    "orders": "Service Orders"
+  },
   "descriptions": {
     "dashboard": "Overview & statistics",
     "products": "Manage product catalog",
@@ -55,6 +63,7 @@
     "searchTest": "Test smart search quality",
     "orders": "Manage customer orders",
     "stores": "Manage pickup locations",
+    "services": "Manage service packages",
     "syncOverview": "Sync status & logs",
     "selectiveSync": "Custom sync operations",
     "configurations": "Sync templates",

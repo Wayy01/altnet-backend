@@ -28,6 +28,8 @@ import {
   ShoppingCart,
   Store,
   LayoutGrid,
+  Wifi,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -105,6 +107,7 @@ export function AppSidebar() {
     pathname === "/categories/new"
   );
   const [translateOpen, setTranslateOpen] = useState(pathname.startsWith("/translate"));
+  const [servicesOpen, setServicesOpen] = useState(pathname.startsWith("/services"));
   const [isVisible, setIsVisible] = useState(false);
 
   const isCollapsed = state === "collapsed";
@@ -280,6 +283,27 @@ export function AppSidebar() {
       url: "/translate/jobs",
       icon: ListChecks,
       descriptionKey: "descriptions.jobs",
+    },
+  ];
+
+  /**
+   * Services items section
+   */
+  const servicesMenuItems: NavItem[] = [
+    {
+      titleKey: "services.packages",
+      url: "/services/packages",
+      icon: Package,
+    },
+    {
+      titleKey: "services.types",
+      url: "/services/types",
+      icon: Layers,
+    },
+    {
+      titleKey: "services.orders",
+      url: "/services/orders",
+      icon: ClipboardList,
     },
   ];
 
@@ -604,13 +628,87 @@ export function AppSidebar() {
           style={{ transitionDelay: isVisible ? "550ms" : "0ms" }}
         />
 
-        {/* Translations Section - Collapsible with blue accent */}
+        {/* Services Section - Collapsible with WiFi accent */}
         <SidebarGroup
           className={cn(
             "py-2 transition-all duration-300",
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
           style={{ transitionDelay: isVisible ? "600ms" : "0ms" }}
+        >
+          <Collapsible open={servicesOpen} onOpenChange={setServicesOpen}>
+            <SidebarGroupLabel asChild className="px-2 mb-1">
+              <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-all duration-200 group/trigger hover:translate-x-0.5">
+                <span className="flex items-center gap-2">
+                  <Wifi
+                    className={cn(
+                      "h-3.5 w-3.5 text-emerald-500 transition-all duration-200",
+                      servicesOpen && "scale-110"
+                    )}
+                  />
+                  {t("sections.services") || t("menu.services")}
+                </span>
+                <ChevronRight
+                  className={cn(
+                    "h-3.5 w-3.5 text-muted-foreground/50 transition-all duration-200 ease-out",
+                    "group-hover/trigger:text-muted-foreground group-hover/trigger:translate-x-0.5",
+                    servicesOpen && "rotate-90"
+                  )}
+                />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 duration-200">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {servicesMenuItems.map((item, index) => {
+                    const active = isActive(item.url);
+                    return (
+                      <SidebarMenuItem
+                        key={item.titleKey}
+                        className="animate-in fade-in-0 slide-in-from-left-1"
+                        style={{ animationDelay: `${index * 40}ms`, animationFillMode: "backwards" }}
+                      >
+                        <SidebarMenuButton
+                          asChild
+                          isActive={active}
+                          tooltip={isCollapsed ? t(item.titleKey) : undefined}
+                        >
+                          <Link href={item.url} className="group/link">
+                            <item.icon
+                              className={cn(
+                                "h-4 w-4 transition-all duration-200",
+                                active
+                                  ? "text-primary scale-110"
+                                  : "text-muted-foreground group-hover/link:text-foreground group-hover/link:scale-105"
+                              )}
+                            />
+                            <span className="font-medium">{t(item.titleKey)}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
+        <SidebarSeparator
+          className={cn(
+            "mx-2 bg-sidebar-border/30 transition-all duration-300",
+            isVisible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
+          )}
+          style={{ transitionDelay: isVisible ? "650ms" : "0ms" }}
+        />
+
+        {/* Translations Section - Collapsible with blue accent */}
+        <SidebarGroup
+          className={cn(
+            "py-2 transition-all duration-300",
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          )}
+          style={{ transitionDelay: isVisible ? "700ms" : "0ms" }}
         >
           <Collapsible open={translateOpen} onOpenChange={setTranslateOpen}>
             <SidebarGroupLabel asChild className="px-2 mb-1">
@@ -678,7 +776,7 @@ export function AppSidebar() {
           "transition-all duration-300",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         )}
-        style={{ transitionDelay: isVisible ? "650ms" : "0ms" }}
+        style={{ transitionDelay: isVisible ? "750ms" : "0ms" }}
       >
         <SidebarMenu>
           {/* Language and Currency Selectors - Enhanced with smooth hover transitions */}
