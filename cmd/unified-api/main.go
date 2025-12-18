@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -14,6 +16,7 @@ import (
 	"ultra-api-testing/internal/config"
 	"ultra-api-testing/internal/database"
 	"ultra-api-testing/internal/handlers"
+	"ultra-api-testing/internal/middleware"
 	"ultra-api-testing/internal/models"
 	"ultra-api-testing/internal/repository"
 	"ultra-api-testing/internal/search"
@@ -92,6 +95,7 @@ func main() {
 	storeHandler := handlers.NewStoreHandler(storeRepo)
 	orderHandler := handlers.NewOrderHandler(orderRepo)
 	publicOrderHandler := handlers.NewPublicOrderHandler(orderRepo, storeRepo)
+	publicHandler := handlers.NewPublicHandler(repo, promotionRepo, servicePackageTypeRepo, servicePackageRepo)
 	catalogHandler := handlers.NewCatalogHandler(catalogRepo)
 	servicePackageTypeHandler := handlers.NewServicePackageTypeHandler(servicePackageTypeRepo)
 	servicePackageHandler := handlers.NewServicePackageHandler(servicePackageRepo)
@@ -181,7 +185,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleRepo, syncConfigRepo, scheduler)
 
 	// Setup router
-	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, storeHandler, orderHandler, publicOrderHandler, catalogHandler, servicePackageTypeHandler, servicePackageHandler, serviceOrderHandler, cfg)
+	router := setupRouter(handler, realtimeSyncHandler, syncControlHandler, sourceHandler, translationHandler, scheduleHandler, performanceHandler, filterHandler, variantHandler, promotionHandler, searchHandler, authHandler, storeHandler, orderHandler, publicOrderHandler, publicHandler, catalogHandler, servicePackageTypeHandler, servicePackageHandler, serviceOrderHandler, cfg)
 
 	// Display statistics
 	displayStatistics(repo)
@@ -241,22 +245,35 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, storeHandler *handlers.StoreHandler, orderHandler *handlers.OrderHandler, publicOrderHandler *handlers.PublicOrderHandler, catalogHandler *handlers.CatalogHandler, servicePackageTypeHandler *handlers.ServicePackageTypeHandler, servicePackageHandler *handlers.ServicePackageHandler, serviceOrderHandler *handlers.ServiceOrderHandler, cfg *config.Config) *mux.Router {
+func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.RealtimeSyncHandlers, syncControlHandler *handlers.SyncControlHandlers, sourceHandler *handlers.SourceHandler, translationHandler *handlers.TranslationHandler, scheduleHandler *handlers.ScheduleHandler, performanceHandler *handlers.PerformanceHandler, filterHandler *handlers.FilterHandler, variantHandler *handlers.VariantHandler, promotionHandler *handlers.PromotionHandler, searchHandler *handlers.SearchHandler, authHandler *handlers.AuthHandler, storeHandler *handlers.StoreHandler, orderHandler *handlers.OrderHandler, publicOrderHandler *handlers.PublicOrderHandler, publicHandler *handlers.PublicHandler, catalogHandler *handlers.CatalogHandler, servicePackageTypeHandler *handlers.ServicePackageTypeHandler, servicePackageHandler *handlers.ServicePackageHandler, serviceOrderHandler *handlers.ServiceOrderHandler, cfg *config.Config) *mux.Router {
 	router := mux.NewRouter()
 
 	// Add middleware FIRST (before routes)
-	router.Use(corsMiddleware)
+	// SECURITY: Use secure CORS with origin validation instead of wildcard
+	router.Use(middleware.SecureCORS)
+	// SECURITY: Add security headers to all responses
+	router.Use(middleware.SecurityHeaders)
 	router.Use(loggingMiddleware)
+
+	// Create rate limiters
+	loginLimiter := middleware.LoginRateLimiter()
+	apiLimiter := middleware.APIRateLimiter()
+	uploadLimiter := middleware.UploadRateLimiter()
 
 	// API v1 routes
 	api := router.PathPrefix("/api/v1").Subrouter()
+	// Apply general API rate limiting
+	api.Use(apiLimiter.Middleware)
 
 	// ============================================================================
 	// PUBLIC ROUTES - No Authentication Required
 	// ============================================================================
 
 	// Auth endpoints (public for login)
-	api.HandleFunc("/auth/login", authHandler.Login).Methods("POST", "OPTIONS")
+	// SECURITY: Apply strict rate limiting to login endpoint (5 attempts per 15 min)
+	loginRouter := api.PathPrefix("/auth/login").Subrouter()
+	loginRouter.Use(loginLimiter.Middleware)
+	loginRouter.HandleFunc("", authHandler.Login).Methods("POST", "OPTIONS")
 	api.HandleFunc("/auth/logout", authHandler.Logout).Methods("POST", "OPTIONS")
 
 	// Create protected subrouter for /auth/me endpoint
@@ -451,6 +468,8 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	// ============================================================================
 	uploadProtected := api.PathPrefix("/upload").Subrouter()
 	uploadProtected.Use(auth.RequireAuth(cfg.JWT.Secret))
+	// SECURITY: Apply upload rate limiting (20 uploads per minute)
+	uploadProtected.Use(uploadLimiter.Middleware)
 	uploadProtected.HandleFunc("/image", handler.UploadImage).Methods("POST", "OPTIONS")
 	uploadProtected.HandleFunc("/video", handler.UploadVideo).Methods("POST", "OPTIONS")
 	uploadProtected.HandleFunc("/images", handler.UploadMultipleImages).Methods("POST", "OPTIONS")
@@ -532,6 +551,32 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	// Public store endpoints
 	publicAPI.HandleFunc("/stores", publicOrderHandler.ListActiveStores).Methods("GET", "OPTIONS")
 	publicAPI.HandleFunc("/stores/{id}", publicOrderHandler.GetStorePublic).Methods("GET", "OPTIONS")
+
+	// Public product endpoints (slug-based with promotions)
+	publicAPI.HandleFunc("/products", publicHandler.ListProducts).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/products/{identifier}", publicHandler.GetProduct).Methods("GET", "OPTIONS")
+
+	// Public brand endpoints (slug-based)
+	publicAPI.HandleFunc("/brands", publicHandler.ListBrands).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/brands/{identifier}", publicHandler.GetBrand).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/brands/{identifier}/products", publicHandler.GetBrandProducts).Methods("GET", "OPTIONS")
+
+	// Public category endpoints (slug-based)
+	publicAPI.HandleFunc("/categories", publicHandler.ListCategories).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/categories/{identifier}", publicHandler.GetCategory).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/categories/{identifier}/products", publicHandler.GetCategoryProducts).Methods("GET", "OPTIONS")
+
+	// Public filterable properties endpoint
+	publicAPI.HandleFunc("/properties/filters", publicHandler.GetFilterableProperties).Methods("GET", "OPTIONS")
+
+	// Public service types endpoints (slug-based)
+	publicAPI.HandleFunc("/service-types", publicHandler.ListServiceTypes).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/service-types/{identifier}", publicHandler.GetServiceType).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/service-types/{identifier}/packages", publicHandler.ListPackagesByType).Methods("GET", "OPTIONS")
+
+	// Public service packages endpoints
+	publicAPI.HandleFunc("/service-packages", publicHandler.ListServicePackages).Methods("GET", "OPTIONS")
+	publicAPI.HandleFunc("/service-packages/{id}", publicHandler.GetServicePackage).Methods("GET", "OPTIONS")
 
 	// ============================================================================
 	// PROTECTED ROUTES - Store Management (Admin Only)
@@ -673,21 +718,36 @@ func setupRouter(handler *handlers.Handler, realtimeSyncHandler *handlers.Realti
 	}).Methods("GET", "OPTIONS")
 
 	// Serve static files from /uploads directory
+	// SECURITY: Wrap with UUID validation to prevent directory traversal
 	router.PathPrefix("/uploads/").Handler(
-		http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads"))))
+		secureFileServer(http.StripPrefix("/uploads/", http.FileServer(http.Dir("./uploads")))))
 
 	return router
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
+// secureFileServer wraps the file server with security validation
+func secureFileServer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-		w.Header().Set("Access-Control-Max-Age", "86400")
+		// SECURITY: Validate that the path looks like a valid UUID-based filename
+		// This prevents directory traversal attacks
+		path := r.URL.Path
 
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+		// Block any path containing ".." or starting with "/"
+		if strings.Contains(path, "..") || strings.HasPrefix(path, "/") {
+			http.Error(w, "Invalid path", http.StatusBadRequest)
+			return
+		}
+
+		// Only allow paths that match expected patterns (images/uuid.ext or videos/uuid.ext)
+		validPattern := regexp.MustCompile(`^(images|videos)/[a-f0-9-]{36}\.[a-zA-Z0-9]+$`)
+		if !validPattern.MatchString(path) {
+			http.Error(w, "Invalid file path", http.StatusBadRequest)
+			return
+		}
+
+		// Disable directory listing
+		if strings.HasSuffix(path, "/") {
+			http.Error(w, "Directory listing not allowed", http.StatusForbidden)
 			return
 		}
 

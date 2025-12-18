@@ -38,7 +38,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { ServicePackageType, ServicePackageTypeInput } from "@/types/services";
@@ -61,9 +60,7 @@ export default function ServiceTypesPage() {
   const [rowsVisible, setRowsVisible] = useState(false);
 
   const [formData, setFormData] = useState<ServicePackageTypeInput>({
-    name: "",        // English base name (required)
-    name_ru: "",
-    name_ro: "",
+    name: "",
     slug: "",
     sort_order: 0,
     is_active: true,
@@ -101,9 +98,7 @@ export default function ServiceTypesPage() {
   const handleCreate = () => {
     setEditingType(null);
     setFormData({
-      name: "",        // English base name (required)
-      name_ru: "",
-      name_ro: "",
+      name: "",
       slug: "",
       sort_order: 0,
       is_active: true,
@@ -114,9 +109,7 @@ export default function ServiceTypesPage() {
   const handleEdit = (type: ServicePackageType) => {
     setEditingType(type);
     setFormData({
-      name: type.name,          // English base name
-      name_ru: type.name_ru || "",
-      name_ro: type.name_ro || "",
+      name: type.name,
       slug: type.slug,
       sort_order: type.sort_order,
       is_active: type.is_active,
@@ -348,54 +341,23 @@ export default function ServiceTypesPage() {
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Multi-language Names */}
-            <Tabs defaultValue="en" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="en">{t("form.english")}</TabsTrigger>
-                <TabsTrigger value="ru">{t("form.russian")}</TabsTrigger>
-                <TabsTrigger value="ro">{t("form.romanian")}</TabsTrigger>
-              </TabsList>
-              <TabsContent value="en" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t("types.name")} *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      setFormData({
-                        ...formData,
-                        name: name,
-                        slug: formData.slug || generateSlug(name),
-                      });
-                    }}
-                    placeholder={t("form.namePlaceholder")}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="ru" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name_ru">{t("types.name")}</Label>
-                  <Input
-                    id="name_ru"
-                    value={formData.name_ru || ""}
-                    onChange={(e) => setFormData({ ...formData, name_ru: e.target.value })}
-                    placeholder={t("form.namePlaceholder")}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="ro" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name_ro">{t("types.name")}</Label>
-                  <Input
-                    id="name_ro"
-                    value={formData.name_ro || ""}
-                    onChange={(e) => setFormData({ ...formData, name_ro: e.target.value })}
-                    placeholder={t("form.namePlaceholder")}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">{t("types.name")} *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setFormData({
+                    ...formData,
+                    name: name,
+                    slug: formData.slug || generateSlug(name),
+                  });
+                }}
+                placeholder={t("form.namePlaceholder")}
+              />
+            </div>
 
             {/* Slug */}
             <div className="space-y-2">

@@ -406,21 +406,20 @@ export default function EditProductPage({ params }: EditProductPageProps) {
         price_mdl: formState.basicInfo.price_mdl,
         price_eur: formState.basicInfo.price_eur,
         price_usd: formState.basicInfo.price_usd,
-        manual_discount_percent: formState.basicInfo.manual_discount_percent,
         total_stock: formState.basicInfo.total_stock,
         is_in_stock: formState.basicInfo.is_in_stock,
         // Media
         main_image_url: formState.media.main_image_url || null,
         images: formState.media.images.map((img) => ({
+          uuid: img.uuid,
           url: img.url,
-          alt: img.alt || null,
-          sort_order: img.sort_order ?? 0,
+          description: img.description || null,
         })),
         videos: formState.media.videos.map((vid) => ({
+          uuid: vid.uuid,
           url: vid.url,
           title: vid.title || null,
           description: vid.description || null,
-          sort_order: vid.sort_order ?? 0,
         })),
         // Properties - will replace existing properties
         properties: formState.properties.map((prop) => ({

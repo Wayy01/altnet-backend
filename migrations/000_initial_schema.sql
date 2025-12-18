@@ -19,6 +19,13 @@ CREATE TYPE sync_step AS ENUM (
     'exchange_rates'
 );
 
+-- Additional ENUM types for promotions, orders, and services
+CREATE TYPE discount_type AS ENUM ('percentage', 'fixed_amount');
+CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled');
+CREATE TYPE payment_method AS ENUM ('card', 'bank_transfer', 'cash');
+CREATE TYPE delivery_type AS ENUM ('pickup', 'delivery');
+CREATE TYPE service_order_status AS ENUM ('pending', 'contacted', 'approved', 'rejected', 'completed');
+
 -- ============================================================================
 -- CORE DOMAIN TABLES
 -- ============================================================================
@@ -109,9 +116,8 @@ CREATE TABLE products (
     price_usd DECIMAL(12,2),
     total_stock INT DEFAULT 0,
     is_in_stock BOOLEAN DEFAULT false,
-    variant_group_id UUID REFERENCES products(id),
-    is_group BOOLEAN DEFAULT false,
     videos JSONB DEFAULT '[]',
+    manual_discount_percent DECIMAL(5,2) DEFAULT NULL,
     source_id UUID NOT NULL REFERENCES product_sources(id),
     name_ru TEXT,
     name_ro TEXT,
@@ -120,7 +126,11 @@ CREATE TABLE products (
     is_active BOOLEAN NOT NULL DEFAULT true,
     is_service BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT chk_products_manual_discount_range CHECK (
+        manual_discount_percent IS NULL OR (manual_discount_percent >= 0 AND manual_discount_percent <= 100)
+    )
 );
 
 CREATE INDEX idx_products_brand_id ON products(brand_id);
@@ -130,8 +140,6 @@ CREATE INDEX idx_products_slug ON products(slug);
 CREATE INDEX idx_products_ultra_id ON products(ultra_id);
 CREATE INDEX idx_products_is_active ON products(is_active) WHERE is_active = true;
 CREATE INDEX idx_products_source_id ON products(source_id);
-CREATE INDEX idx_products_variant_group ON products(variant_group_id) WHERE variant_group_id IS NOT NULL;
-CREATE INDEX idx_products_is_group ON products(is_group) WHERE is_group = true;
 
 -- 5. PROPERTIES
 CREATE TABLE properties (
@@ -467,6 +475,552 @@ CREATE INDEX idx_property_name_translations_untranslated_ru ON property_name_tra
 CREATE INDEX idx_property_name_translations_untranslated_ro ON property_name_translations(property_name) WHERE name_ro IS NULL;
 
 -- ============================================================================
+-- VARIANT GENERATION SYSTEM (AI-powered grouping)
+-- ============================================================================
+
+-- 24. VARIANT GENERATION JOBS
+CREATE TABLE variant_generation_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    total_products INTEGER NOT NULL DEFAULT 0,
+    processed_products INTEGER NOT NULL DEFAULT 0,
+    groups_created INTEGER NOT NULL DEFAULT 0,
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    error TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_variant_generation_jobs_status ON variant_generation_jobs(status);
+CREATE INDEX idx_variant_generation_jobs_created_at ON variant_generation_jobs(created_at DESC);
+
+-- 25. PRODUCT VARIANT GROUPS
+CREATE TABLE product_variant_groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    base_name VARCHAR(500) NOT NULL,
+    base_name_normalized VARCHAR(500) NOT NULL,
+    member_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_product_variant_groups_base_name ON product_variant_groups(base_name);
+CREATE INDEX idx_product_variant_groups_base_name_normalized ON product_variant_groups(base_name_normalized);
+CREATE INDEX idx_product_variant_groups_created_at ON product_variant_groups(created_at DESC);
+
+-- 26. PRODUCT VARIANT GROUP MEMBERS
+CREATE TABLE product_variant_group_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES product_variant_groups(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_product_in_group UNIQUE (product_id)
+);
+
+CREATE INDEX idx_product_variant_group_members_group_id ON product_variant_group_members(group_id);
+CREATE INDEX idx_product_variant_group_members_product_id ON product_variant_group_members(product_id);
+
+-- 27. VARIANT PROPERTIES
+CREATE TABLE variant_properties (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES product_variant_groups(id) ON DELETE CASCADE,
+    property_name VARCHAR(255) NOT NULL,
+    property_values JSONB NOT NULL DEFAULT '[]',
+    parent_property VARCHAR(255),
+    parent_value VARCHAR(255),
+    product_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_variant_properties_group_id ON variant_properties(group_id);
+CREATE INDEX idx_variant_properties_property_name ON variant_properties(property_name);
+CREATE INDEX idx_variant_properties_parent ON variant_properties(parent_property, parent_value);
+
+-- ============================================================================
+-- PROMOTIONS SYSTEM
+-- ============================================================================
+
+-- 28. PROMOTIONS
+CREATE TABLE promotions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    discount_type discount_type NOT NULL DEFAULT 'percentage',
+    discount_value DECIMAL(10,2) NOT NULL,
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    priority INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_promotions_percentage_range CHECK (
+        discount_type != 'percentage' OR (discount_value >= 0 AND discount_value <= 100)
+    ),
+    CONSTRAINT chk_promotions_date_range CHECK (end_date > start_date)
+);
+
+CREATE INDEX idx_promotions_is_active ON promotions(is_active) WHERE is_active = true;
+CREATE INDEX idx_promotions_date_range ON promotions(start_date, end_date);
+
+-- 29. PRODUCT PROMOTIONS (junction table)
+CREATE TABLE product_promotions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    promotion_id UUID NOT NULL REFERENCES promotions(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_product_promotion UNIQUE (product_id, promotion_id)
+);
+
+CREATE INDEX idx_product_promotions_product_id ON product_promotions(product_id);
+CREATE INDEX idx_product_promotions_promotion_id ON product_promotions(promotion_id);
+
+-- ============================================================================
+-- ADMIN AUTHENTICATION SYSTEM
+-- ============================================================================
+
+-- 30. ADMIN USERS
+CREATE TABLE admin_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_admin_users_username ON admin_users(username);
+
+-- Initial admin user: Wayy01 / Wayy1002001!
+INSERT INTO admin_users (username, password_hash)
+VALUES (
+    'Wayy01',
+    '$2a$12$ItZxnbpd2YSa57CyR82a..hGlHq.hdxnKZ9LJhVAQySiIX6RPOUMm'
+);
+
+-- ============================================================================
+-- ORDER MANAGEMENT SYSTEM
+-- ============================================================================
+
+-- 31. STORES (Pickup Locations)
+CREATE TABLE stores (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    address TEXT NOT NULL,
+    google_maps_url VARCHAR(500),
+    images JSONB DEFAULT '[]'::jsonb,
+    videos JSONB DEFAULT '[]'::jsonb,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_stores_is_active ON stores(is_active) WHERE is_active = true;
+CREATE INDEX idx_stores_name ON stores(name);
+
+-- 32. ORDER NUMBER SEQUENCE
+CREATE SEQUENCE order_daily_seq START 1;
+
+-- Function to generate order number in format: ORD-YYYYMMDD-XXXX
+CREATE OR REPLACE FUNCTION generate_order_number()
+RETURNS VARCHAR AS $$
+DECLARE
+    today_str VARCHAR;
+    seq_val INT;
+    order_num VARCHAR;
+BEGIN
+    today_str := TO_CHAR(NOW(), 'YYYYMMDD');
+    SELECT COALESCE(MAX(
+        CAST(SPLIT_PART(order_number, '-', 3) AS INT)
+    ), 0) + 1
+    INTO seq_val
+    FROM orders
+    WHERE order_number LIKE 'ORD-' || today_str || '-%';
+    order_num := 'ORD-' || today_str || '-' || LPAD(seq_val::TEXT, 4, '0');
+    RETURN order_num;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 33. ORDERS
+CREATE TABLE orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_number VARCHAR(20) NOT NULL UNIQUE DEFAULT generate_order_number(),
+    full_name VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(50) NOT NULL,
+    email VARCHAR(255),
+    delivery_type delivery_type NOT NULL,
+    delivery_address TEXT,
+    store_id UUID REFERENCES stores(id) ON DELETE SET NULL,
+    payment_method payment_method NOT NULL,
+    total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    currency VARCHAR(3) NOT NULL DEFAULT 'MDL',
+    status order_status NOT NULL DEFAULT 'pending',
+    notes TEXT,
+    user_id VARCHAR(255),
+    user_name VARCHAR(255),
+    user_pfp VARCHAR(500),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_orders_delivery_info CHECK (
+        (delivery_type = 'delivery' AND delivery_address IS NOT NULL) OR
+        (delivery_type = 'pickup' AND store_id IS NOT NULL)
+    )
+);
+
+CREATE INDEX idx_orders_order_number ON orders(order_number);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_phone_number ON orders(phone_number);
+CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
+CREATE INDEX idx_orders_store_id ON orders(store_id) WHERE store_id IS NOT NULL;
+CREATE INDEX idx_orders_user_id ON orders(user_id) WHERE user_id IS NOT NULL;
+
+-- 34. ORDER ITEMS
+CREATE TABLE order_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+    product_name VARCHAR(500) NOT NULL,
+    product_sku VARCHAR(100),
+    product_image VARCHAR(500),
+    quantity INT NOT NULL CHECK (quantity > 0),
+    unit_price DECIMAL(12,2) NOT NULL CHECK (unit_price >= 0),
+    total_price DECIMAL(12,2) NOT NULL CHECK (total_price >= 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_order_items_total CHECK (total_price = quantity * unit_price)
+);
+
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_product_id ON order_items(product_id);
+
+-- 35. ORDER COMMENTS
+CREATE TABLE order_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    admin_id VARCHAR(255) NOT NULL,
+    admin_name VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_order_comments_order_id ON order_comments(order_id);
+CREATE INDEX idx_order_comments_created_at ON order_comments(created_at DESC);
+
+-- ============================================================================
+-- CATALOG BUILDER SYSTEM (Mega Menu)
+-- ============================================================================
+
+-- 36. CATALOG SECTIONS (Level 1)
+CREATE TABLE catalog_sections (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name_ro VARCHAR(255) NOT NULL,
+    name_ru VARCHAR(255),
+    name_en VARCHAR(255),
+    icon VARCHAR(255),
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_catalog_sections_slug ON catalog_sections(slug);
+CREATE INDEX idx_catalog_sections_sort_order ON catalog_sections(sort_order);
+CREATE INDEX idx_catalog_sections_is_active ON catalog_sections(is_active) WHERE is_active = true;
+
+-- 37. CATALOG GROUPS (Level 2)
+CREATE TABLE catalog_groups (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    section_id UUID NOT NULL REFERENCES catalog_sections(id) ON DELETE CASCADE,
+    name_ro VARCHAR(255) NOT NULL,
+    name_ru VARCHAR(255),
+    name_en VARCHAR(255),
+    column_position INT NOT NULL DEFAULT 1 CHECK (column_position >= 1 AND column_position <= 4),
+    sort_order INT NOT NULL DEFAULT 0,
+    filter_config JSONB,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_catalog_groups_section_id ON catalog_groups(section_id);
+CREATE INDEX idx_catalog_groups_column_position ON catalog_groups(column_position);
+CREATE INDEX idx_catalog_groups_sort_order ON catalog_groups(sort_order);
+CREATE INDEX idx_catalog_groups_is_active ON catalog_groups(is_active) WHERE is_active = true;
+CREATE INDEX idx_catalog_groups_section_order ON catalog_groups(section_id, column_position, sort_order);
+
+-- 38. CATALOG ITEMS (Level 3)
+CREATE TABLE catalog_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES catalog_groups(id) ON DELETE CASCADE,
+    name_ro VARCHAR(255) NOT NULL,
+    name_ru VARCHAR(255),
+    name_en VARCHAR(255),
+    sort_order INT NOT NULL DEFAULT 0,
+    item_type VARCHAR(20) NOT NULL CHECK (item_type IN ('category_link', 'custom_filter')),
+    category_id UUID REFERENCES categories(id) ON DELETE RESTRICT,
+    filter_config JSONB,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_catalog_items_type_config CHECK (
+        (item_type = 'category_link' AND category_id IS NOT NULL) OR
+        (item_type = 'custom_filter' AND filter_config IS NOT NULL)
+    )
+);
+
+CREATE INDEX idx_catalog_items_group_id ON catalog_items(group_id);
+CREATE INDEX idx_catalog_items_category_id ON catalog_items(category_id) WHERE category_id IS NOT NULL;
+CREATE INDEX idx_catalog_items_sort_order ON catalog_items(sort_order);
+CREATE INDEX idx_catalog_items_is_active ON catalog_items(is_active) WHERE is_active = true;
+CREATE INDEX idx_catalog_items_item_type ON catalog_items(item_type);
+CREATE INDEX idx_catalog_items_group_order ON catalog_items(group_id, sort_order);
+CREATE INDEX idx_catalog_items_filter_config ON catalog_items USING GIN (filter_config) WHERE filter_config IS NOT NULL;
+
+-- ============================================================================
+-- SERVICE PACKAGES SYSTEM
+-- ============================================================================
+
+-- 39. SERVICE PACKAGE TYPES
+CREATE TABLE service_package_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    name_ru VARCHAR(255),
+    name_ro VARCHAR(255),
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_service_package_types_slug ON service_package_types(slug);
+CREATE INDEX idx_service_package_types_sort_order ON service_package_types(sort_order);
+CREATE INDEX idx_service_package_types_is_active ON service_package_types(is_active) WHERE is_active = true;
+
+-- 40. SERVICE PACKAGES
+CREATE TABLE service_packages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    name_ru VARCHAR(255),
+    name_ro VARCHAR(255),
+    price DECIMAL(10,2) NOT NULL,
+    network_speed TEXT,
+    special_benefits JSONB DEFAULT '[]'::jsonb,
+    benefits JSONB DEFAULT '[]'::jsonb,
+    type_id UUID REFERENCES service_package_types(id) ON DELETE SET NULL,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_service_packages_type_id ON service_packages(type_id);
+CREATE INDEX idx_service_packages_is_active ON service_packages(is_active) WHERE is_active = true;
+CREATE INDEX idx_service_packages_sort_order ON service_packages(sort_order);
+
+-- 41. SERVICE ORDERS
+CREATE TABLE service_orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    package_id UUID REFERENCES service_packages(id) ON DELETE SET NULL,
+    customer_name VARCHAR(255) NOT NULL,
+    customer_phone VARCHAR(50) NOT NULL,
+    customer_email VARCHAR(255),
+    customer_address TEXT,
+    status service_order_status DEFAULT 'pending',
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_service_orders_status ON service_orders(status);
+CREATE INDEX idx_service_orders_package_id ON service_orders(package_id);
+CREATE INDEX idx_service_orders_created_at ON service_orders(created_at DESC);
+
+-- ============================================================================
+-- TRIGGERS AND FUNCTIONS
+-- ============================================================================
+
+-- Variant group member count trigger
+CREATE OR REPLACE FUNCTION update_variant_group_member_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE product_variant_groups
+        SET member_count = member_count + 1, updated_at = NOW()
+        WHERE id = NEW.group_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE product_variant_groups
+        SET member_count = member_count - 1, updated_at = NOW()
+        WHERE id = OLD.group_id;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_variant_group_member_count
+    AFTER INSERT OR DELETE ON product_variant_group_members
+    FOR EACH ROW EXECUTE FUNCTION update_variant_group_member_count();
+
+-- Variant job updated_at trigger
+CREATE OR REPLACE FUNCTION update_variant_job_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_variant_job_updated_at
+    BEFORE UPDATE ON variant_generation_jobs
+    FOR EACH ROW EXECUTE FUNCTION update_variant_job_updated_at();
+
+-- Promotions updated_at trigger
+CREATE OR REPLACE FUNCTION update_promotions_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_promotions_updated_at
+    BEFORE UPDATE ON promotions
+    FOR EACH ROW EXECUTE FUNCTION update_promotions_updated_at();
+
+-- Stores updated_at trigger
+CREATE OR REPLACE FUNCTION update_stores_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_stores_updated_at
+    BEFORE UPDATE ON stores
+    FOR EACH ROW EXECUTE FUNCTION update_stores_updated_at();
+
+-- Orders updated_at trigger
+CREATE OR REPLACE FUNCTION update_orders_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_orders_updated_at
+    BEFORE UPDATE ON orders
+    FOR EACH ROW EXECUTE FUNCTION update_orders_updated_at();
+
+-- Order total update trigger
+CREATE OR REPLACE FUNCTION update_order_total()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        UPDATE orders
+        SET total_amount = COALESCE((
+            SELECT SUM(total_price)
+            FROM order_items
+            WHERE order_id = OLD.order_id
+        ), 0)
+        WHERE id = OLD.order_id;
+        RETURN OLD;
+    ELSE
+        UPDATE orders
+        SET total_amount = COALESCE((
+            SELECT SUM(total_price)
+            FROM order_items
+            WHERE order_id = NEW.order_id
+        ), 0)
+        WHERE id = NEW.order_id;
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_order_total
+    AFTER INSERT OR UPDATE OR DELETE ON order_items
+    FOR EACH ROW EXECUTE FUNCTION update_order_total();
+
+-- Catalog sections updated_at trigger
+CREATE OR REPLACE FUNCTION update_catalog_sections_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_catalog_sections_updated_at
+    BEFORE UPDATE ON catalog_sections
+    FOR EACH ROW EXECUTE FUNCTION update_catalog_sections_updated_at();
+
+-- Catalog groups updated_at trigger
+CREATE OR REPLACE FUNCTION update_catalog_groups_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_catalog_groups_updated_at
+    BEFORE UPDATE ON catalog_groups
+    FOR EACH ROW EXECUTE FUNCTION update_catalog_groups_updated_at();
+
+-- Catalog items updated_at trigger
+CREATE OR REPLACE FUNCTION update_catalog_items_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_catalog_items_updated_at
+    BEFORE UPDATE ON catalog_items
+    FOR EACH ROW EXECUTE FUNCTION update_catalog_items_updated_at();
+
+-- Service package types updated_at trigger
+CREATE OR REPLACE FUNCTION update_service_package_types_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_service_package_types_updated_at
+    BEFORE UPDATE ON service_package_types
+    FOR EACH ROW EXECUTE FUNCTION update_service_package_types_updated_at();
+
+-- Service packages updated_at trigger
+CREATE OR REPLACE FUNCTION update_service_packages_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_service_packages_updated_at
+    BEFORE UPDATE ON service_packages
+    FOR EACH ROW EXECUTE FUNCTION update_service_packages_updated_at();
+
+-- Service orders updated_at trigger
+CREATE OR REPLACE FUNCTION update_service_orders_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_service_orders_updated_at
+    BEFORE UPDATE ON service_orders
+    FOR EACH ROW EXECUTE FUNCTION update_service_orders_updated_at();
+
+-- ============================================================================
 -- VIEWS
 -- ============================================================================
 
@@ -507,3 +1061,32 @@ COMMENT ON TABLE sync_configurations IS 'Saved selective sync configurations';
 COMMENT ON TABLE sync_changes IS 'Field-level change tracking for sync auditing';
 COMMENT ON TABLE sync_schedules IS 'Scheduled sync jobs with cron expressions';
 COMMENT ON TABLE translation_jobs IS 'Translation job tracking';
+
+-- Variant generation system comments
+COMMENT ON TABLE variant_generation_jobs IS 'Tracks AI-powered variant generation job progress';
+COMMENT ON TABLE product_variant_groups IS 'Groups products by base name extracted via Ollama AI';
+COMMENT ON TABLE product_variant_group_members IS 'Links products to their variant group';
+COMMENT ON TABLE variant_properties IS 'Detected variant properties within a group';
+
+-- Promotions system comments
+COMMENT ON TABLE promotions IS 'Promotion campaigns with discount rules and validity periods';
+COMMENT ON TABLE product_promotions IS 'Junction table linking products to promotions';
+
+-- Admin authentication comments
+COMMENT ON TABLE admin_users IS 'Admin users for dashboard authentication';
+
+-- Order management comments
+COMMENT ON TABLE stores IS 'Physical pickup locations for orders';
+COMMENT ON TABLE orders IS 'Customer orders with delivery/pickup and payment information';
+COMMENT ON TABLE order_items IS 'Individual products within an order with snapshot data';
+COMMENT ON TABLE order_comments IS 'Admin comments on orders';
+
+-- Catalog builder comments
+COMMENT ON TABLE catalog_sections IS 'Level 1 - Main navigation sections in the mega menu';
+COMMENT ON TABLE catalog_groups IS 'Level 2 - Column groups within sections';
+COMMENT ON TABLE catalog_items IS 'Level 3 - Clickable menu items linking to categories or filters';
+
+-- Service packages comments
+COMMENT ON TABLE service_package_types IS 'Categories/types for service packages';
+COMMENT ON TABLE service_packages IS 'Individual service packages with pricing and benefits';
+COMMENT ON TABLE service_orders IS 'Customer orders/inquiries for service packages';

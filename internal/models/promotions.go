@@ -1,10 +1,39 @@
 package models
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// FlexibleDate handles both "YYYY-MM-DD" and RFC3339 formats for JSON
+type FlexibleDate struct {
+	time.Time
+}
+
+func (fd *FlexibleDate) UnmarshalJSON(data []byte) error {
+	str := strings.Trim(string(data), `"`)
+	if str == "" || str == "null" {
+		return nil
+	}
+	// Try RFC3339 first
+	if t, err := time.Parse(time.RFC3339, str); err == nil {
+		fd.Time = t
+		return nil
+	}
+	// Try YYYY-MM-DD format
+	if t, err := time.Parse("2006-01-02", str); err == nil {
+		fd.Time = t
+		return nil
+	}
+	return fmt.Errorf("cannot parse date: %s", str)
+}
+
+func (fd FlexibleDate) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + fd.Time.Format(time.RFC3339) + `"`), nil
+}
 
 // ============================================================================
 // PROMOTIONS AND DISCOUNTS
@@ -42,14 +71,14 @@ type ProductPromotion struct {
 
 // PromotionInput represents the request body for creating/updating a promotion
 type PromotionInput struct {
-	Name          string    `json:"name"`
-	Description   *string   `json:"description"`
-	DiscountType  string    `json:"discount_type"` // 'percentage' or 'fixed_amount'
-	DiscountValue float64   `json:"discount_value"`
-	StartDate     time.Time `json:"start_date"`
-	EndDate       time.Time `json:"end_date"`
-	IsActive      bool      `json:"is_active"`
-	Priority      int       `json:"priority"`
+	Name          string       `json:"name"`
+	Description   *string      `json:"description"`
+	DiscountType  string       `json:"discount_type"` // 'percentage' or 'fixed_amount'
+	DiscountValue float64      `json:"discount_value"`
+	StartDate     FlexibleDate `json:"start_date"`
+	EndDate       FlexibleDate `json:"end_date"`
+	IsActive      bool         `json:"is_active"`
+	Priority      int          `json:"priority"`
 }
 
 // PromotionFilters represents query parameters for filtering promotions

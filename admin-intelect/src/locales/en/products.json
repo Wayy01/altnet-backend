@@ -203,7 +203,9 @@
     "active": "Active",
     "activeDesc": "Product will be visible in the catalog",
     "service": "Service",
-    "serviceDesc": "Mark as a service instead of a physical product"
+    "serviceDesc": "Mark as a service instead of a physical product",
+    "manualDiscount": "Manual Discount (%)",
+    "manualDiscountHint": "Set a manual discount percentage (0-100) that applies to this product"
   },
   "properties": {
     "title": "Product Properties",

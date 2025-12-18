@@ -49,7 +49,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { ServicePackage, ServicePackageInput, ServicePackageType } from "@/types/services";
@@ -77,9 +76,7 @@ export default function ServicePackagesPage() {
 
   const [formData, setFormData] = useState<ServicePackageInput>({
     type_id: null,
-    name: "",           // English base name (required)
-    name_ru: "",
-    name_ro: "",
+    name: "",
     price: 0,
     network_speed: "",
     benefits: [],
@@ -131,8 +128,6 @@ export default function ServicePackagesPage() {
     setFormData({
       type_id: null,
       name: "",
-      name_ru: "",
-      name_ro: "",
       price: 0,
       network_speed: "",
       benefits: [],
@@ -150,8 +145,6 @@ export default function ServicePackagesPage() {
     setFormData({
       type_id: pkg.type_id,
       name: pkg.name,
-      name_ru: pkg.name_ru || "",
-      name_ro: pkg.name_ro || "",
       price: pkg.price,
       network_speed: pkg.network_speed || "",
       benefits: pkg.benefits || [],
@@ -475,47 +468,16 @@ export default function ServicePackagesPage() {
               </Select>
             </div>
 
-            {/* Multi-language Names */}
-            <Tabs defaultValue="en" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="en">{t("form.english")}</TabsTrigger>
-                <TabsTrigger value="ru">{t("form.russian")}</TabsTrigger>
-                <TabsTrigger value="ro">{t("form.romanian")}</TabsTrigger>
-              </TabsList>
-              <TabsContent value="en" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">{t("packages.name")} *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder={t("form.namePlaceholder")}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="ru" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name_ru">{t("packages.name")}</Label>
-                  <Input
-                    id="name_ru"
-                    value={formData.name_ru || ""}
-                    onChange={(e) => setFormData({ ...formData, name_ru: e.target.value })}
-                    placeholder={t("form.namePlaceholder")}
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="ro" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name_ro">{t("packages.name")}</Label>
-                  <Input
-                    id="name_ro"
-                    value={formData.name_ro || ""}
-                    onChange={(e) => setFormData({ ...formData, name_ro: e.target.value })}
-                    placeholder={t("form.namePlaceholder")}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name">{t("packages.name")} *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder={t("form.namePlaceholder")}
+              />
+            </div>
 
             {/* Pricing */}
             <div className="space-y-2">

@@ -91,7 +91,8 @@ func (g *ProductGrouper) GroupProductsByAIExtractedName(
 
 	log.Printf("Grouper: Extracted %d base names from %d product names", len(baseNames), len(productNames))
 
-	// Group products by extracted base name + brand_id + category_id
+	// Group products by article code (if available) or extracted base name + brand_id + category_id
+	// Article code takes priority as it's a reliable indicator of product variants
 	groups := make(map[string]*GroupResult)
 
 	for _, product := range products {
@@ -101,13 +102,22 @@ func (g *ProductGrouper) GroupProductsByAIExtractedName(
 		default:
 		}
 
-		// Get extracted base name or fall back to original
-		baseName, ok := baseNames[product.Name]
-		if !ok || baseName == "" {
-			baseName = NormalizeBaseName(product.Name)
+		// Use article code for grouping if available (more reliable than AI extraction)
+		// Otherwise fall back to AI-extracted base name
+		var baseName string
+		if product.Article != nil && strings.TrimSpace(*product.Article) != "" {
+			baseName = strings.TrimSpace(*product.Article)
+		} else {
+			// Get extracted base name or fall back to original
+			extractedName, ok := baseNames[product.Name]
+			if !ok || extractedName == "" {
+				baseName = NormalizeBaseName(product.Name)
+			} else {
+				baseName = extractedName
+			}
 		}
 
-		// Create group key from extracted base name, brand_id, and category_id
+		// Create group key from article/base name + brand_id + category_id
 		key := GroupKey{
 			BaseName:   baseName,
 			BrandID:    uuidToString(product.BrandID),
@@ -143,7 +153,8 @@ func (g *ProductGrouper) GroupProductsByAIExtractedName(
 	return filtered, nil
 }
 
-// groupByExactName groups products by exact name match (fallback when Ollama unavailable)
+// groupByExactName groups products by article code or exact name match (fallback when Ollama unavailable)
+// Products with the same article code are grouped together for variant detection
 func (g *ProductGrouper) groupByExactName(
 	ctx context.Context,
 	products []*models.Product,
@@ -157,9 +168,17 @@ func (g *ProductGrouper) groupByExactName(
 		default:
 		}
 
-		// Create group key from exact name, brand_id, and category_id
+		// Use article code for grouping if available, otherwise fall back to exact name
+		var baseName string
+		if product.Article != nil && strings.TrimSpace(*product.Article) != "" {
+			baseName = strings.TrimSpace(*product.Article)
+		} else {
+			baseName = strings.TrimSpace(product.Name)
+		}
+
+		// Create group key from article/name + brand_id + category_id
 		key := GroupKey{
-			BaseName:   strings.TrimSpace(product.Name),
+			BaseName:   baseName,
 			BrandID:    uuidToString(product.BrandID),
 			CategoryID: uuidToString(product.CategoryID),
 		}
@@ -170,8 +189,8 @@ func (g *ProductGrouper) groupByExactName(
 			existing.Products = append(existing.Products, product)
 		} else {
 			groups[keyStr] = &GroupResult{
-				BaseName:           product.Name,
-				BaseNameNormalized: NormalizeBaseName(product.Name),
+				BaseName:           baseName,
+				BaseNameNormalized: NormalizeBaseName(baseName),
 				BrandID:            product.BrandID,
 				CategoryID:         product.CategoryID,
 				Products:           []*models.Product{product},
@@ -187,7 +206,7 @@ func (g *ProductGrouper) groupByExactName(
 		}
 	}
 
-	log.Printf("Grouper: Created %d variant groups from %d products (exact name match - Ollama unavailable)",
+	log.Printf("Grouper: Created %d variant groups from %d products (article/name match - Ollama unavailable)",
 		len(filtered), len(products))
 
 	return filtered, nil

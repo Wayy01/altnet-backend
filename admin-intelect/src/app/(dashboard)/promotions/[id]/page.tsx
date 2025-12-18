@@ -138,9 +138,7 @@ export default function PromotionDetailPage({ params }: PromotionDetailPageProps
     if (!promotionId || selectedProductIds.size === 0) return;
 
     try {
-      await api.removeProductsFromPromotion(promotionId, {
-        product_ids: Array.from(selectedProductIds),
-      });
+      await api.removeProductsFromPromotion(promotionId, Array.from(selectedProductIds));
       toast.success(t("toast.productsRemovedSuccess", { count: selectedProductIds.size }));
       setSelectedProductIds(new Set());
       loadData();

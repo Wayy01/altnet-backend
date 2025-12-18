@@ -11,6 +11,7 @@ import (
 	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"ultra-api-testing/internal/models"
 )
@@ -309,13 +310,18 @@ func (r *CatalogRepository) ReorderSections(ctx context.Context, orders []models
 	}
 
 	br := tx.SendBatch(ctx, batch)
-	defer br.Close()
 
 	// Execute all updates
 	for range orders {
 		if _, err := br.Exec(); err != nil {
+			br.Close()
 			return fmt.Errorf("reorder catalog sections: %w", err)
 		}
+	}
+
+	// Close batch results before commit (required by pgx)
+	if err := br.Close(); err != nil {
+		return fmt.Errorf("close batch results: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -685,13 +691,18 @@ func (r *CatalogRepository) ReorderGroups(ctx context.Context, orders []models.C
 	}
 
 	br := tx.SendBatch(ctx, batch)
-	defer br.Close()
 
 	// Execute all updates
 	for range orders {
 		if _, err := br.Exec(); err != nil {
+			br.Close()
 			return fmt.Errorf("reorder catalog groups: %w", err)
 		}
+	}
+
+	// Close batch results before commit (required by pgx)
+	if err := br.Close(); err != nil {
+		return fmt.Errorf("close batch results: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -943,13 +954,18 @@ func (r *CatalogRepository) ReorderItems(ctx context.Context, orders []models.Ca
 	}
 
 	br := tx.SendBatch(ctx, batch)
-	defer br.Close()
 
 	// Execute all updates
 	for range orders {
 		if _, err := br.Exec(); err != nil {
+			br.Close()
 			return fmt.Errorf("reorder catalog items: %w", err)
 		}
+	}
+
+	// Close batch results before commit (required by pgx)
+	if err := br.Close(); err != nil {
+		return fmt.Errorf("close batch results: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -993,15 +1009,32 @@ func (r *CatalogRepository) GetFullCatalog(ctx context.Context) ([]*models.Catal
 
 	for rows.Next() {
 		var section models.CatalogSection
-		var group models.CatalogGroup
-		var item models.CatalogItem
 
-		var groupID, itemID *uuid.UUID
+		// Nullable group fields (from LEFT JOIN - can be NULL when section has no groups)
+		var groupID, groupSectionID pgtype.UUID
+		var groupNameRo, groupNameRu, groupNameEn pgtype.Text
+		var groupColumnPosition, groupSortOrder pgtype.Int4
+		var groupFilterConfig *models.CatalogFilterConfig
+		var groupIsActive pgtype.Bool
+		var groupCreatedAt, groupUpdatedAt pgtype.Timestamptz
+
+		// Nullable item fields (from LEFT JOIN - can be NULL when group has no items)
+		var itemID, itemGroupID pgtype.UUID
+		var itemNameRo, itemNameRu, itemNameEn pgtype.Text
+		var itemSortOrder pgtype.Int4
+		var itemType pgtype.Text
+		var itemCategoryID pgtype.UUID
+		var itemFilterConfig *models.CatalogFilterConfig
+		var itemIsActive pgtype.Bool
+		var itemCreatedAt, itemUpdatedAt pgtype.Timestamptz
 
 		err := rows.Scan(
+			// Section fields (always present from main table)
 			&section.ID, &section.NameRo, &section.NameRu, &section.NameEn, &section.Icon, &section.Slug, &section.SortOrder, &section.IsActive, &section.CreatedAt, &section.UpdatedAt,
-			&groupID, &group.SectionID, &group.NameRo, &group.NameRu, &group.NameEn, &group.ColumnPosition, &group.SortOrder, &group.FilterConfig, &group.IsActive, &group.CreatedAt, &group.UpdatedAt,
-			&itemID, &item.GroupID, &item.NameRo, &item.NameRu, &item.NameEn, &item.SortOrder, &item.ItemType, &item.CategoryID, &item.FilterConfig, &item.IsActive, &item.CreatedAt, &item.UpdatedAt,
+			// Group fields (nullable from LEFT JOIN)
+			&groupID, &groupSectionID, &groupNameRo, &groupNameRu, &groupNameEn, &groupColumnPosition, &groupSortOrder, &groupFilterConfig, &groupIsActive, &groupCreatedAt, &groupUpdatedAt,
+			// Item fields (nullable from LEFT JOIN)
+			&itemID, &itemGroupID, &itemNameRo, &itemNameRu, &itemNameEn, &itemSortOrder, &itemType, &itemCategoryID, &itemFilterConfig, &itemIsActive, &itemCreatedAt, &itemUpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan full catalog row: %w", err)
@@ -1017,8 +1050,22 @@ func (r *CatalogRepository) GetFullCatalog(ctx context.Context) ([]*models.Catal
 		}
 
 		// Add group if exists and not already in map
-		if groupID != nil {
-			group.ID = *groupID
+		if groupID.Valid {
+			gid, _ := uuid.FromBytes(groupID.Bytes[:])
+			gsid, _ := uuid.FromBytes(groupSectionID.Bytes[:])
+			group := models.CatalogGroup{
+				ID:             gid,
+				SectionID:      gsid,
+				NameRo:         groupNameRo.String,
+				NameRu:         pgtypeTextToPtr(groupNameRu),
+				NameEn:         pgtypeTextToPtr(groupNameEn),
+				ColumnPosition: int(groupColumnPosition.Int32),
+				SortOrder:      int(groupSortOrder.Int32),
+				FilterConfig:   groupFilterConfig,
+				IsActive:       groupIsActive.Bool,
+				CreatedAt:      groupCreatedAt.Time,
+				UpdatedAt:      groupUpdatedAt.Time,
+			}
 			if _, exists := groupMap[group.ID]; !exists {
 				groupMap[group.ID] = &models.CatalogGroupWithItems{
 					CatalogGroup: group,
@@ -1028,8 +1075,23 @@ func (r *CatalogRepository) GetFullCatalog(ctx context.Context) ([]*models.Catal
 			}
 
 			// Add item if exists
-			if itemID != nil {
-				item.ID = *itemID
+			if itemID.Valid {
+				iid, _ := uuid.FromBytes(itemID.Bytes[:])
+				igid, _ := uuid.FromBytes(itemGroupID.Bytes[:])
+				item := models.CatalogItem{
+					ID:           iid,
+					GroupID:      igid,
+					NameRo:       itemNameRo.String,
+					NameRu:       pgtypeTextToPtr(itemNameRu),
+					NameEn:       pgtypeTextToPtr(itemNameEn),
+					SortOrder:    int(itemSortOrder.Int32),
+					ItemType:     itemType.String,
+					CategoryID:   pgtypeUUIDToPtr(itemCategoryID),
+					FilterConfig: itemFilterConfig,
+					IsActive:     itemIsActive.Bool,
+					CreatedAt:    itemCreatedAt.Time,
+					UpdatedAt:    itemUpdatedAt.Time,
+				}
 				// Find the group in the section and add the item
 				for i := range sectionMap[section.ID].Groups {
 					if sectionMap[section.ID].Groups[i].ID == group.ID {
@@ -1316,6 +1378,27 @@ func (r *CatalogRepository) generateUniqueSlugTx(ctx context.Context, tx pgx.Tx,
 			return fmt.Sprintf("%s-%d", slug.Make(baseSlug), time.Now().Unix())
 		}
 	}
+}
+
+// ============================================================================
+// PGTYPE CONVERSION HELPERS (for nullable LEFT JOIN columns)
+// ============================================================================
+
+// pgtypeTextToPtr converts pgtype.Text to *string
+func pgtypeTextToPtr(t pgtype.Text) *string {
+	if !t.Valid {
+		return nil
+	}
+	return &t.String
+}
+
+// pgtypeUUIDToPtr converts pgtype.UUID to *uuid.UUID
+func pgtypeUUIDToPtr(u pgtype.UUID) *uuid.UUID {
+	if !u.Valid {
+		return nil
+	}
+	id, _ := uuid.FromBytes(u.Bytes[:])
+	return &id
 }
 
 // ============================================================================

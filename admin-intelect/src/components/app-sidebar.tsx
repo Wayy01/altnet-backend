@@ -30,6 +30,7 @@ import {
   LayoutGrid,
   Wifi,
   ClipboardList,
+  ShoppingBag,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -95,6 +96,19 @@ export function AppSidebar() {
   const { language, setLanguage, currentLanguage } = useLanguage();
   const { t } = useTranslation("navigation");
   const { state } = useSidebar();
+  const [catalogOpen, setCatalogOpen] = useState(
+    pathname.startsWith("/products") ||
+    pathname.startsWith("/variants") ||
+    pathname.startsWith("/properties") ||
+    pathname.startsWith("/promotions") ||
+    pathname.startsWith("/brands") ||
+    pathname.startsWith("/categories") ||
+    pathname.startsWith("/catalog-builder")
+  );
+  const [commerceOpen, setCommerceOpen] = useState(
+    pathname.startsWith("/orders") ||
+    pathname.startsWith("/stores")
+  );
   const [syncOpen, setSyncOpen] = useState(pathname.startsWith("/sync"));
   const [syncAdvancedOpen, setSyncAdvancedOpen] = useState(
     pathname === "/sync/schedules" ||
@@ -119,7 +133,7 @@ export function AppSidebar() {
   }, []);
 
   /**
-   * Main navigation items with icons and routes
+   * Main navigation items - Dashboard only (standalone)
    */
   const mainMenuItems: NavItem[] = [
     {
@@ -128,17 +142,17 @@ export function AppSidebar() {
       icon: LayoutDashboard,
       descriptionKey: "descriptions.dashboard",
     },
+  ];
+
+  /**
+   * Catalog section items - Products, Variants, Properties, Promotions, Brands, Categories, Catalog Builder
+   */
+  const catalogMenuItems: NavItem[] = [
     {
       titleKey: "menu.products",
       url: "/products",
       icon: Package,
       descriptionKey: "descriptions.products",
-    },
-    {
-      titleKey: "menu.promotions",
-      url: "/promotions",
-      icon: Tag,
-      descriptionKey: "descriptions.promotions",
     },
     {
       titleKey: "menu.variants",
@@ -151,6 +165,12 @@ export function AppSidebar() {
       url: "/properties",
       icon: Database,
       descriptionKey: "descriptions.properties",
+    },
+    {
+      titleKey: "menu.promotions",
+      url: "/promotions",
+      icon: Tag,
+      descriptionKey: "descriptions.promotions",
     },
     {
       titleKey: "menu.brands",
@@ -170,12 +190,12 @@ export function AppSidebar() {
       icon: LayoutGrid,
       descriptionKey: "descriptions.catalogBuilder",
     },
-    {
-      titleKey: "menu.searchTest",
-      url: "/search-test",
-      icon: Search,
-      descriptionKey: "descriptions.searchTest",
-    },
+  ];
+
+  /**
+   * Commerce section items - Orders, Stores
+   */
+  const commerceMenuItems: NavItem[] = [
     {
       titleKey: "menu.orders",
       url: "/orders",
@@ -189,6 +209,16 @@ export function AppSidebar() {
       descriptionKey: "descriptions.stores",
     },
   ];
+
+  /**
+   * Standalone utility item - Search Test
+   */
+  const searchTestItem: NavItem = {
+    titleKey: "menu.searchTest",
+    url: "/search-test",
+    icon: Search,
+    descriptionKey: "descriptions.searchTest",
+  };
 
   /**
    * Sync operation items for the collapsible sync section
@@ -420,7 +450,201 @@ export function AppSidebar() {
             "mx-2 bg-sidebar-border/30 transition-all duration-300",
             isVisible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
           )}
+          style={{ transitionDelay: isVisible ? "200ms" : "0ms" }}
+        />
+
+        {/* Catalog Section - Products, Variants, Properties, Promotions, Brands, Categories, Catalog Builder */}
+        <SidebarGroup
+          className={cn(
+            "py-2 transition-all duration-300",
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          )}
+          style={{ transitionDelay: isVisible ? "250ms" : "0ms" }}
+        >
+          <Collapsible open={catalogOpen} onOpenChange={setCatalogOpen}>
+            <SidebarGroupLabel asChild className="px-2 mb-1">
+              <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-all duration-200 group/trigger hover:translate-x-0.5">
+                <span className="flex items-center gap-2">
+                  <ShoppingBag
+                    className={cn(
+                      "h-3.5 w-3.5 text-emerald-500 transition-all duration-200",
+                      catalogOpen && "scale-110"
+                    )}
+                  />
+                  {t("sections.catalog")}
+                </span>
+                <ChevronRight
+                  className={cn(
+                    "h-3.5 w-3.5 text-muted-foreground/50 transition-all duration-200 ease-out",
+                    "group-hover/trigger:text-muted-foreground group-hover/trigger:translate-x-0.5",
+                    catalogOpen && "rotate-90"
+                  )}
+                />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 duration-200">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {catalogMenuItems.map((item, index) => {
+                    const active = isActive(item.url);
+                    return (
+                      <SidebarMenuItem
+                        key={item.titleKey}
+                        className="animate-in fade-in-0 slide-in-from-left-1"
+                        style={{ animationDelay: `${index * 40}ms`, animationFillMode: "backwards" }}
+                      >
+                        <SidebarMenuButton
+                          asChild
+                          isActive={active}
+                          tooltip={isCollapsed ? t(item.titleKey) : undefined}
+                        >
+                          <Link href={item.url} className="group/link">
+                            <item.icon
+                              className={cn(
+                                "h-4 w-4 transition-all duration-200",
+                                active
+                                  ? "text-primary scale-110"
+                                  : "text-muted-foreground group-hover/link:text-foreground group-hover/link:scale-105"
+                              )}
+                            />
+                            <span className="font-medium">{t(item.titleKey)}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
+        <SidebarSeparator
+          className={cn(
+            "mx-2 bg-sidebar-border/30 transition-all duration-300",
+            isVisible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
+          )}
+          style={{ transitionDelay: isVisible ? "300ms" : "0ms" }}
+        />
+
+        {/* Commerce Section - Orders, Stores */}
+        <SidebarGroup
+          className={cn(
+            "py-2 transition-all duration-300",
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          )}
           style={{ transitionDelay: isVisible ? "350ms" : "0ms" }}
+        >
+          <Collapsible open={commerceOpen} onOpenChange={setCommerceOpen}>
+            <SidebarGroupLabel asChild className="px-2 mb-1">
+              <CollapsibleTrigger className="flex w-full items-center justify-between cursor-pointer hover:text-foreground transition-all duration-200 group/trigger hover:translate-x-0.5">
+                <span className="flex items-center gap-2">
+                  <Store
+                    className={cn(
+                      "h-3.5 w-3.5 text-blue-500 transition-all duration-200",
+                      commerceOpen && "scale-110"
+                    )}
+                  />
+                  {t("sections.commerce")}
+                </span>
+                <ChevronRight
+                  className={cn(
+                    "h-3.5 w-3.5 text-muted-foreground/50 transition-all duration-200 ease-out",
+                    "group-hover/trigger:text-muted-foreground group-hover/trigger:translate-x-0.5",
+                    commerceOpen && "rotate-90"
+                  )}
+                />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 duration-200">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {commerceMenuItems.map((item, index) => {
+                    const active = isActive(item.url);
+                    return (
+                      <SidebarMenuItem
+                        key={item.titleKey}
+                        className="animate-in fade-in-0 slide-in-from-left-1"
+                        style={{ animationDelay: `${index * 40}ms`, animationFillMode: "backwards" }}
+                      >
+                        <SidebarMenuButton
+                          asChild
+                          isActive={active}
+                          tooltip={isCollapsed ? t(item.titleKey) : undefined}
+                        >
+                          <Link href={item.url} className="group/link">
+                            <item.icon
+                              className={cn(
+                                "h-4 w-4 transition-all duration-200",
+                                active
+                                  ? "text-primary scale-110"
+                                  : "text-muted-foreground group-hover/link:text-foreground group-hover/link:scale-105"
+                              )}
+                            />
+                            <span className="font-medium">{t(item.titleKey)}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </SidebarGroup>
+
+        <SidebarSeparator
+          className={cn(
+            "mx-2 bg-sidebar-border/30 transition-all duration-300",
+            isVisible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
+          )}
+          style={{ transitionDelay: isVisible ? "400ms" : "0ms" }}
+        />
+
+        {/* Search Test - Standalone utility item */}
+        <SidebarGroup
+          className={cn(
+            "py-2 transition-all duration-300",
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          )}
+          style={{ transitionDelay: isVisible ? "450ms" : "0ms" }}
+        >
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem
+                className={cn(
+                  "transition-all duration-300",
+                  isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                )}
+              >
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive(searchTestItem.url)}
+                  tooltip={isCollapsed ? t(searchTestItem.titleKey) : undefined}
+                >
+                  <Link href={searchTestItem.url} className="group/link">
+                    <searchTestItem.icon
+                      className={cn(
+                        "h-4 w-4 transition-all duration-200",
+                        isActive(searchTestItem.url)
+                          ? "text-primary scale-110"
+                          : "text-muted-foreground group-hover/link:text-foreground group-hover/link:scale-105"
+                      )}
+                    />
+                    <span className="font-medium">{t(searchTestItem.titleKey)}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator
+          className={cn(
+            "mx-2 bg-sidebar-border/30 transition-all duration-300",
+            isVisible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
+          )}
+          style={{ transitionDelay: isVisible ? "500ms" : "0ms" }}
         />
 
         {/* Sync Operations - Collapsible with enhanced visual feedback */}
@@ -429,7 +653,7 @@ export function AppSidebar() {
             "py-2 transition-all duration-300",
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
-          style={{ transitionDelay: isVisible ? "400ms" : "0ms" }}
+          style={{ transitionDelay: isVisible ? "550ms" : "0ms" }}
         >
           <Collapsible open={syncOpen} onOpenChange={setSyncOpen}>
             <SidebarGroupLabel asChild className="px-2 mb-1">
@@ -551,7 +775,7 @@ export function AppSidebar() {
             "mx-2 bg-sidebar-border/30 transition-all duration-300",
             isVisible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
           )}
-          style={{ transitionDelay: isVisible ? "450ms" : "0ms" }}
+          style={{ transitionDelay: isVisible ? "600ms" : "0ms" }}
         />
 
         {/* Create New Section - Collapsible with premium feel */}
@@ -560,7 +784,7 @@ export function AppSidebar() {
             "py-2 transition-all duration-300",
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
-          style={{ transitionDelay: isVisible ? "500ms" : "0ms" }}
+          style={{ transitionDelay: isVisible ? "650ms" : "0ms" }}
         >
           <Collapsible open={createOpen} onOpenChange={setCreateOpen}>
             <SidebarGroupLabel asChild className="px-2 mb-1">
@@ -625,7 +849,7 @@ export function AppSidebar() {
             "mx-2 bg-sidebar-border/30 transition-all duration-300",
             isVisible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
           )}
-          style={{ transitionDelay: isVisible ? "550ms" : "0ms" }}
+          style={{ transitionDelay: isVisible ? "700ms" : "0ms" }}
         />
 
         {/* Services Section - Collapsible with WiFi accent */}
@@ -634,7 +858,7 @@ export function AppSidebar() {
             "py-2 transition-all duration-300",
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
-          style={{ transitionDelay: isVisible ? "600ms" : "0ms" }}
+          style={{ transitionDelay: isVisible ? "750ms" : "0ms" }}
         >
           <Collapsible open={servicesOpen} onOpenChange={setServicesOpen}>
             <SidebarGroupLabel asChild className="px-2 mb-1">
@@ -699,7 +923,7 @@ export function AppSidebar() {
             "mx-2 bg-sidebar-border/30 transition-all duration-300",
             isVisible ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
           )}
-          style={{ transitionDelay: isVisible ? "650ms" : "0ms" }}
+          style={{ transitionDelay: isVisible ? "800ms" : "0ms" }}
         />
 
         {/* Translations Section - Collapsible with blue accent */}
@@ -708,7 +932,7 @@ export function AppSidebar() {
             "py-2 transition-all duration-300",
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
           )}
-          style={{ transitionDelay: isVisible ? "700ms" : "0ms" }}
+          style={{ transitionDelay: isVisible ? "850ms" : "0ms" }}
         >
           <Collapsible open={translateOpen} onOpenChange={setTranslateOpen}>
             <SidebarGroupLabel asChild className="px-2 mb-1">
@@ -776,7 +1000,7 @@ export function AppSidebar() {
           "transition-all duration-300",
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         )}
-        style={{ transitionDelay: isVisible ? "750ms" : "0ms" }}
+        style={{ transitionDelay: isVisible ? "900ms" : "0ms" }}
       >
         <SidebarMenu>
           {/* Language and Currency Selectors - Enhanced with smooth hover transitions */}

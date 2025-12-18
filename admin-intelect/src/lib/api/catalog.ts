@@ -154,7 +154,7 @@ export async function reorderCatalogSections(
     `/api/v1/admin/catalog/sections/reorder`,
     {
       method: "PATCH",
-      body: JSON.stringify({ orders }),
+      body: JSON.stringify({ items: orders }),
     }
   );
 }
@@ -249,7 +249,7 @@ export async function reorderCatalogGroups(
     `/api/v1/admin/catalog/groups/reorder`,
     {
       method: "PATCH",
-      body: JSON.stringify({ orders }),
+      body: JSON.stringify({ items: orders }),
     }
   );
 }
@@ -331,7 +331,7 @@ export async function reorderCatalogItems(
     `/api/v1/admin/catalog/items/reorder`,
     {
       method: "PATCH",
-      body: JSON.stringify({ orders }),
+      body: JSON.stringify({ items: orders }),
     }
   );
 }

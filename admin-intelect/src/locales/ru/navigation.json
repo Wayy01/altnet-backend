@@ -17,6 +17,8 @@
   },
   "sections": {
     "navigation": "Навигация",
+    "catalog": "Каталог",
+    "commerce": "Продажи",
     "syncOperations": "Операции синхронизации",
     "createNew": "Создать",
     "translations": "Переводы",

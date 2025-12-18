@@ -54,10 +54,29 @@ func NewGenerator(repo *Repository, ollamaClient *ollama.Client) *Generator {
 func (g *Generator) StartGeneration(ctx context.Context, clearExisting bool) (*models.VariantGenerationJob, error) {
 	g.mu.Lock()
 
-	// Check if already running
+	// Check if already running (with database sync to handle stale in-memory state)
 	if g.activeJob != nil && g.activeJob.Status == models.VariantJobStatusRunning {
-		g.mu.Unlock()
-		return nil, fmt.Errorf("variant generation already in progress (job ID: %s)", g.activeJob.ID)
+		// Verify the job is actually still running in the database
+		dbJob, err := g.repo.GetJob(ctx, g.activeJob.ID)
+		if err != nil {
+			log.Printf("Generator: Failed to verify active job status: %v", err)
+		}
+		if dbJob == nil || dbJob.Status != models.VariantJobStatusRunning {
+			// Database says job is not running - clear stale in-memory state
+			log.Printf("Generator: Clearing stale in-memory job state (job %s is %s in DB)",
+				g.activeJob.ID, func() string {
+					if dbJob == nil {
+						return "not found"
+					}
+					return dbJob.Status
+				}())
+			g.activeJob = nil
+			g.activeContext = nil
+			g.cancelFunc = nil
+		} else {
+			g.mu.Unlock()
+			return nil, fmt.Errorf("variant generation already in progress (job ID: %s)", g.activeJob.ID)
+		}
 	}
 
 	// Check database for running jobs

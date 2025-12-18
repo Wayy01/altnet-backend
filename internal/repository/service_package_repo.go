@@ -107,6 +107,43 @@ func (r *ServicePackageTypeRepository) GetByID(ctx context.Context, id uuid.UUID
 	return packageType, nil
 }
 
+// GetBySlug retrieves a service package type by its slug
+func (r *ServicePackageTypeRepository) GetBySlug(ctx context.Context, slug string) (*models.ServicePackageType, error) {
+	query := `
+		SELECT id, name, name_ru, name_ro, slug, sort_order, is_active, created_at, updated_at
+		FROM service_package_types WHERE slug = $1 AND is_active = true
+	`
+
+	packageType := &models.ServicePackageType{}
+	err := r.pool.QueryRow(ctx, query, slug).Scan(
+		&packageType.ID, &packageType.Name, &packageType.NameRu, &packageType.NameRo,
+		&packageType.Slug, &packageType.SortOrder, &packageType.IsActive,
+		&packageType.CreatedAt, &packageType.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrServicePackageTypeNotFound
+		}
+		return nil, fmt.Errorf("get service package type by slug: %w", err)
+	}
+
+	return packageType, nil
+}
+
+// GetIDBySlug retrieves just the ID of a service package type by its slug
+func (r *ServicePackageTypeRepository) GetIDBySlug(ctx context.Context, slug string) (*uuid.UUID, error) {
+	query := `SELECT id FROM service_package_types WHERE slug = $1 AND is_active = true`
+	var id uuid.UUID
+	err := r.pool.QueryRow(ctx, query, slug).Scan(&id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrServicePackageTypeNotFound
+		}
+		return nil, fmt.Errorf("get service package type id by slug: %w", err)
+	}
+	return &id, nil
+}
+
 func (r *ServicePackageTypeRepository) List(ctx context.Context, filters *models.ServicePackageTypeFilters, limit, offset int) ([]*models.ServicePackageType, error) {
 	query := `SELECT id, name, name_ru, name_ro, slug, sort_order, is_active, created_at, updated_at FROM service_package_types`
 

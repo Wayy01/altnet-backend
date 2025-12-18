@@ -20,6 +20,7 @@ type VariantPropertyConfig struct {
 // AllowedVariantProperties defines the ONLY properties that can be used for variants
 // These are matched by property_name only from the properties table (group is ignored)
 var AllowedVariantProperties = []VariantPropertyConfig{
+	// English/Russian properties
 	{
 		PropertyName: "Colour Name | Название Расцветки",
 		DisplayName:  "Color",
@@ -30,6 +31,19 @@ var AllowedVariantProperties = []VariantPropertyConfig{
 	},
 	{
 		PropertyName: "RAM Size",
+		DisplayName:  "RAM",
+	},
+	// Romanian properties
+	{
+		PropertyName: "Culoare",
+		DisplayName:  "Color",
+	},
+	{
+		PropertyName: "Stocare",
+		DisplayName:  "Storage",
+	},
+	{
+		PropertyName: "Memorie RAM",
 		DisplayName:  "RAM",
 	},
 }
@@ -159,19 +173,36 @@ func (a *PropertyAnalyzer) BuildVariantMatrix(
 		variantPropNames[vp.PropertyName] = true
 	}
 
-	// Build columns only for allowed variant properties
-	columns := make([]models.VariantMatrixColumn, 0)
+	// Build columns only for allowed variant properties - deduplicate by display name
+	// Multiple properties can map to the same display name (e.g., "RAM Size" and "Memorie RAM" both → "RAM")
+	columnsByDisplayName := make(map[string]*models.VariantMatrixColumn)
 	for _, config := range AllowedVariantProperties {
 		// Match by property name only - group is ignored
 		values := a.getDistinctValuesForProperty(products, properties, config.PropertyName)
-		isVariant := len(values) > 1
 
-		columns = append(columns, models.VariantMatrixColumn{
-			PropertyName:  config.DisplayName,
-			DistinctCount: len(values),
-			Values:        values,
-			IsVariant:     isVariant,
-		})
+		if existing, ok := columnsByDisplayName[config.DisplayName]; ok {
+			// Merge values into existing column (avoid duplicates)
+			for _, v := range values {
+				if !stringSliceContains(existing.Values, v) {
+					existing.Values = append(existing.Values, v)
+				}
+			}
+			existing.DistinctCount = len(existing.Values)
+			existing.IsVariant = existing.DistinctCount > 1
+		} else {
+			columnsByDisplayName[config.DisplayName] = &models.VariantMatrixColumn{
+				PropertyName:  config.DisplayName,
+				DistinctCount: len(values),
+				Values:        values,
+				IsVariant:     len(values) > 1,
+			}
+		}
+	}
+
+	// Convert map to slice
+	columns := make([]models.VariantMatrixColumn, 0, len(columnsByDisplayName))
+	for _, col := range columnsByDisplayName {
+		columns = append(columns, *col)
 	}
 
 	// Sort columns: variants first, then by property name
@@ -221,4 +252,14 @@ func normalizePropertyValue(value string) string {
 
 	// Could add more normalization here if needed
 	return result
+}
+
+// stringSliceContains checks if a string slice contains a specific value
+func stringSliceContains(slice []string, value string) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }

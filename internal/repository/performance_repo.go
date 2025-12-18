@@ -194,16 +194,22 @@ func (r *PerformanceRepository) GetMetricsWithFilter(ctx context.Context, filter
 func (r *PerformanceRepository) GetAggregations(ctx context.Context, groupBy string, startDate, endDate time.Time) ([]*models.PerformanceAggregation, error) {
 	var query string
 	var groupColumn string
+	var safeGroupBy string
 
+	// SECURITY: Whitelist allowed groupBy values to prevent SQL injection
 	switch groupBy {
 	case "step":
 		groupColumn = "COALESCE(step_number::text, 'overall')"
+		safeGroupBy = "step"
 	case "day":
 		groupColumn = "DATE(recorded_at)::text"
+		safeGroupBy = "day"
 	case "metric_name":
 		groupColumn = "metric_name"
+		safeGroupBy = "metric_name"
 	default:
 		groupColumn = "metric_name"
+		safeGroupBy = "metric_name"
 	}
 
 	query = fmt.Sprintf(`
@@ -221,7 +227,7 @@ func (r *PerformanceRepository) GetAggregations(ctx context.Context, groupBy str
 		WHERE recorded_at >= $1 AND recorded_at <= $2
 		GROUP BY %s
 		ORDER BY %s
-	`, groupBy, groupColumn, groupColumn, groupColumn)
+	`, safeGroupBy, groupColumn, groupColumn, groupColumn)
 
 	rows, err := r.pool.Query(ctx, query, startDate, endDate)
 	if err != nil {

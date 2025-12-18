@@ -325,6 +325,37 @@ func (r *Repository) GetBrandByUltraID(ctx context.Context, ultraID string) (*mo
 	return &brand, nil
 }
 
+// GetBrandBySlug retrieves an active brand by its slug (for public API)
+func (r *Repository) GetBrandBySlug(ctx context.Context, slug string) (*models.Brand, error) {
+	query := `
+		SELECT id, ultra_id, code, name, slug, logo_url, is_active, created_at, updated_at
+		FROM brands
+		WHERE slug = $1 AND is_active = true
+	`
+
+	var brand models.Brand
+	err := r.pool.QueryRow(ctx, query, slug).Scan(
+		&brand.ID, &brand.UltraID, &brand.Code, &brand.Name, &brand.Slug,
+		&brand.LogoURL, &brand.IsActive, &brand.CreatedAt, &brand.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &brand, nil
+}
+
+// GetBrandIDBySlug returns the brand UUID for a given slug (for filtering)
+func (r *Repository) GetBrandIDBySlug(ctx context.Context, slug string) (*uuid.UUID, error) {
+	query := `SELECT id FROM brands WHERE slug = $1 AND is_active = true`
+	var id uuid.UUID
+	err := r.pool.QueryRow(ctx, query, slug).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
+}
+
 func (r *Repository) ListBrands(ctx context.Context, limit, offset int) ([]*models.Brand, error) {
 	return r.ListBrandsWithSearch(ctx, "", "", "", "", limit, offset)
 }
@@ -702,6 +733,40 @@ func (r *Repository) GetCategoryByUltraID(ctx context.Context, ultraID string) (
 	}
 
 	return &category, nil
+}
+
+// GetCategoryBySlug retrieves an active category by its slug (for public API)
+func (r *Repository) GetCategoryBySlug(ctx context.Context, slug string) (*models.Category, error) {
+	query := `
+		SELECT id, ultra_id, code, parent_id, parent_ultra_id, name, slug, sort_order,
+		       image_url, product_count, is_active, created_at, updated_at, name_ru, name_ro
+		FROM categories
+		WHERE slug = $1 AND is_active = true
+	`
+
+	var category models.Category
+	err := r.pool.QueryRow(ctx, query, slug).Scan(
+		&category.ID, &category.UltraID, &category.Code, &category.ParentID,
+		&category.ParentUltraID, &category.Name, &category.Slug, &category.SortOrder,
+		&category.ImageURL, &category.ProductCount, &category.IsActive,
+		&category.CreatedAt, &category.UpdatedAt, &category.NameRU, &category.NameRO,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &category, nil
+}
+
+// GetCategoryIDBySlug returns the category UUID for a given slug (for filtering)
+func (r *Repository) GetCategoryIDBySlug(ctx context.Context, slug string) (*uuid.UUID, error) {
+	query := `SELECT id FROM categories WHERE slug = $1 AND is_active = true`
+	var id uuid.UUID
+	err := r.pool.QueryRow(ctx, query, slug).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
 }
 
 func (r *Repository) ListCategories(ctx context.Context, parentID *uuid.UUID, limit, offset int) ([]*models.Category, error) {
@@ -1560,6 +1625,43 @@ func (r *Repository) GetProductByUltraID(ctx context.Context, ultraID string) (*
 	return &product, nil
 }
 
+// GetProductBySlug retrieves an active product by its slug with brand/category names (for public API)
+func (r *Repository) GetProductBySlug(ctx context.Context, slug string) (*models.Product, error) {
+	query := `
+		SELECT p.id, p.ultra_id, p.code, p.article, p.name, p.slug, p.description, p.brand_id, p.category_id,
+		       p.parent_id, p.source_id, p.main_image_url, p.images, p.warranty, p.barcodes,
+		       p.price_min, p.price_max, p.total_stock, p.is_in_stock,
+		       p.is_active, p.is_service, p.created_at, p.updated_at,
+		       p.prices, p.price_mdl, p.price_eur, p.price_usd,
+		       p.manual_discount_percent,
+		       p.name_ru, p.name_ro,
+		       b.name AS brand_name, c.name AS category_name, s.name AS source_name
+		FROM products p
+		LEFT JOIN brands b ON p.brand_id = b.id
+		LEFT JOIN categories c ON p.category_id = c.id
+		LEFT JOIN product_sources s ON p.source_id = s.id
+		WHERE p.slug = $1 AND p.is_active = true
+	`
+
+	var product models.Product
+	err := r.pool.QueryRow(ctx, query, slug).Scan(
+		&product.ID, &product.UltraID, &product.Code, &product.Article, &product.Name,
+		&product.Slug, &product.Description, &product.BrandID, &product.CategoryID,
+		&product.ParentID, &product.SourceID, &product.MainImageURL, &product.Images, &product.Warranty, &product.Barcodes,
+		&product.PriceMin, &product.PriceMax, &product.TotalStock, &product.IsInStock,
+		&product.IsActive, &product.IsService, &product.CreatedAt, &product.UpdatedAt,
+		&product.Prices, &product.PriceMDL, &product.PriceEUR, &product.PriceUSD,
+		&product.ManualDiscountPercent,
+		&product.NameRU, &product.NameRO,
+		&product.BrandName, &product.CategoryName, &product.SourceName,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &product, nil
+}
+
 // GetProductsByUltraIDs retrieves multiple products by their Ultra IDs in a single batch query
 // This method prevents N+1 query problems by fetching all products at once
 func (r *Repository) GetProductsByUltraIDs(ctx context.Context, ultraIDs []string) ([]models.Product, error) {
@@ -1610,7 +1712,9 @@ func (r *Repository) GetProductsByUltraIDs(ctx context.Context, ultraIDs []strin
 // ProductFilter holds filter parameters for product queries
 type ProductFilter struct {
 	BrandID      *uuid.UUID
+	BrandSlug    string // Filter by brand slug (for public API)
 	CategoryID   *uuid.UUID
+	CategorySlug string // Filter by category slug (for public API)
 	SourceID     *uuid.UUID
 	InStock      *bool
 	MinPrice     *float64
@@ -1621,6 +1725,7 @@ type ProductFilter struct {
 	StockFilter  string // "all", "in_stock", "out_stock", "low_stock"
 	StatusFilter string // "all", "active", "inactive"
 	SortBy       string // "name_asc", "name_desc", "price_high", "price_low", "stock_high", "stock_low"
+	Properties   map[string]string // Filter by property name → value (only is_filter=true properties)
 }
 
 func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, limit, offset int) ([]*models.Product, error) {
@@ -1644,6 +1749,22 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 	argPos := 1
 
 	if filter != nil {
+		// Resolve brand slug to ID if provided (for public API)
+		if filter.BrandSlug != "" && filter.BrandID == nil {
+			brandID, err := r.GetBrandIDBySlug(ctx, filter.BrandSlug)
+			if err == nil && brandID != nil {
+				filter.BrandID = brandID
+			}
+		}
+
+		// Resolve category slug to ID if provided (for public API)
+		if filter.CategorySlug != "" && filter.CategoryID == nil {
+			categoryID, err := r.GetCategoryIDBySlug(ctx, filter.CategorySlug)
+			if err == nil && categoryID != nil {
+				filter.CategoryID = categoryID
+			}
+		}
+
 		// Search filter
 		if filter.Search != "" {
 			query += fmt.Sprintf(" AND (p.name ILIKE $%d OR p.description ILIKE $%d OR p.code ILIKE $%d)", argPos, argPos, argPos)
@@ -1714,6 +1835,17 @@ func (r *Repository) ListProducts(ctx context.Context, filter *ProductFilter, li
 			query += fmt.Sprintf(" AND p.is_active = $%d", argPos)
 			args = append(args, filter.IsActive)
 			argPos++
+		}
+
+		// Property-based filtering (only is_filter=true properties)
+		if len(filter.Properties) > 0 {
+			for propName, propValue := range filter.Properties {
+				if propName != "" && propValue != "" {
+					query += fmt.Sprintf(" AND p.id IN (SELECT product_id FROM properties WHERE property_name = $%d AND value = $%d AND is_filter = true)", argPos, argPos+1)
+					args = append(args, propName, propValue)
+					argPos += 2
+				}
+			}
 		}
 	}
 
@@ -2403,6 +2535,84 @@ func (r *Repository) GetProductProperties(ctx context.Context, productID uuid.UU
 	}
 
 	return properties, nil
+}
+
+// FilterableProperty represents a property that can be used for filtering
+type FilterableProperty struct {
+	PropertyName   string   `json:"property_name"`
+	PropertyNameRU *string  `json:"property_name_ru,omitempty"`
+	PropertyNameRO *string  `json:"property_name_ro,omitempty"`
+	Values         []string `json:"values"`
+	ProductCount   int      `json:"product_count"`
+}
+
+// GetFilterableProperties returns properties with is_filter=true and their distinct values
+// Can optionally filter by category_id to get only relevant properties
+func (r *Repository) GetFilterableProperties(ctx context.Context, categoryID *uuid.UUID) ([]*FilterableProperty, error) {
+	var query string
+	var args []interface{}
+
+	if categoryID != nil {
+		query = `
+			SELECT
+				pr.property_name,
+				pr.property_name_ru,
+				pr.property_name_ro,
+				ARRAY_AGG(DISTINCT pr.value ORDER BY pr.value) AS values,
+				COUNT(DISTINCT pr.product_id) AS product_count
+			FROM properties pr
+			JOIN products p ON pr.product_id = p.id
+			WHERE pr.is_filter = true
+			  AND pr.value IS NOT NULL
+			  AND pr.value != ''
+			  AND p.category_id = $1
+			  AND p.is_active = true
+			GROUP BY pr.property_name, pr.property_name_ru, pr.property_name_ro
+			ORDER BY product_count DESC, pr.property_name ASC
+		`
+		args = append(args, categoryID)
+	} else {
+		query = `
+			SELECT
+				pr.property_name,
+				pr.property_name_ru,
+				pr.property_name_ro,
+				ARRAY_AGG(DISTINCT pr.value ORDER BY pr.value) AS values,
+				COUNT(DISTINCT pr.product_id) AS product_count
+			FROM properties pr
+			JOIN products p ON pr.product_id = p.id
+			WHERE pr.is_filter = true
+			  AND pr.value IS NOT NULL
+			  AND pr.value != ''
+			  AND p.is_active = true
+			GROUP BY pr.property_name, pr.property_name_ru, pr.property_name_ro
+			ORDER BY product_count DESC, pr.property_name ASC
+		`
+	}
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	filters := make([]*FilterableProperty, 0)
+	for rows.Next() {
+		var fp FilterableProperty
+		err := rows.Scan(
+			&fp.PropertyName,
+			&fp.PropertyNameRU,
+			&fp.PropertyNameRO,
+			&fp.Values,
+			&fp.ProductCount,
+		)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, &fp)
+	}
+
+	return filters, nil
 }
 
 // PropertyFilter represents filtering options for properties

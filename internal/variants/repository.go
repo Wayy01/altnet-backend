@@ -774,45 +774,59 @@ func (r *Repository) GetVariantGroupIDForProduct(ctx context.Context, productID 
 	return &groupID, nil
 }
 
-// VariantPropertyNames defines the exact property names used for variant differentiation
+// variantPropertyMapping maps property names (all languages) to their field name
 // These match the properties in AllowedVariantProperties from analyzer.go
-const (
-	PropNameColor   = "Colour Name | Название Расцветки"
-	PropNameStorage = "Internal Storage {GB}"
-	PropNameRAM     = "RAM Size"
-)
+var variantPropertyMapping = map[string]string{
+	// Color properties (English/Russian and Romanian)
+	"Colour Name | Название Расцветки": "color",
+	"Culoare": "color",
+	// Storage properties (English and Romanian)
+	"Internal Storage {GB}": "storage",
+	"Stocare":               "storage",
+	// RAM properties (English and Romanian)
+	"RAM Size":    "ram",
+	"Memorie RAM": "ram",
+}
 
 // GetVariantPropertiesForProducts retrieves the 3 key variant properties (Color, Storage, RAM)
 // for a list of product IDs. Returns a map of product ID -> VariantPropertiesInfo.
+// Supports all language variants of property names (English, Russian, Romanian).
 func (r *Repository) GetVariantPropertiesForProducts(ctx context.Context, productIDs []uuid.UUID) (map[uuid.UUID]*models.VariantPropertiesInfo, error) {
 	if len(productIDs) == 0 {
 		return make(map[uuid.UUID]*models.VariantPropertiesInfo), nil
 	}
 
-	// Build placeholders for IN clause
-	placeholders := make([]string, len(productIDs))
-	args := make([]interface{}, len(productIDs)+3)
-	for i, id := range productIDs {
-		placeholders[i] = fmt.Sprintf("$%d", i+1)
-		args[i] = id
+	// Get all property names from the mapping
+	allPropNames := make([]string, 0, len(variantPropertyMapping))
+	for name := range variantPropertyMapping {
+		allPropNames = append(allPropNames, name)
 	}
 
-	// Add the property names as the last 3 parameters
-	propNameStart := len(productIDs)
-	args[propNameStart] = PropNameColor
-	args[propNameStart+1] = PropNameStorage
-	args[propNameStart+2] = PropNameRAM
+	// Build placeholders for product IDs
+	productPlaceholders := make([]string, len(productIDs))
+	args := make([]interface{}, 0, len(productIDs)+len(allPropNames))
+	for i, id := range productIDs {
+		productPlaceholders[i] = fmt.Sprintf("$%d", i+1)
+		args = append(args, id)
+	}
 
-	// Query only the 3 variant properties for efficiency
+	// Build placeholders for property names
+	propPlaceholders := make([]string, len(allPropNames))
+	for i, name := range allPropNames {
+		propPlaceholders[i] = fmt.Sprintf("$%d", len(productIDs)+i+1)
+		args = append(args, name)
+	}
+
+	// Query all variant properties (all language variants)
 	query := fmt.Sprintf(`
 		SELECT product_id, property_name, value
 		FROM properties
 		WHERE product_id IN (%s)
-		  AND property_name IN ($%d, $%d, $%d)
+		  AND property_name IN (%s)
 		  AND value IS NOT NULL
 		  AND value != ''
 		ORDER BY product_id
-	`, strings.Join(placeholders, ","), propNameStart+1, propNameStart+2, propNameStart+3)
+	`, strings.Join(productPlaceholders, ","), strings.Join(propPlaceholders, ","))
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
@@ -844,13 +858,14 @@ func (r *Repository) GetVariantPropertiesForProducts(ctx context.Context, produc
 			result[productID] = info
 		}
 
-		// Map property name to the appropriate field
-		switch propertyName {
-		case PropNameColor:
+		// Map property name to the appropriate field using the mapping
+		fieldName := variantPropertyMapping[propertyName]
+		switch fieldName {
+		case "color":
 			info.Color = &value
-		case PropNameStorage:
+		case "storage":
 			info.Storage = &value
-		case PropNameRAM:
+		case "ram":
 			info.RAM = &value
 		}
 	}

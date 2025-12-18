@@ -181,9 +181,7 @@ export function ProductSelector({
 
     try {
       setAdding(true);
-      await api.addProductsToPromotion(promotionId, {
-        product_ids: Array.from(selectedIds),
-      });
+      await api.addProductsToPromotion(promotionId, Array.from(selectedIds));
       toast.success(t("toast.productsAddedSuccess", { count: selectedIds.size }));
       setSelectedIds(new Set());
       onProductsAdded();
@@ -224,7 +222,7 @@ export function ProductSelector({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>{t("productSelector.title")}</DialogTitle>
           <DialogDescription>

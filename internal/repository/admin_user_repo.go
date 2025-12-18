@@ -166,3 +166,71 @@ func (r *AdminUserRepository) Authenticate(ctx context.Context, username, passwo
 
 	return user, nil
 }
+
+// List returns all admin users
+func (r *AdminUserRepository) List(ctx context.Context) ([]*models.AdminUser, error) {
+	query := `
+		SELECT id, username, password_hash, created_at, updated_at
+		FROM admin_users
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("list admin users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []*models.AdminUser
+	for rows.Next() {
+		user := &models.AdminUser{}
+		if err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.PasswordHash,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan admin user: %w", err)
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate admin users: %w", err)
+	}
+
+	return users, nil
+}
+
+// Delete removes an admin user by username
+func (r *AdminUserRepository) Delete(ctx context.Context, username string) error {
+	query := `DELETE FROM admin_users WHERE username = $1`
+
+	result, err := r.pool.Exec(ctx, query, username)
+	if err != nil {
+		return fmt.Errorf("delete admin user: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrAdminUserNotFound
+	}
+
+	return nil
+}
+
+// DeleteByID removes an admin user by ID
+func (r *AdminUserRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM admin_users WHERE id = $1`
+
+	result, err := r.pool.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("delete admin user by id: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrAdminUserNotFound
+	}
+
+	return nil
+}

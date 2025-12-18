@@ -203,7 +203,9 @@
     "active": "Activ",
     "activeDesc": "Produsul va fi vizibil in catalog",
     "service": "Serviciu",
-    "serviceDesc": "Marcheaza ca serviciu in loc de produs fizic"
+    "serviceDesc": "Marcheaza ca serviciu in loc de produs fizic",
+    "manualDiscount": "Reducere manuală (%)",
+    "manualDiscountHint": "Setează un procent de reducere manuală (0-100) care se aplică acestui produs"
   },
   "properties": {
     "title": "Proprietati produs",

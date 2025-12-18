@@ -17,6 +17,8 @@
   },
   "sections": {
     "navigation": "Navigare",
+    "catalog": "Catalog",
+    "commerce": "Comenzi",
     "syncOperations": "Operatiuni de sincronizare",
     "createNew": "Nou",
     "translations": "Traduceri",

@@ -17,6 +17,8 @@
   },
   "sections": {
     "navigation": "Navigation",
+    "catalog": "Catalog",
+    "commerce": "Commerce",
     "syncOperations": "Sync Operations",
     "createNew": "New",
     "translations": "Translations",

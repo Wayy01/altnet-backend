@@ -79,11 +79,12 @@ export default function EditPromotionPage({ params }: EditPromotionPageProps) {
     if (!promotionId) return;
 
     let cancelled = false;
+    const id = promotionId; // Capture for closure
 
     async function loadPromotion() {
       try {
         setIsLoading(true);
-        const promotion = await api.getPromotion(promotionId);
+        const promotion = await api.getPromotion(id);
 
         if (cancelled) return;
 

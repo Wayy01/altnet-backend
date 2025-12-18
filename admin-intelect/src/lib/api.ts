@@ -1258,9 +1258,11 @@ class ApiClient {
     formData.append("file", file);
 
     const url = `${this.baseUrl}/api/v1/upload/image`;
+    const token = this.getToken();
     const response = await fetch(url, {
       method: "POST",
       body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
 
     if (!response.ok) {
@@ -1285,9 +1287,11 @@ class ApiClient {
     formData.append("file", file);
 
     const url = `${this.baseUrl}/api/v1/upload/video`;
+    const token = this.getToken();
     const response = await fetch(url, {
       method: "POST",
       body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
 
     if (!response.ok) {
@@ -1314,9 +1318,11 @@ class ApiClient {
     });
 
     const url = `${this.baseUrl}/api/v1/upload/images`;
+    const token = this.getToken();
     const response = await fetch(url, {
       method: "POST",
       body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
 
     if (!response.ok) {
@@ -1397,7 +1403,7 @@ class ApiClient {
   async getPropertyGroupOptionsWithLocalization(): Promise<PropertyGroup[]> {
     try {
       const response = await this.getPropertyGroups(1000, 0);
-      return response.data;
+      return response.data ?? [];
     } catch {
       return [];
     }

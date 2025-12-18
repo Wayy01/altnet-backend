@@ -51,8 +51,8 @@ func (r *PromotionRepository) CreatePromotion(ctx context.Context, input *models
 		input.Description,
 		input.DiscountType,
 		input.DiscountValue,
-		input.StartDate,
-		input.EndDate,
+		input.StartDate.Time,
+		input.EndDate.Time,
 		input.IsActive,
 		input.Priority,
 	).Scan(
@@ -139,8 +139,8 @@ func (r *PromotionRepository) UpdatePromotion(ctx context.Context, id uuid.UUID,
 		input.Description,
 		input.DiscountType,
 		input.DiscountValue,
-		input.StartDate,
-		input.EndDate,
+		input.StartDate.Time,
+		input.EndDate.Time,
 		input.IsActive,
 		input.Priority,
 		id,
@@ -686,7 +686,7 @@ func (r *PromotionRepository) validatePromotionInput(input *models.PromotionInpu
 	}
 
 	// Validate date range
-	if input.StartDate.After(input.EndDate) || input.StartDate.Equal(input.EndDate) {
+	if input.StartDate.Time.After(input.EndDate.Time) || input.StartDate.Time.Equal(input.EndDate.Time) {
 		return ErrInvalidDateRange
 	}
 
