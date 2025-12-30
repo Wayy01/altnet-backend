@@ -48,6 +48,7 @@
     "customer": "Client",
     "phone": "Telefon",
     "email": "Email",
+    "address": "Adresă",
     "company": "Companie",
     "message": "Mesaj",
     "package": "Pachet",
@@ -133,6 +134,7 @@
     "search": "Căutare după nume, telefon, email...",
     "allTypes": "Toate Tipurile",
     "allStatuses": "Toate Statusurile",
+    "allPackages": "Toate Pachetele",
     "clearFilters": "Șterge Filtre",
     "filtered": "filtrat"
   },

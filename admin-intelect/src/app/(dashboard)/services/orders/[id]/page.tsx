@@ -104,7 +104,7 @@ export default function ServiceOrderDetailPage() {
       const data = await api.getServiceOrder(orderId);
       setOrder(data);
       setSelectedStatus("");
-      setAdminNotes(data.admin_notes || "");
+      setAdminNotes(data.notes || "");
       setError(null);
     } catch (err) {
       console.error("Failed to fetch order:", err);
@@ -139,7 +139,7 @@ export default function ServiceOrderDetailPage() {
 
     setIsUpdating(true);
     try {
-      await api.updateServiceOrder(order.id, { admin_notes: adminNotes || null });
+      await api.updateServiceOrder(order.id, { notes: adminNotes || null });
       toast.success(t("toast.updated"));
       fetchOrder();
     } catch (error) {
@@ -263,7 +263,7 @@ export default function ServiceOrderDetailPage() {
               <Label className="text-xs text-muted-foreground">{t("orders.customer")}</Label>
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{order.full_name}</span>
+                <span className="font-medium">{order.customer_name}</span>
               </div>
             </div>
             <Separator />
@@ -271,45 +271,33 @@ export default function ServiceOrderDetailPage() {
               <Label className="text-xs text-muted-foreground">{t("orders.phone")}</Label>
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <a href={`tel:${order.phone_number}`} className="font-medium hover:underline">
-                  {order.phone_number}
+                <a href={`tel:${order.customer_phone}`} className="font-medium hover:underline">
+                  {order.customer_phone}
                 </a>
               </div>
             </div>
-            {order.email && (
+            {order.customer_email && (
               <>
                 <Separator />
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">{t("orders.email")}</Label>
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <a href={`mailto:${order.email}`} className="font-medium hover:underline">
-                      {order.email}
+                    <a href={`mailto:${order.customer_email}`} className="font-medium hover:underline">
+                      {order.customer_email}
                     </a>
                   </div>
                 </div>
               </>
             )}
-            {order.company_name && (
+            {order.customer_address && (
               <>
                 <Separator />
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">{t("orders.company")}</Label>
+                  <Label className="text-xs text-muted-foreground">{t("orders.address")}</Label>
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{order.company_name}</span>
-                  </div>
-                </div>
-              </>
-            )}
-            {order.message && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">{t("orders.message")}</Label>
-                  <div className="flex items-start gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <p className="text-sm">{order.message}</p>
+                    <span className="font-medium">{order.customer_address}</span>
                   </div>
                 </div>
               </>

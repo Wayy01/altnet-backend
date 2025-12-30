@@ -48,6 +48,7 @@
     "customer": "Клиент",
     "phone": "Телефон",
     "email": "Email",
+    "address": "Адрес",
     "company": "Компания",
     "message": "Сообщение",
     "package": "Пакет",
@@ -133,6 +134,7 @@
     "search": "Поиск по имени, телефону, email...",
     "allTypes": "Все Типы",
     "allStatuses": "Все Статусы",
+    "allPackages": "Все Пакеты",
     "clearFilters": "Очистить Фильтры",
     "filtered": "отфильтровано"
   },

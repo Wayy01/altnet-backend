@@ -48,6 +48,7 @@
     "customer": "Customer",
     "phone": "Phone",
     "email": "Email",
+    "address": "Address",
     "company": "Company",
     "message": "Message",
     "package": "Package",
@@ -133,6 +134,7 @@
     "search": "Search by name, phone, email...",
     "allTypes": "All Types",
     "allStatuses": "All Statuses",
+    "allPackages": "All Packages",
     "clearFilters": "Clear Filters",
     "filtered": "filtered"
   },
